@@ -1,0 +1,33 @@
+import React from "react";
+import Login from "./screens/Login";
+import Menu from "./screens/Menu";
+import Seccion from "./screens/Seccion";
+import Pelicula from "./screens/Pelicula";
+import Serie from "./screens/Serie";
+import Reproductor from "./screens/Reproductor";
+import { StatusBar } from "react-native";
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Provider } from "react-redux";
+import store from "./services/redux/store";
+
+const Stack = createNativeStackNavigator();
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {/*<Stack.Screen name="Login" component={Login} />*/}
+          <Stack.Screen name="Menu" component={Menu} />
+          <Stack.Screen name="Seccion" component={Seccion} />
+          <Stack.Screen name="Pelicula" component={Pelicula} />
+          <Stack.Screen name="Serie" component={Serie} />
+          <Stack.Screen name="Reproductor" component={Reproductor}/>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
+  );
+}
+
+export default App;
