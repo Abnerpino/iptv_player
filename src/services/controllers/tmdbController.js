@@ -54,8 +54,7 @@ class TMDBController {
                 return Promise.all(matchPromises).then((results) => results.find((info) => info !== null) || null);
             })
             .catch((error) => {
-                console.log("Error al encontrar la serie: ", error);
-                return null;
+                throw new Error(`Error en TMDB: ${error.message || error}`);
             });
     }
     

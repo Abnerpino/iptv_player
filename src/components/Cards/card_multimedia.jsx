@@ -4,25 +4,10 @@ import M3UController from '../../services/controllers/m3uController';
 
 const m3uController = new M3UController;
 
-const CardMultimedia = ({ navigation, tipo, fondo }) => {
+const CardMultimedia = ({ navigation, tipo, fondo, data }) => {
     const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)'); //Estado para manejar el color del botón de actualizar contenido
-    const [data, setData] = useState({ categories: [], content: [] }); // Estado para manejar la información de contenido y categorias
     const categorias = data.categories;
     const contenido = data.content;
-
-    useEffect(() => {
-        let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
-
-        m3uController.handleGetDataByType(tipo)
-            .then(([categories, content]) => {
-                if (isMounted) {
-                    setData({ categories, content });
-                }
-            })
-            .catch(error => console.log("Error al obtener datos:", error));
-
-        return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
-    }, []); // Se ejecuta solo cuando se monta el componente
 
     const imagen =
         tipo === 'TV'

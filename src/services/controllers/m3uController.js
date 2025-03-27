@@ -1,4 +1,3 @@
-import { useState } from "react";
 import TMDBController from "./tmdbController";
 import Categorias from "../models/categorias";
 
@@ -64,7 +63,6 @@ class M3UController {
             // Extrae el contenido de acuerdo al tipo (live, movies, series)
             const contentType = urlParts.find(part => ['live', 'movie', 'series'].includes(part));
             if (contentType === 'live') {
-              console.log(name[1]);
               live.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
@@ -72,7 +70,6 @@ class M3UController {
                 link: streamUrl || ''
               });
             } else if (contentType === 'movie') {
-              console.log(name[1]);
               movie.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
@@ -86,7 +83,6 @@ class M3UController {
               const seriePromise = tmdbController.findSerie(title.name, title.year, title.season, title.episode, still)
                 .then((info) => {
                   if (info) {
-                    console.log(info);
                    return {
                       id: info.id || '',
                       'tvg-name': `${title.name} (${title.year})` || '',
@@ -97,13 +93,15 @@ class M3UController {
                   }
                   return null;
                 })
-                .catch((error) => console.error("Error en la búsqueda:", error));
+                .catch((error) => {
+                  throw new Error(`Error en la búsqueda de serie: ${error.message || error}`);
+                });
 
               seriesPromises.push(seriePromise);
             }
           }
         }
-        //console.log(seriesPromises);
+        
         return Promise.all(seriesPromises).then(seriesResults  => {
           const series = seriesResults.filter(s => s !== null);
           return [live, movie, series];
@@ -127,38 +125,51 @@ class M3UController {
       return path.substring(ultimoSlash); // Extrae desde esa posición hasta el final
     }
 
-    handleGetDataByType = (tipoMultimedia) => {
+    handleGetDataByType = () => {
       return this.parseM3U().then(([live, movie, series]) => {
-          let categories = [];
-          let content = [];
-  
-          if (tipoMultimedia === 'TV') {
-              categories = categorias.tv;
-              content = live;
-          } else if (tipoMultimedia === 'Cine') {
-              categories = categorias.cine;
-              content = movie;
-          } else {
-              categories = categorias.series;
-              content = series;
+          let categoria = [];
+          let contenido = [];
+
+          for (i = 0; i <= 2; i++) {
+            let categories = [];
+            let content = [];
+          
+            switch (i) {
+              case 0:
+                categories = categorias.tv;
+                content = live;
+                break;
+              case 1:
+                categories = categorias.cine;
+                content = movie;
+                break;
+              case 2:
+                categories = categorias.series;
+                content = series;
+                break;
+            }
+    
+            categories.forEach(categorie => { // Para cada categoría...
+                let cont = 0; // Variable para contar la cantidad de elementos en cada categoría
+                if (categorie.name !== 'TODO') { // Si la categoría no es "TODO"
+                    content.forEach(contenido => { // Para cada elemento en contenido...
+                        if (categorie.name === contenido['group-title']) {
+                            cont++;
+                        }
+                    });
+                } else {
+                    cont = content.length; // Si es "TODO", se obtiene el total de elementos
+                }
+                categorie.count = cont; // Actualiza el conteo en la categoría
+            });
+
+            categoria.push(categories);
+            contenido.push(content);
           }
-  
-          categories.forEach(categoria => { // Para cada categoría...
-              let cont = 0; // Variable para contar la cantidad de elementos en cada categoría
-              if (categoria.name !== 'TODO') { // Si la categoría no es "TODO"
-                  content.forEach(contenido => { // Para cada elemento en contenido...
-                      if (categoria.name === contenido['group-title']) {
-                          cont++;                        }
-                  });
-              } else {
-                  cont = content.length; // Si es "TODO", se obtiene el total de elementos
-              }
-              categoria.count = cont; // Actualiza el conteo en la categoría
-          });
-  
-          return [categories, content]; // Retorna un arreglo con las categorías y contenido
+
+          return [categoria, contenido]; // Retorna un arreglo con las categorías y contenido
       }).catch(error => {
-          console.log("Error al obtener el contenido: ", error);
+          console.error("Error crítico al obtener los datos:", error.message || error);
           return [[], []]; // Devuelve arrays vacíos en caso de error
       });
     };

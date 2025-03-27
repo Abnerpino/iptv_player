@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import CardMultimedia from '../../components/Cards/card_multimedia';
+import M3UController from '../../services/controllers/m3uController';
+
+const m3uController = new M3UController;
 
 const Menu = ({ navigation, route }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [data, setData] = useState({ categories: [], content: [] }); // Estado para manejar la información de todo el contenido y todas las categorias
+    
+    useEffect(() => {
+        let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
+
+        m3uController.handleGetDataByType()
+            .then(([categories, content]) => {
+                if (isMounted) {
+                    setData({ categories, content });
+                }
+            })
+            .catch(error => console.log("Error al obtener datos:", error));
+
+        return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
+    }, []); // Se ejecuta solo cuando se monta el componente
 
     useEffect(() => {
         // Función para actualizar la fecha y hora
@@ -24,6 +42,24 @@ const Menu = ({ navigation, route }) => {
         return () => clearInterval(intervalId);
     }, []);
     
+    const getMultimediaByType = (type) => {
+        let cats = [];
+        let cont = [];
+
+        if (type === 'TV') {
+            cats = data.categories[0];
+            cont = data.content[0];
+        } else if (type === 'Cine') {
+            cats = data.categories[1];
+            cont = data.content[1];
+        } else {
+            cats = data.categories[2];
+            cont = data.content[2];
+        }
+
+        return {categories: cats, content: cont}
+    };
+
     const optionsDate = {
         year: 'numeric',
         month: 'long', // '2-digit' para mes numérico
@@ -58,6 +94,7 @@ const Menu = ({ navigation, route }) => {
                         navigation={navigation}
                         tipo={multimedia.tipo}
                         fondo={multimedia.fondo}
+                        data={getMultimediaByType(multimedia.tipo)}
                     />
                 ))}
             </View>
