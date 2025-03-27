@@ -20,33 +20,45 @@ class TMDBController {
     }
 
     //Busca una serie usando la propiedad still_path de algun episodio de alguna temporada
-    async findSerie(title, year, season, episode, still) {
+    findSerie(title, year, season, episode, still) {
         const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
-
-        try {
-            //Se buscan series que coincidan con el nombre y año
-            const searchResponse = await fetch(searchUrl);
-            const searchData = await searchResponse.json();
-            //Se itera sobre cada resultado buscando el primer episodio de la primera temporada 
-            for (const result of searchData.results) {
-                const matchUrl = `https://api.themoviedb.org/3/tv/${result.id}/season/${season}/episode/${episode}?api_key=${apiKey}&language=es-MX`;
-                const matchResponse = await fetch(matchUrl);
-                const matchData = await matchResponse.json();
-
-                //Se compara el valor de la propiedad still_path
-                if (still === matchData.still_path) {
-                    const infoUrl = `https://api.themoviedb.org/3/tv/${result.id}?api_key=${apiKey}&language=es-MX`;
-                    const infoResponse = await fetch(infoUrl);
-                    const infoData = await infoResponse.json();
-                    return infoData; // Devuelve la información de la serie que coincide
-                }
-            }
-
-            return null; // Si no se encuentra ninguna coincidencia
-        } catch (error) {
-            console.log('Error al encontrar la serie: ', error);
-        }
+    
+        return fetch(searchUrl)
+            .then((searchResponse) => searchResponse.json())
+            .then((searchData) => {
+                // Iterar sobre cada resultado buscando el primer episodio de la primera temporada
+                let matchPromises = searchData.results.map((result) => {
+                    const matchUrl = `https://api.themoviedb.org/3/tv/${result.id}/season/${season}/episode/${episode}?api_key=${apiKey}&language=es-MX`;
+                    
+                    return fetch(matchUrl)
+                        .then((matchResponse) => matchResponse.json())
+                        .then((matchData) => {
+                            if (still === matchData.still_path) {
+                                const infoUrl = `https://api.themoviedb.org/3/tv/${result.id}?api_key=${apiKey}&language=es-MX`;
+                                return fetch(infoUrl)
+                                .then((infoResponse) => infoResponse.json())
+                                .then((infoData) => ({
+                                    id: infoData.id,
+                                    poster_path: infoData.poster_path
+                                }));
+                            }
+                            return null; // No coincide
+                        })
+                        .catch((error) => {
+                            console.log("Error al obtener episodio:", error);
+                            return null;
+                        });
+                });
+    
+                // Retornar la primera promesa que tenga un resultado válido
+                return Promise.all(matchPromises).then((results) => results.find((info) => info !== null) || null);
+            })
+            .catch((error) => {
+                console.log("Error al encontrar la serie: ", error);
+                return null;
+            });
     }
+    
 
     //Se buscan los detalles de la pelicula por su id
     async getDetailsMovie(id) {

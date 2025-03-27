@@ -1,12 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
+import M3UController from '../../services/controllers/m3uController';
 
-const CardMultimedia = ({ navigation, tipo, fondo, data }) => {
-    //Estado para manejar el color del botón de actualizar contenido
-    const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)');
-    const categorias = data[0];
-    //console.log(data[1]);
-    const contenido = data[1];
+const m3uController = new M3UController;
+
+const CardMultimedia = ({ navigation, tipo, fondo }) => {
+    const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)'); //Estado para manejar el color del botón de actualizar contenido
+    const [data, setData] = useState({ categories: [], content: [] }); // Estado para manejar la información de contenido y categorias
+    const categorias = data.categories;
+    const contenido = data.content;
+
+    useEffect(() => {
+        let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
+
+        m3uController.handleGetDataByType(tipo)
+            .then(([categories, content]) => {
+                if (isMounted) {
+                    setData({ categories, content });
+                }
+            })
+            .catch(error => console.log("Error al obtener datos:", error));
+
+        return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
+    }, []); // Se ejecuta solo cuando se monta el componente
 
     const imagen =
         tipo === 'TV'

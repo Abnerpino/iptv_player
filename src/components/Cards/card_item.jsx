@@ -43,7 +43,7 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo }) => {
 
     return (
         <TouchableOpacity style={{ margin: '1%', width: '18%', height: tipo === 'TV' ? 100 : 160 }} onPress={handleNavigateToScreen}>
-            <Image source={{ uri: imagen }} resizeMode={tipo === 'TV' ? "cover" : "contain"} style={{ width: '100%', height: '100%', borderRadius: 5, }} />
+            <Image source={{ uri: tipo === 'Series' ? `https://image.tmdb.org/t/p/original${imagen}` : imagen }} resizeMode={tipo === 'TV' ? "cover" : "contain"} style={{ width: '100%', height: '100%', borderRadius: 5, }} />
             <View style={{
                 position: 'absolute',
                 bottom: 0, // Posiciona el texto en la parte inferior
