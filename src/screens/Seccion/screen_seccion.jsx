@@ -59,6 +59,7 @@ const Seccion = ({ navigation, route }) => {
                         renderItem={({ item }) => (
                             <CardItem
                                 navigation={navigation}
+                                id={item.id}
                                 imagen={item['tvg-logo']}
                                 titulo={item['tvg-name']}
                                 link={item.link}

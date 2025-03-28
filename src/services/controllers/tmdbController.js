@@ -9,7 +9,7 @@ class TMDBController {
             //Se buscan peliculas que coincidan con el nombre
             const searchResponse = await fetch(searchUrl);
             const searchData = await searchResponse.json();
-            //if (data.results.lenght > 0) {}
+            
             const info = searchData.results.find(result => poster === result.poster_path); //Se selecciona la que coincida con el poster
             const detalles = await this.getDetailsMovie(info.id); //Obtiene solo los detalles necesarios
             const creditos = await this.getCreditsMovie(info.id); //Obtiene solo los creditos necesarios
@@ -36,11 +36,11 @@ class TMDBController {
                             if (still === matchData.still_path) {
                                 const infoUrl = `https://api.themoviedb.org/3/tv/${result.id}?api_key=${apiKey}&language=es-MX`;
                                 return fetch(infoUrl)
-                                .then((infoResponse) => infoResponse.json())
-                                .then((infoData) => ({
-                                    id: infoData.id,
-                                    poster_path: infoData.poster_path
-                                }));
+                                    .then((infoResponse) => infoResponse.json())
+                                    .then((infoData) => ({
+                                        id: infoData.id,
+                                        poster_path: infoData.poster_path
+                                    }));
                             }
                             return null; // No coincide
                         })
@@ -58,6 +58,20 @@ class TMDBController {
             });
     }
     
+    async getInfoSerie(id) {
+        const infoSerie = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
+
+        return fetch(infoSerie)
+            .then((infoResponse) => infoResponse.json())
+            .then((infoData) => ({
+                name: infoData.name,
+                poster_path: infoData.poster_path,
+                first_air_date: infoData.first_air_date,
+                genres: infoData.genres,
+                vote_average: infoData.vote_average,
+                overview: infoData.overview
+            }));
+    }
 
     //Se buscan los detalles de la pelicula por su id
     async getDetailsMovie(id) {
@@ -71,7 +85,7 @@ class TMDBController {
                 id: detailsData.id,
                 original_title: detailsData.original_title,
                 overview: detailsData.overview,
-                release_date: detailsData.release_date,
+                first_air_date: detailsData.first_air_date,
                 runtime: detailsData.runtime,
                 vote_average: detailsData.vote_average,
                 genres: detailsData.genres.map(genre => genre.name)

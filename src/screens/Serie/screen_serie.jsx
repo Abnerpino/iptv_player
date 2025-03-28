@@ -16,8 +16,12 @@ const Serie = ({ navigation, route }) => {
     };
 
     const getDate = (date) => {
-        const fecha = date ? date : 'N/A';
-        return fecha;
+        const fecha = new Date(date);
+        const day = fecha.getDate().toString().padStart(2, '0');
+        const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        const year = fecha.getFullYear();
+        const newDate = date ? `${day}/${month}/${year}` : 'N/A';
+        return newDate;
     };
 
     const convertDuration = (minutes) => {
@@ -31,7 +35,7 @@ const Serie = ({ navigation, route }) => {
     };
 
     const getGenres = (genres) => {
-        const genero = genres ? genres.join(' / ') : 'N/A';
+        const genero = genres ? genres.map(genre => genre.name).join('/') : 'N/A';
         return genero;
     };
 
@@ -59,7 +63,7 @@ const Serie = ({ navigation, route }) => {
                 paddingVertical: 10
             }}>
                 {/* Fila con textos */}
-                <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{details.name}</Text>
+                <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{title}</Text>
             </View>
 
             {/* ScrollView para contenido desplazable */}
@@ -80,8 +84,8 @@ const Serie = ({ navigation, route }) => {
                             
                         </View>
                         <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75, paddingRight: '28%', }}>
-                            <Text style={styles.text}>{getDate(details.first_air_date)}</Text>
-                            {/*<Text style={[styles.text, { backgroundColor: '#262637', paddingHorizontal: 10, borderRadius: 5 }]}>{25/*convertDuration(details.runtime)}</Text>*/}
+                            <Text style={styles.text}>{getDate(`${details.first_air_date}T06:00:00.000Z`)}</Text>
+                            {/*<Text style={[styles.text, { backgroundColor: '#262637', paddingHorizontal: 10, borderRadius: 5 }]}>En el exilio</Text>*/}
                             <Text style={styles.text}>{getGenres(details.genres)}</Text>
                             <StarRating rating={getCalification(details.vote_average)}/>
                             <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{getDescription(details.overview)}</Text>
@@ -89,7 +93,7 @@ const Serie = ({ navigation, route }) => {
                         </View>
                     </View>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', }}>
                     <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={{
                         width: '15%',
                         alignSelf: 'center',

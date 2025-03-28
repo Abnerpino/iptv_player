@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import TMDBController from "../../services/controllers/tmdbController";
 
-const CardItem = ({ navigation, imagen, titulo, link, tipo }) => {
-    const tmdbController = new TMDBController;
+const tmdbController = new TMDBController;
 
+const CardItem = ({ navigation, imagen, titulo, link, tipo, id }) => {
     const handleNavigateToScreen = async () => {
         if (tipo === 'TV') {
             navigation.navigate('Reproductor', { link });
@@ -15,25 +15,9 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo }) => {
             navigation.navigate('Pelicula', { imagen, titulo, info, link });
         }
         else {
-            const title = separateTitle(titulo);
-            console.log(title);
-            const stillPath = getPosterPath(imagen);
-            const info = await tmdbController.findSerie(title.name, title.season, title.episode, stillPath);
-            console.log(info.poster_path);
-            navigation.navigate('Serie', { imagen, titulo, info, link });
+            const info = await tmdbController.getInfoSerie(id);
+            navigation.navigate('Serie', { imagen, titulo, info, link, id });
         }
-    }
-
-    function separateTitle(info) {
-        const regex = /(.*?)\s\((\d{4})\)\sS(\d+)\sE(\d+)/;
-        const match = info.match(regex);
-
-        return { // Retorna por separado la información
-            name: match[1],   // Nombre de la serie
-            year: match[2],   // Año de estreno
-            season: match[3], // Número de temporada
-            episode: match[4] // Número de episodio
-        };
     }
 
     function getPosterPath(url) {
