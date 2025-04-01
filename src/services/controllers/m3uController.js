@@ -5,7 +5,8 @@ const tmdbController = new TMDBController;
 const categorias = new Categorias();
 
 const m3uContent = 
-`#EXTINF:-1 tvg-id="Animal Planet.co" tvg-name="ANIMAL PLANET" tvg-logo="https://i.postimg.cc/V5QhtwSL/Sin-t-tulo-44-removebg-preview.png" group-title="CULTURA",ANIMAL PLANET
+`#EXTM3U
+#EXTINF:-1 tvg-id="Animal Planet.co" tvg-name="ANIMAL PLANET" tvg-logo="https://i.postimg.cc/V5QhtwSL/Sin-t-tulo-44-removebg-preview.png" group-title="CULTURA",ANIMAL PLANET
 http://teerom.site:8080/live/PinoFederico/Pino150601/6105.m3u8
 #EXTINF:-1 tvg-id="DISCOVERY SCIENCE" tvg-name="DISCOVERY SCIENCE (exclusivo HD)" tvg-logo="https://i.postimg.cc/vBdQdPHS/Sin-t-tulo-57-removebg-preview.png" group-title="CULTURA",DISCOVERY SCIENCE (exclusivo HD)
 http://teerom.site:8080/live/PinoFederico/Pino150601/6115.m3u8
@@ -33,10 +34,14 @@ http://teerom.site:8080/movie/PinoFederico/Pino150601/683009.mkv
 http://teerom.site:8080/series/PinoFederico/Pino150601/747373.mp4
 #EXTINF:-1 tvg-id="" tvg-name="Viva el rey Julien (2017) S1 E1" tvg-logo="https://image.tmdb.org/t/p/w400/aqpj9winukvS76b4r3jXzOIJnHc.jpg" group-title="SERIES NETFLIX",Viva el rey Julien (2017) S1 E1
 http://teerom.site:8080/series/PinoFederico/Pino150601/770378.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Viva el rey Julien (2017) S1 E2" tvg-logo="https://image.tmdb.org/t/p/w400/8sgzS33QSIBBDCHmK0phBOpDnvF.jpg" group-title="SERIES NETFLIX",Viva el rey Julien (2017) S1 E2
+http://teerom.site:8080/series/PinoFederico/Pino150601/770376.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Modern Love (2019) S2 E6" tvg-logo="https://image.tmdb.org/t/p/w1280/ounMQqutcC5pemP088YNnMlARZS.jpg" group-title="SERIES AMAZON",Modern Love (2019) S2 E6
 http://teerom.site:8080/series/PinoFederico/Pino150601/391044.mp4
 #EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S5 E98" tvg-logo="https://image.tmdb.org/t/p/w400/kTIeFqVRR8U78XG433ZkGVjohO3.jpg" group-title="ANIME",Naruto Shippuden (2007) S5 E98
 http://teerom.site:8080/series/PinoFederico/Pino150601/748511.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S5 E101" tvg-logo="https://image.tmdb.org/t/p/w400/fqCAShbd8A5DVwYO09494gj8VmF.jpg" group-title="ANIME",Naruto Shippuden (2007) S5 E101
+http://teerom.site:8080/series/PinoFederico/Pino150601/748514.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Harina (2022) S2 E8" tvg-logo="https://image.tmdb.org/t/p/w400/tXzuiWlK9sEwp7HiaJSjy6Dz8aM.jpg" group-title="SERIES AMAZON",Harina (2022) S2 E8
 http://teerom.site:8080/series/PinoFederico/Pino150601/733669.mkv
 #EXTINF:-1 tvg-id="" tvg-name="The Serpent Queen (2022) S1 E7" tvg-logo="https://image.tmdb.org/t/p/w400/c4ToXTSf9eBkpV6dLYuZ21aj3NS.jpg" group-title="SERIES STARZ",The Serpent Queen (2022) S1 E7
@@ -46,49 +51,83 @@ http://teerom.site:8080/series/PinoFederico/Pino150601/732941.mkv`;
 
 class M3UController {
     parseM3U = () => {
-        const lines = m3uContent.split('\n').map(line => line.trim()); // Eliminar espacios en blanco
-        let live = [];
-        let movie = [];
-        let seriesPromises = [];
+        let live = []; //Arreglo para guardar los canales en vivo
+        let movie = []; //Arreglo para guardar las peliculas
+        let seriesPromises = []; //Arreglo para guardar las series de cada promesa
+        let sameSerie = ''; //Guarda el titulo (nombre y año) de una Serie para evitar consultas repetidas
+        let i = 1; //Inicializamos en 1 el indice principal porque la primera linea (indice 0) solo contiene #EXTM3U, ¡INICIAR EN 0 SI LA PRIMERA LINEA DE SU LISTA INICIA DIRECTAMENTE CON #EXTINF!
+        let isSameSerie = true; //Bandera para verificar cuando una Serie sea repetida
+        const lines = m3uContent.split('\n').map(line => line.trim()); // Genera un arreglo con todas las lineas de la lista M3U
       
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
+        while (i < lines.length) { //Mientras el indice sea menor que la cantidad de lineas de la lista
+          const currentLine = lines[i]; //Obtiene la linea actual con base en el indice
           
-          if (line.startsWith('#EXTINF')) {
-            const name = line.match(/tvg-name="([^"]+)"/); // Obtiene la información de la etiqueta tvg-name
-            const logo = line.match(/tvg-logo="([^"]+)"/);; // Obtiene la información de la etiqueta tvg-logo
-            const group = line.match(/group-title="([^"]+)"/);; // Obtiene la información de la etiqueta group-title
+          if (currentLine.startsWith('#EXTINF')) { //Si la linea comienza con #EXTINF significa que es una linea que contiene información del contenido
+            const name = currentLine.match(/tvg-name="([^"]+)"/); // Obtiene la información de la etiqueta tvg-name
+            const logo = currentLine.match(/tvg-logo="([^"]+)"/);; // Obtiene la información de la etiqueta tvg-logo
+            const group = currentLine.match(/group-title="([^"]+)"/);; // Obtiene la información de la etiqueta group-title
             const streamUrl = lines[i + 1];  // La URL del stream está en la siguiente línea
-            const urlParts = streamUrl.split('/');
-            // Extrae el contenido de acuerdo al tipo (live, movies, series)
-            const contentType = urlParts.find(part => ['live', 'movie', 'series'].includes(part));
-            if (contentType === 'live') {
+            const urlParts = streamUrl.split('/'); //Divide la url cada vez que hay un /
+            const contentType = urlParts.find(part => ['live', 'movie', 'series'].includes(part)); // Extrae el contenido de acuerdo al tipo (live, movies, series)
+            
+            if (contentType === 'live') { //Si el tipo de contenido es live, significa que son canales en vivo
               live.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
                 'group-title': group[1] || '',
                 link: streamUrl || ''
               });
-            } else if (contentType === 'movie') {
+            } else if (contentType === 'movie') { //Si el tipo de contenido es movie, significa que son peliculas
               movie.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
                 'group-title': group[1] || '',
                 link: streamUrl || ''
               });
-            } else {
+            } else { //Si el tipo de contenido no es ni live ni movie, significa que son series
               const title = this.separateTitle(name[1]);
-              const still = this.getStillPath(logo[1]);
 
-              const seriePromise = tmdbController.findSerie(title.name, title.year, title.season, title.episode, still)
+              if (`${title.name} (${title.year})` !== sameSerie) { //Evita hacer la consulta si la información corresponde a la misma Serie
+                sameSerie = `${title.name} (${title.year})`;
+                const still = this.getStillPath(logo[1]);
+                const chapters = []; //Arreglo para guardar todos los capitulos de una Serie
+                let j = i; //Inicializa el indice secundario (j) con el mismo valor del indice principal (i)
+
+                while ((j < lines.length) && (isSameSerie === true )) { //Recorre todas las lineas a partir de donde inicia una Seríe hasta que inicia otra
+                  if (lines[j].startsWith('#EXTINF')) { //Si la linea tiene información válida...
+                    const auxName = lines[j].match(/tvg-name="([^"]+)"/);
+                    const auxTitle = this.separateTitle(auxName[1]);
+                    if (`${auxTitle.name} (${auxTitle.year})` === sameSerie) { //Si la información corresponde a la misma Serie...
+                      const auxLogo = lines[j].match(/tvg-logo="([^"]+)"/);
+                      const auxStreamUrl = lines[j + 1];
+                      
+                      const chapter = { //Objeto que guarda la información de un capitulo de una Serie
+                        numero: auxTitle.episode,
+                        temporada: auxTitle.season,
+                        poster: auxLogo[1],
+                        link: auxStreamUrl
+                      };
+
+                      chapters.push(chapter); //Agrega cada capitulo de una Serie
+                    } else { //Si la información no corresponde a la misma Serie...
+                      isSameSerie = false; //Hacemos falsa la bandera para salir del while
+                      j = j - 2; //Decrementamos el contador para evitar que cuando se haga el incremento al final de la iteración, se permanezca en la misma linea en la que se cambió la Serie
+                    }
+                  }
+                  j = j + 2; //Incrementamos el contador para avanzar a la siguiente linea
+                }
+
+                //Consulta para obtener la información de una Serie mediante el nombre, año, temporada, capitulo y poster
+                const seriePromise = tmdbController.findSerie(title.name, title.year, title.season, title.episode, still)
                 .then((info) => {
-                  if (info) {
-                   return {
+                  if (info) { //Si devuelve información...
+                    return {
                       id: info.id || '',
                       'tvg-name': `${title.name} (${title.year})` || '',
                       'tvg-logo': info.poster_path,
                       'group-title': group[1] || '',
-                      link: streamUrl || ''
+                      link: streamUrl || '',
+                      capitulos: chapters
                     };
                   }
                   return null;
@@ -96,9 +135,16 @@ class M3UController {
                 .catch((error) => {
                   throw new Error(`Error en la búsqueda de serie: ${error.message || error}`);
                 });
-
-              seriesPromises.push(seriePromise);
+                
+                seriesPromises.push(seriePromise); //Agrega cada promesa, la cual contiene una serie
+                i = j; //Con esta asignación, el indice principal se brinca hasta donde comienza la siguiente Serie
+              }
             }
+          }
+          if (isSameSerie === false) {
+            isSameSerie = true; //Restablecemos la bandera a su valor original 
+          } else {
+            i = i + 2; //Incrementamos el indice para analizar la siguiente linea con información (nos brincamos directamente las lineas que solo tienen la URL del stream), esto solo se aplica para live y movie
           }
         }
         

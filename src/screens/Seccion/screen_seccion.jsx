@@ -63,6 +63,7 @@ const Seccion = ({ navigation, route }) => {
                                 imagen={item['tvg-logo']}
                                 titulo={item['tvg-name']}
                                 link={item.link}
+                                capitulos={item.capitulos}
                                 tipo={type}
                             />
                         )}

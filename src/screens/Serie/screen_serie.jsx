@@ -8,6 +8,8 @@ const Serie = ({ navigation, route }) => {
     const poster = route.params.imagen;
     const details = route.params.info;
     const link = route.params.link;
+    const chapters = route.params.capitulos;
+    console.log(chapters);
     //const credits = route.params.info[1];
 
     const getDirector = (dir) => {

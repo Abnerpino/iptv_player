@@ -3,7 +3,7 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardItem = ({ navigation, imagen, titulo, link, tipo, id }) => {
+const CardItem = ({ navigation, imagen, titulo, link, tipo, id, capitulos }) => {
     const handleNavigateToScreen = async () => {
         if (tipo === 'TV') {
             navigation.navigate('Reproductor', { link });
@@ -16,7 +16,7 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo, id }) => {
         }
         else {
             const info = await tmdbController.getInfoSerie(id);
-            navigation.navigate('Serie', { imagen, titulo, info, link, id });
+            navigation.navigate('Serie', { imagen, titulo, info, link, id, capitulos });
         }
     }
 
