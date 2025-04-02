@@ -9,11 +9,6 @@ const Pelicula = ({ navigation, route }) => {
     const details = route.params.info[0];
     const credits = route.params.info[1];
     const link = route.params.link;
-    
-    const getOriginalTitle = (origTitle) => {
-        const titOrigin = origTitle ?origTitle : 'N/A';
-        return titOrigin;
-    };
 
     const getDate = (date) => {
         const fecha = new Date(date);
@@ -32,21 +27,6 @@ const Pelicula = ({ navigation, route }) => {
         } else {
             return 'N/A';
         }
-    };
-
-    const getGenres = (genres) => {
-        const genero = genres ? genres.join(' / ') : 'N/A';
-        return genero;
-    };
-
-    const getCalification = (calification) => {
-        const calificacion = calification ? calification : 0;
-        return calificacion;
-    };
-
-    const getDescription = (description) => {
-        const descripcion = description ? description : 'N/A';
-        return descripcion;
     };
 
     const ItemSeparator = () => (
@@ -84,11 +64,11 @@ const Pelicula = ({ navigation, route }) => {
                             <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
                         </View>
                         <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
-                            <Text style={styles.text}>{getOriginalTitle(details.original_title)}</Text>
+                            <Text style={styles.text}>{details.original_title ? details.original_title : 'N/A'}</Text>
                             <Text style={styles.text}>{getDate(`${details.release_date}T06:00:00.000Z`)}</Text>
                             <Text style={[styles.text, { backgroundColor: '#262637', paddingHorizontal: 10, borderRadius: 5 }]}>{convertDuration(details.runtime)}</Text>
-                            <Text style={styles.text}>{getGenres(details.genres)}</Text>
-                            <StarRating rating={getCalification(details.vote_average)}/>
+                            <Text style={styles.text}>{details.genres ? details.genres.join(' / ') : 'N/A'}</Text>
+                            <StarRating rating={details.vote_average ? details.vote_average : 0}/>
                         </View>
                     </View>
                 </View>
@@ -107,7 +87,7 @@ const Pelicula = ({ navigation, route }) => {
                     }}>Play</Text>
                 </TouchableOpacity>
                 <View style={{ paddingVertical: 10 }}>
-                    <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{getDescription(details.overview)}</Text>
+                    <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{details.overview ? details.overview : 'N/A'}</Text>
                 </View>
                 {/* Vista en columna con texto y FlatList */}
                 <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
