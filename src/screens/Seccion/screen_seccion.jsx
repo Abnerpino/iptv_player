@@ -9,7 +9,7 @@ const Seccion = ({ navigation, route }) => {
     const content = route.params.contenido; //Obtiene todo el contenido de la Multimedia
 
     const [category, setCategory] = useState('TODO'); //Estado para manejar el nombre de la categoria seleccionada
-    const [selectedId, setSelectedId] = useState('1'); //Estado para el manejo del ID de la categoria seleccionada
+    const [selectedId, setSelectedId] = useState(1); //Estado para el manejo del ID de la categoria seleccionada
     const [contenido, setContenido] = useState(content);
 
     function seleccionarCategoria(idCategoria) {

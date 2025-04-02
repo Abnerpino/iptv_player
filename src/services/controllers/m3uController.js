@@ -2,7 +2,6 @@ import TMDBController from "./tmdbController";
 import Categorias from "../models/categorias";
 
 const tmdbController = new TMDBController;
-const categorias = new Categorias();
 
 const m3uContent = 
 `#EXTM3U
@@ -52,8 +51,14 @@ http://teerom.site:8080/series/PinoFederico/Pino150601/732941.mkv`;
 class M3UController {
     parseM3U = () => {
         let live = []; //Arreglo para guardar los canales en vivo
+        let catsLive = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categorias de los canales
+        let contLiveId = 2; //Contador para el id de cada categoria de canales, inicia en 2 porque la categoria TODO ya tiene el id 1
         let movie = []; //Arreglo para guardar las peliculas
+        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categorias de las peliculas
+        let contMovieId = 2; //Contador para el id de cada categoria de peliculas, inicia en 2 porque la categoria TODO ya tiene el id 1
         let seriesPromises = []; //Arreglo para guardar las series de cada promesa
+        let catsSerie = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categoriasde las series
+        let contSerieId = 2; //Contador para el id de cada categoria de series, inicia en 2 porque la categoria TODO ya tiene el id 1
         let sameSerie = ''; //Guarda el titulo (nombre y año) de una Serie para evitar consultas repetidas
         let i = 1; //Inicializamos en 1 el indice principal porque la primera linea (indice 0) solo contiene #EXTM3U, ¡INICIAR EN 0 SI LA PRIMERA LINEA DE SU LISTA INICIA DIRECTAMENTE CON #EXTINF!
         let isSameSerie = true; //Bandera para verificar cuando una Serie sea repetida
@@ -71,6 +76,19 @@ class M3UController {
             const contentType = urlParts.find(part => ['live', 'movie', 'series'].includes(part)); // Extrae el contenido de acuerdo al tipo (live, movies, series)
             
             if (contentType === 'live') { //Si el tipo de contenido es live, significa que son canales en vivo
+              catsLive[0].total++; //Suma 1 al valor del total de la primera categoria (TODO)
+              const existeCat = catsLive.find(categoria => categoria.name === group[1]); //Busca la categoria de la linea actual
+
+              if (existeCat) { //Si ya existe la categoria...
+                existeCat.total++; //Suma 1 al valor del total de la categoria de la linea actual
+              } else { //Si es una nueva categoria...
+                catsLive.push({ //Agrega la categoria al arreglo de categorias de canales en vivo
+                  id: contLiveId++,
+                  name: group[1],
+                  total: 1
+                });
+              }
+
               live.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
@@ -78,6 +96,19 @@ class M3UController {
                 link: streamUrl || ''
               });
             } else if (contentType === 'movie') { //Si el tipo de contenido es movie, significa que son peliculas
+              catsMovie[0].total++; //Suma 1 al valor del total de la primera categoria (TODO)
+              const existeCat = catsMovie.find(categoria => categoria.name === group[1]); //Busca la categoria de la linea actual
+
+              if (existeCat) { //Si ya existe la categoria...
+                existeCat.total++; //Suma 1 al valor del total de la categoria de la linea actual
+              } else { //Si es una nueva categoria...
+                catsMovie.push({ //Agrega la categoria al arreglo de categorias de peliculas
+                  id: contMovieId++,
+                  name: group[1],
+                  total: 1
+                });
+              }
+
               movie.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
@@ -117,6 +148,19 @@ class M3UController {
                   j = j + 2; //Incrementamos el contador para avanzar a la siguiente linea
                 }
 
+                catsSerie[0].total++; //Suma 1 al valor del total de la primera categoria (TODO)
+                const existeCat = catsSerie.find(categoria => categoria.name === group[1]); //Busca la categoria de la linea actual
+
+                if (existeCat) { //Si ya existe la categoria...
+                  existeCat.total++; //Suma 1 al valor del total de la categoria de la linea actual
+                } else { //Si es una nueva categoria...
+                  catsSerie.push({ //Agrega la categoria al arreglo de categorias de series
+                    id: contSerieId++,
+                    name: group[1],
+                    total: 1
+                  });
+                }
+
                 //Consulta para obtener la información de una Serie mediante el nombre, año, temporada, capitulo y poster
                 const seriePromise = tmdbController.findSerie(title.name, title.year, title.season, title.episode, still)
                 .then((info) => {
@@ -150,7 +194,7 @@ class M3UController {
         
         return Promise.all(seriesPromises).then(seriesResults  => {
           const series = seriesResults.filter(s => s !== null);
-          return [live, movie, series];
+          return [[catsLive, live], [catsMovie, movie], [catsSerie, series]];
         });
     };
 
@@ -173,47 +217,27 @@ class M3UController {
 
     handleGetDataByType = () => {
       return this.parseM3U().then(([live, movie, series]) => {
-          let categoria = [];
-          let contenido = [];
+          let categorias = []; //Arreglo para guardar todas las categorias
+          let contenido = []; //Arreglo para guardar todo el contenido
 
-          for (i = 0; i <= 2; i++) {
-            let categories = [];
-            let content = [];
-          
+          for (i = 0; i <= 2; i++) { //Itera tres veces, una vez por cada tipo de contenido
             switch (i) {
               case 0:
-                categories = categorias.tv;
-                content = live;
+                categorias.push(live[0]); //Obtiene las categorias de los canales
+                contenido.push(live[1]); //Obtiene el contenido de los canales
                 break;
               case 1:
-                categories = categorias.cine;
-                content = movie;
+                categorias.push(movie[0]); //Obtiene las categorias de las peliculas
+                contenido.push(movie[1]); //Obtiene el contenido de las peliculas
                 break;
               case 2:
-                categories = categorias.series;
-                content = series;
+                categorias.push(series[0]); //Obtiene las categorias de las series
+                contenido.push(series[1]); //Obtiene el contenido de las series
                 break;
             }
-    
-            categories.forEach(categorie => { // Para cada categoría...
-                let cont = 0; // Variable para contar la cantidad de elementos en cada categoría
-                if (categorie.name !== 'TODO') { // Si la categoría no es "TODO"
-                    content.forEach(contenido => { // Para cada elemento en contenido...
-                        if (categorie.name === contenido['group-title']) {
-                            cont++;
-                        }
-                    });
-                } else {
-                    cont = content.length; // Si es "TODO", se obtiene el total de elementos
-                }
-                categorie.count = cont; // Actualiza el conteo en la categoría
-            });
-
-            categoria.push(categories);
-            contenido.push(content);
           }
 
-          return [categoria, contenido]; // Retorna un arreglo con las categorías y contenido
+          return [categorias, contenido]; // Retorna un arreglo con las categorías y el contenido
       }).catch(error => {
           console.error("Error crítico al obtener los datos:", error.message || error);
           return [[], []]; // Devuelve arrays vacíos en caso de error

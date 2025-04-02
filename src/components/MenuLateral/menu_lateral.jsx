@@ -16,7 +16,7 @@ const MenuLateral = ({ categoria, seleccionado, seleccionar }) => {
         >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', }}>
                 <Text style={{ color: '#FFF', fontSize: 14, }}>{categoria.name}</Text>
-                <Text style={{ color: '#FFF', fontSize: 14, }}>{categoria.count}</Text>
+                <Text style={{ color: '#FFF', fontSize: 14, }}>{categoria.total}</Text>
             </View>
         </TouchableHighlight>
     );
