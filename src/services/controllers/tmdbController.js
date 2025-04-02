@@ -85,7 +85,7 @@ class TMDBController {
                 id: detailsData.id,
                 original_title: detailsData.original_title,
                 overview: detailsData.overview,
-                first_air_date: detailsData.first_air_date,
+                release_date: detailsData.release_date,
                 runtime: detailsData.runtime,
                 vote_average: detailsData.vote_average,
                 genres: detailsData.genres.map(genre => genre.name)
