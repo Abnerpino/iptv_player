@@ -64,7 +64,7 @@ class TMDBController {
         return fetch(infoSerie)
             .then((infoResponse) => infoResponse.json())
             .then((infoData) => ({
-                name: infoData.name,
+                original_name: infoData.original_name,
                 poster_path: infoData.poster_path,
                 first_air_date: infoData.first_air_date,
                 genres: infoData.genres,
