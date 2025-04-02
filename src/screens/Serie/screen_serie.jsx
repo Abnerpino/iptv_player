@@ -9,13 +9,9 @@ const Serie = ({ navigation, route }) => {
     const details = route.params.info;
     const link = route.params.link;
     const chapters = route.params.capitulos;
-    console.log(chapters);
+    const id = route.params.id;
+    //console.log(id);
     //const credits = route.params.info[1];
-
-    const getDirector = (dir) => {
-        const director = dir ? dir : 'N/A';
-        return director;
-    };
 
     const getDate = (date) => {
         const fecha = new Date(date);
@@ -35,25 +31,6 @@ const Serie = ({ navigation, route }) => {
             return 'N/A';
         }
     };
-
-    const getGenres = (genres) => {
-        const genero = genres ? genres.map(genre => genre.name).join('/') : 'N/A';
-        return genero;
-    };
-
-    const getCalification = (calification) => {
-        const calificacion = calification ? calification : 'N/A';
-        return calificacion;
-    };
-
-    const getDescription = (description) => {
-        const descripcion = description ? description : 'N/A';
-        return descripcion;
-    };
-
-    const ItemSeparator = () => (
-        <View style={{ width: 10 }} /> // Espacio entre elementos
-    );
 
     return (
         <View style={styles.container}>
@@ -77,25 +54,26 @@ const Serie = ({ navigation, route }) => {
                         style={{ width: '15.5%', height: '100%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
                         resizeMode='contain'
                     />
-                    <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
+                    <View style={{ flexDirection: 'row', paddingLeft: 35, width: '100%', }}>
                         <View style={styles.column}>
+                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
                             <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
                             <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
                             <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
                             <Text style={[styles.text, { fontWeight: 'bold' }]}>Trama:</Text>
                             
                         </View>
-                        <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75, paddingRight: '28%', }}>
+                        <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75, paddingRight: '31%', }}>
+                            <Text style={styles.text}>{details.original_name ? details.original_name : 'N/A'}</Text>
                             <Text style={styles.text}>{getDate(`${details.first_air_date}T06:00:00.000Z`)}</Text>
-                            {/*<Text style={[styles.text, { backgroundColor: '#262637', paddingHorizontal: 10, borderRadius: 5 }]}>En el exilio</Text>*/}
-                            <Text style={styles.text}>{getGenres(details.genres)}</Text>
-                            <StarRating rating={getCalification(details.vote_average)}/>
-                            <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{getDescription(details.overview)}</Text>
-                            <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold'}}>Leer Más</Text>
+                            <Text style={styles.text}>{details.genres ? details.genres.map(genre => genre.name).join('/') : 'N/A'}</Text>
+                            <StarRating rating={details.vote_average ? details.vote_average : 'N/A'}/>
+                            <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{details.overview ? details.overview : 'N/A'}</Text>
+                            <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
                         </View>
                     </View>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'center', }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10 }}>
                     <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={{
                         width: '15%',
                         alignSelf: 'center',
@@ -167,7 +145,7 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 16,
         color: '#CCC',
-        marginVertical: 7.5,
+        marginVertical: 5,
     },
 });
 
