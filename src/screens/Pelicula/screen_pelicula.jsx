@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 16,
         color: '#CCC',
-        marginVertical: 7.5,
+        marginVertical: 6.5,
     },
 });
 
