@@ -76,8 +76,9 @@ const Pelicula = ({ navigation, route }) => {
                     </View>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={styles.button}>
-                        <Text style={styles.textButton}>Play</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}>
+                        <Icon name="play-circle-o" size={22} color="white"/>
+                        <Text style={[styles.textButton, { paddingLeft: 5 }]}>Play</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
                         <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>

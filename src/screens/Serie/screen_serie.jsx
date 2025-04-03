@@ -86,14 +86,16 @@ const Serie = ({ navigation, route }) => {
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10 }}>
                     <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { marginRight: 20 }]}>
+                        <Icon name="play-circle-o" size={22} color="white"/>
                         <Text style={styles.textButton}>Play</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.button, { marginRight: 20 }]}>
+                        <Icon name="list-alt" size={22} color="white"/>
                         <Text style={styles.textButton}>Temporada</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', }]}>
+                    <TouchableOpacity onPress={() => setFavorite(!favorite)} style={styles.button}>
                         <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
-                        <Text style={[styles.textButton, { paddingLeft: 5 }]}>Favoritos</Text>
+                        <Text style={styles.textButton}>Favoritos</Text>
                     </TouchableOpacity>
                 </View>
                 <View style={{ paddingVertical: 10 }}>
@@ -147,6 +149,8 @@ const styles = StyleSheet.create({
     },
     button: {
         width: '15%',
+        flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 5,
         padding: 5,
         backgroundColor: 'rgb(80,80,100)',
@@ -155,7 +159,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#FFF',
-        textAlign: 'center'
+        textAlign: 'center',
+        paddingLeft: 5 
     },
 });
 
