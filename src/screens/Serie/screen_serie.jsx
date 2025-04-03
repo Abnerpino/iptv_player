@@ -1,9 +1,12 @@
-import React from 'react';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
+import ModalOverview from '../../components/Modals/modal_overview';
 
 const Serie = ({ navigation, route }) => {
+    const [modalVisible, setModalVisible] = useState(false);
+
     const title = route.params.titulo;
     const poster = route.params.imagen;
     const details = route.params.info;
@@ -31,6 +34,10 @@ const Serie = ({ navigation, route }) => {
             return 'N/A';
         }
     };
+
+    function handleCloseModal() {
+        setModalVisible(false);
+    }
 
     return (
         <View style={styles.container}>
@@ -67,9 +74,11 @@ const Serie = ({ navigation, route }) => {
                             <Text style={styles.text}>{details.original_name ? details.original_name : 'N/A'}</Text>
                             <Text style={styles.text}>{getDate(`${details.first_air_date}T06:00:00.000Z`)}</Text>
                             <Text style={styles.text}>{details.genres ? details.genres.map(genre => genre.name).join('/') : 'N/A'}</Text>
-                            <StarRating rating={details.vote_average ? details.vote_average : 'N/A'}/>
+                            <StarRating rating={details.vote_average ? details.vote_average : 0}/>
                             <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{details.overview ? details.overview : 'N/A'}</Text>
-                            <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(true)}>
+                                <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -123,6 +132,12 @@ const Serie = ({ navigation, route }) => {
                     />*/}
                 </View>
             </ScrollView>
+            {/* Modal para mostrar la trama completa */}
+            <ModalOverview
+                openModal={modalVisible}
+                handleCloseModal={handleCloseModal}
+                overview={details.overview}
+            />
         </View>
     );
 };
