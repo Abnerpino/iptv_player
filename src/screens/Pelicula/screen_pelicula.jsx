@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Pelicula = ({ navigation, route }) => {
+    const [favorite, setFavorite] = useState(false);
+
     const title = route.params.titulo;
     const poster = route.params.imagen;
     const details = route.params.info[0];
@@ -72,20 +75,15 @@ const Pelicula = ({ navigation, route }) => {
                         </View>
                     </View>
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={{
-                    width: '15%',
-                    alignSelf: 'center',
-                    borderRadius: 5,
-                    padding: 5,
-                    backgroundColor: 'rgb(80,80,100)'
-                }}>
-                    <Text style={{
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        color: '#FFF',
-                        textAlign: 'center'
-                    }}>Play</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={styles.button}>
+                        <Text style={styles.textButton}>Play</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
+                        <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
+                        <Text style={[styles.textButton, { paddingLeft: 5 }]}>Favoritos</Text>
+                    </TouchableOpacity>
+                </View>
                 <View style={{ paddingVertical: 10 }}>
                     <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{details.overview ? details.overview : 'N/A'}</Text>
                 </View>
@@ -128,6 +126,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#CCC',
         marginVertical: 6.5,
+    },
+    button: {
+        width: '15%',
+        borderRadius: 5,
+        padding: 5,
+        backgroundColor: 'rgb(80,80,100)',
+    },
+    textButton: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFF',
+        textAlign: 'center'
     },
 });
 
