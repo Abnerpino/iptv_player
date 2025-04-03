@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
@@ -42,6 +42,10 @@ const Serie = ({ navigation, route }) => {
     }
 
     return (
+        <ImageBackground
+            source={{ uri: `https://image.tmdb.org/t/p/original${details.backdrop_path}` }} //Imagen de fondo
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
         <View style={styles.container}>
             {/* Vista principal en columna */}
             <View style={{
@@ -124,6 +128,7 @@ const Serie = ({ navigation, route }) => {
                 overview={details.overview}
             />
         </View>
+        </ImageBackground>
     );
 };
 
@@ -132,7 +137,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 25,
-        backgroundColor: '#101010',
+        backgroundColor: 'rgba(16,16,16,0.9)',
     },
     row: {
         flexDirection: 'row',

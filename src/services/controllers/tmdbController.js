@@ -66,6 +66,7 @@ class TMDBController {
             .then((infoData) => ({
                 original_name: infoData.original_name,
                 poster_path: infoData.poster_path,
+                backdrop_path: infoData.backdrop_path,
                 first_air_date: infoData.first_air_date,
                 genres: infoData.genres,
                 vote_average: infoData.vote_average,
@@ -83,6 +84,7 @@ class TMDBController {
             //Se guardan solo los detalles que son relevantes
             const details = {
                 id: detailsData.id,
+                backdrop_path: detailsData.backdrop_path,
                 original_title: detailsData.original_title,
                 overview: detailsData.overview,
                 release_date: detailsData.release_date,

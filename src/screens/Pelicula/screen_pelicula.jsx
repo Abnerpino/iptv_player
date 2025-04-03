@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -37,74 +37,74 @@ const Pelicula = ({ navigation, route }) => {
     );
 
     return (
-        <View style={styles.container}>
-            {/* Vista principal en columna */}
-            <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 10
-            }}>
-                {/* Fila con textos */}
-                <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{title}</Text>
-            </View>
+        <ImageBackground
+            source={{ uri: `https://image.tmdb.org/t/p/original${details.backdrop_path}` }} //Imagen de fondo
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
+            <View style={styles.container}>
+                {/* Vista principal en columna */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10 }}>
+                    {/* Fila con textos */}
+                    <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{title}</Text>
+                </View>
 
-            {/* ScrollView para contenido desplazable */}
-            <ScrollView>
-                {/* Vista en fila dentro del ScrollView */}
-                <View style={styles.row}>
-                    <Image
-                        source={{ uri: poster }} // URL de la imagen
-                        style={{ width: '15.5%', height: '100%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
-                        resizeMode='contain'
-                    />
-                    <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
-                        <View style={styles.column}>
-                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
-                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
-                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Duración:</Text>
-                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
-                            <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
-                        </View>
-                        <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
-                            <Text style={styles.text}>{details.original_title ? details.original_title : 'N/A'}</Text>
-                            <Text style={styles.text}>{getDate(`${details.release_date}T06:00:00.000Z`)}</Text>
-                            <Text style={[styles.text, { backgroundColor: '#262637', paddingHorizontal: 10, borderRadius: 5 }]}>{convertDuration(details.runtime)}</Text>
-                            <Text style={styles.text}>{details.genres ? details.genres.join(' / ') : 'N/A'}</Text>
-                            <StarRating rating={details.vote_average ? details.vote_average : 0}/>
+                {/* ScrollView para contenido desplazable */}
+                <ScrollView>
+                    {/* Vista en fila dentro del ScrollView */}
+                    <View style={styles.row}>
+                        <Image
+                            source={{ uri: poster }} // URL de la imagen
+                            style={{ width: '15.5%', height: '100%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
+                            resizeMode='contain'
+                        />
+                        <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
+                            <View style={styles.column}>
+                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
+                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
+                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Duración:</Text>
+                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
+                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
+                            </View>
+                            <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
+                                <Text style={styles.text}>{details.original_title ? details.original_title : 'N/A'}</Text>
+                                <Text style={styles.text}>{getDate(`${details.release_date}T06:00:00.000Z`)}</Text>
+                                <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, borderRadius: 5 }]}>{convertDuration(details.runtime)}</Text>
+                                <Text style={styles.text}>{details.genres ? details.genres.join(' / ') : 'N/A'}</Text>
+                                <StarRating rating={details.vote_average ? details.vote_average : 0}/>
+                            </View>
                         </View>
                     </View>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}>
-                        <Icon name="play-circle-o" size={22} color="white"/>
-                        <Text style={[styles.textButton, { paddingLeft: 5 }]}>Play</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
-                        <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
-                        <Text style={[styles.textButton, { paddingLeft: 5 }]}>Favoritos</Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={{ paddingVertical: 10 }}>
-                    <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{details.overview ? details.overview : 'N/A'}</Text>
-                </View>
-                {/* Vista en columna con texto y FlatList */}
-                <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
-                    <FlatList
-                        data={credits[0]}
-                        horizontal
-                        renderItem={({ item }) => (
-                            <CardActor
-                                imagen={item.imagen}
-                                nombre={item.nombre}
-                            />
-                        )}
-                        keyExtractor={(item) => item.id}
-                        ItemSeparatorComponent={ItemSeparator}
-                    />
-                </View>
-            </ScrollView>
-        </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}>
+                            <Icon name="play-circle-o" size={22} color="white"/>
+                            <Text style={styles.textButton}>Play</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
+                            <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
+                            <Text style={styles.textButton}>Favoritos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ paddingVertical: 10 }}>
+                        <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{details.overview ? details.overview : 'N/A'}</Text>
+                    </View>
+                    {/* Vista en columna con texto y FlatList */}
+                    <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
+                        <FlatList
+                            data={credits[0]}
+                            horizontal
+                            renderItem={({ item }) => (
+                                <CardActor
+                                    imagen={item.imagen}
+                                    nombre={item.nombre}
+                                />
+                            )}
+                            keyExtractor={(item) => item.id}
+                            ItemSeparatorComponent={ItemSeparator}
+                        />
+                    </View>
+                </ScrollView>
+            </View>
+        </ImageBackground>
     );
 };
 
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 25,
-        backgroundColor: '#101010',
+        backgroundColor: 'rgba(16,16,16,0.9)',
     },
     row: {
         flexDirection: 'row',
@@ -138,7 +138,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#FFF',
-        textAlign: 'center'
+        textAlign: 'center',
+        paddingLeft: 5
     },
 });
 
