@@ -37,16 +37,28 @@ http://teerom.site:8080/series/PinoFederico/Pino150601/770378.mkv
 http://teerom.site:8080/series/PinoFederico/Pino150601/770376.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Modern Love (2019) S2 E6" tvg-logo="https://image.tmdb.org/t/p/w1280/ounMQqutcC5pemP088YNnMlARZS.jpg" group-title="SERIES AMAZON",Modern Love (2019) S2 E6
 http://teerom.site:8080/series/PinoFederico/Pino150601/391044.mp4
+#EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S3 E54" tvg-logo="https://image.tmdb.org/t/p/w400/idGgNw7PluhW3ZVwAYTBNwAoNrv.jpg" group-title="ANIME",Naruto Shippuden (2007) S3 E54
+http://teerom.site:8080/series/PinoFederico/Pino150601/748484.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S5 E98" tvg-logo="https://image.tmdb.org/t/p/w400/kTIeFqVRR8U78XG433ZkGVjohO3.jpg" group-title="ANIME",Naruto Shippuden (2007) S5 E98
 http://teerom.site:8080/series/PinoFederico/Pino150601/748511.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S5 E101" tvg-logo="https://image.tmdb.org/t/p/w400/fqCAShbd8A5DVwYO09494gj8VmF.jpg" group-title="ANIME",Naruto Shippuden (2007) S5 E101
 http://teerom.site:8080/series/PinoFederico/Pino150601/748514.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S6 E123" tvg-logo="https://image.tmdb.org/t/p/w400/aCGBVD4ojyerrmWbEgMUcTzoZfz.jpg" group-title="ANIME",Naruto Shippuden (2007) S6 E123
+http://teerom.site:8080/series/PinoFederico/Pino150601/748547.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S6 E124" tvg-logo="https://image.tmdb.org/t/p/w400/q82Th2fRyYx9mjJIW8shmp95X7M.jpg" group-title="ANIME",Naruto Shippuden (2007) S6 E124
+http://teerom.site:8080/series/PinoFederico/Pino150601/748549.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Naruto Shippuden (2007) S6 E125" tvg-logo="https://image.tmdb.org/t/p/w400/kfR7oaPZGavG7A8UD6zXRRLtqQb.jpg" group-title="ANIME",Naruto Shippuden (2007) S6 E125
+http://teerom.site:8080/series/PinoFederico/Pino150601/748546.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Harina (2022) S2 E8" tvg-logo="https://image.tmdb.org/t/p/w400/tXzuiWlK9sEwp7HiaJSjy6Dz8aM.jpg" group-title="SERIES AMAZON",Harina (2022) S2 E8
 http://teerom.site:8080/series/PinoFederico/Pino150601/733669.mkv
 #EXTINF:-1 tvg-id="" tvg-name="The Serpent Queen (2022) S1 E7" tvg-logo="https://image.tmdb.org/t/p/w400/c4ToXTSf9eBkpV6dLYuZ21aj3NS.jpg" group-title="SERIES STARZ",The Serpent Queen (2022) S1 E7
 http://teerom.site:8080/series/PinoFederico/Pino150601/733088.mkv
 #EXTINF:-1 tvg-id="" tvg-name="Planners (2023) S1 E4" tvg-logo="https://image.tmdb.org/t/p/w400/nBMg7OL4WaPMZ3NcgHtxnD4iy8k.jpg" group-title="SERIES STAR+ (FOX)",Planners (2023) S1 E4
-http://teerom.site:8080/series/PinoFederico/Pino150601/732941.mkv`;
+http://teerom.site:8080/series/PinoFederico/Pino150601/732941.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Planners (2023) S1 E8" tvg-logo="https://image.tmdb.org/t/p/w400/uEINGmTb5u6IbCyfRgvTxXOmQoo.jpg" group-title="SERIES STAR+ (FOX)",Planners (2023) S1 E8
+http://teerom.site:8080/series/PinoFederico/Pino150601/732942.mkv
+#EXTINF:-1 tvg-id="" tvg-name="Planners (2023) S1 E9" tvg-logo="https://image.tmdb.org/t/p/w400/3SeIrUo3R8DtiV9Mo8aV37aGNS5.jpg" group-title="SERIES STAR+ (FOX)",Planners (2023) S1 E9
+http://teerom.site:8080/series/PinoFederico/Pino150601/732938.mkv`;
 
 class M3UController {
     parseM3U = () => {
@@ -60,8 +72,9 @@ class M3UController {
         let catsSerie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categoriasde las series
         let contSerieId = 4; //Contador para el id de cada categoria de series, inicia en 4 porque ya existen tres categorias
         let sameSerie = ''; //Guarda el titulo (nombre y año) de una Serie para evitar consultas repetidas
-        let i = 1; //Inicializamos en 1 el indice principal porque la primera linea (indice 0) solo contiene #EXTM3U, ¡INICIAR EN 0 SI LA PRIMERA LINEA DE SU LISTA INICIA DIRECTAMENTE CON #EXTINF!
+        
         let isSameSerie = true; //Bandera para verificar cuando una Serie sea repetida
+        let i = 1; //Inicializamos en 1 el indice principal porque la primera linea (indice 0) solo contiene #EXTM3U, ¡INICIAR EN 0 SI LA PRIMERA LINEA DE SU LISTA INICIA DIRECTAMENTE CON #EXTINF!
         const lines = m3uContent.split('\n').map(line => line.trim()); // Genera un arreglo con todas las lineas de la lista M3U
       
         while (i < lines.length) { //Mientras el indice sea menor que la cantidad de lineas de la lista
@@ -121,31 +134,65 @@ class M3UController {
               if (`${title.name} (${title.year})` !== sameSerie) { //Evita hacer la consulta si la información corresponde a la misma Serie
                 sameSerie = `${title.name} (${title.year})`;
                 const still = this.getStillPath(logo[1]);
-                const chapters = []; //Arreglo para guardar todos los capitulos de una Serie
+                const seasons = []; //Arreglo para guardar todas las temporadas de una Serie
+                let season = {}; //Objeto para guardar el numero de temporada y sus capitulos
+                let chapters = [] //Arreglo para guardar todos los capitulos de una temporada
+                let sameSeason = ''; //Variable que guarda la temporada de la Serie anterior
                 let j = i; //Inicializa el indice secundario (j) con el mismo valor del indice principal (i)
 
                 while ((j < lines.length) && (isSameSerie === true )) { //Recorre todas las lineas a partir de donde inicia una Seríe hasta que inicia otra
                   if (lines[j].startsWith('#EXTINF')) { //Si la linea tiene información válida...
                     const auxName = lines[j].match(/tvg-name="([^"]+)"/);
                     const auxTitle = this.separateTitle(auxName[1]);
+
                     if (`${auxTitle.name} (${auxTitle.year})` === sameSerie) { //Si la información corresponde a la misma Serie...
                       const auxLogo = lines[j].match(/tvg-logo="([^"]+)"/);
                       const auxStreamUrl = lines[j + 1];
-                      
-                      const chapter = { //Objeto que guarda la información de un capitulo de una Serie
-                        numero: auxTitle.episode,
-                        temporada: auxTitle.season,
+
+                      if (auxTitle.season !== sameSeason) { //Si la temporada actual es diferente a la temporada anterior...
+                        sameSeason = auxTitle.season; //Asigna el valor de la temporada de la Serie de la linea actual
+                        if (chapters.length > 0) { //Si hay capitulos dentro del arreglo...
+                          let caps = { capitulos: chapters} //Guarda los capitulos de la temporada en un nuevo objeto
+                          Object.assign(season, caps); //Agrega el par clave-valor del nuevo objeto al objeto existente
+                          seasons.push(season); //Agrega cada temporada de una Serie
+                          chapters = new Array(); //Crea una nueva instancia para limpiar el arreglo
+                          season = new Object(); //Crea una nueva instancia para limpiar el objeto
+                        }
+
+                        let numSeason = { temporada: auxTitle.season }; //Guarda el numero de temporada en un nuevo objeto
+                        Object.assign(season, numSeason); //Agrega el par clave-valor del nuevo objeto al objeto existente
+                      }
+
+                      const chapter = { //Objeto que guarda la información de un capitulo
+                        capitulo: auxTitle.episode,
                         poster: auxLogo[1],
                         link: auxStreamUrl
                       };
-
-                      chapters.push(chapter); //Agrega cada capitulo de una Serie
+                      
+                      chapters.push(chapter); //Agrega el capitulo al arreglo de capitulos por temporada
                     } else { //Si la información no corresponde a la misma Serie...
+                      /*Este condicional se repite en esta sección porque al cambiar de Serie, el flujo del código ya no entra al condicional original,
+                      por lo que es necesario repetirlo aquí para guardar la información obtenida de temporadas y capitulos*/
+                      if (chapters.length > 0) {
+                        let caps = { capitulos: chapters}
+                        Object.assign(season, caps);
+                        seasons.push(season);
+                        //La creación de nuevas instancias se omite aquí porque en cada cambio de Serie, las estructuras usadas se vuelven a declarar
+                      }
+
                       isSameSerie = false; //Hacemos falsa la bandera para salir del while
                       j = j - 2; //Decrementamos el contador para evitar que cuando se haga el incremento al final de la iteración, se permanezca en la misma linea en la que se cambió la Serie
                     }
                   }
                   j = j + 2; //Incrementamos el contador para avanzar a la siguiente linea
+
+                  /*Este condicional se vuelve a repetir en esta sección porque cuando lee la ultima linea de la lista, el flujo del código ya no regresa al condicional original ni al segundo,
+                  por lo que es necesario volver a repetirlo aquí para guardar la información obtenida de temporadas y capitulos de la ultima linea*/
+                  if (j >= lines.length) { //Si el indice de la siguiente linea supera el tamaño del arreglo, es decir, que la lista terminó en la linea anterior...
+                    let caps = { capitulos: chapters}
+                    Object.assign(season, caps);
+                    seasons.push(season);
+                  }
                 }
 
                 catsSerie[0].total++; //Suma 1 al valor del total de la primera categoria (TODO)
@@ -171,7 +218,7 @@ class M3UController {
                       'tvg-logo': info.poster_path,
                       'group-title': group[1] || '',
                       link: streamUrl || '',
-                      capitulos: chapters
+                      temporadas: seasons
                     };
                   }
                   return null;
