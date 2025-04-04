@@ -51,14 +51,14 @@ http://teerom.site:8080/series/PinoFederico/Pino150601/732941.mkv`;
 class M3UController {
     parseM3U = () => {
         let live = []; //Arreglo para guardar los canales en vivo
-        let catsLive = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categorias de los canales
-        let contLiveId = 2; //Contador para el id de cada categoria de canales, inicia en 2 porque la categoria TODO ya tiene el id 1
+        let catsLive = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE VISTO', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categorias de los canales
+        let contLiveId = 4; //Contador para el id de cada categoria de canales, inicia en 4 porque ya existen tres categorias
         let movie = []; //Arreglo para guardar las peliculas
-        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categorias de las peliculas
-        let contMovieId = 2; //Contador para el id de cada categoria de peliculas, inicia en 2 porque la categoria TODO ya tiene el id 1
+        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categorias de las peliculas
+        let contMovieId = 4; //Contador para el id de cada categoria de peliculas, inicia en 4 porque ya existen tres categorias
         let seriesPromises = []; //Arreglo para guardar las series de cada promesa
-        let catsSerie = [{ id: 1, name: 'TODO', total: 0 }]; //Arreglo para almacenar las categoriasde las series
-        let contSerieId = 2; //Contador para el id de cada categoria de series, inicia en 2 porque la categoria TODO ya tiene el id 1
+        let catsSerie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categoriasde las series
+        let contSerieId = 4; //Contador para el id de cada categoria de series, inicia en 4 porque ya existen tres categorias
         let sameSerie = ''; //Guarda el titulo (nombre y año) de una Serie para evitar consultas repetidas
         let i = 1; //Inicializamos en 1 el indice principal porque la primera linea (indice 0) solo contiene #EXTM3U, ¡INICIAR EN 0 SI LA PRIMERA LINEA DE SU LISTA INICIA DIRECTAMENTE CON #EXTINF!
         let isSameSerie = true; //Bandera para verificar cuando una Serie sea repetida
