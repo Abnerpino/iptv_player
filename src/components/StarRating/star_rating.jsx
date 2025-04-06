@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-const StarRating = ({ rating }) => {
+const StarRating = ({ rating, size }) => {
     const maxStars = 5;
     const scaledRating = (rating / 10) * maxStars; // Convierte de 10 a 5 estrellas
 
@@ -25,7 +25,7 @@ const StarRating = ({ rating }) => {
                     <Icon
                         key={index}
                         name={starType}
-                        size={20}
+                        size={size}
                         color={starType === 'star' || starType === 'star-half-full' ? 'gold' : 'gray'}
                         style={{ marginHorizontal: 2, marginVertical: 7.5, }}
                     />

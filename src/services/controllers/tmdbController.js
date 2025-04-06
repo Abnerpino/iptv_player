@@ -58,6 +58,7 @@ class TMDBController {
             });
     }
     
+    //Se busca la información de la serie por su id
     async getInfoSerie(id) {
         const infoSerie = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
 
@@ -71,6 +72,23 @@ class TMDBController {
                 genres: infoData.genres,
                 vote_average: infoData.vote_average,
                 overview: infoData.overview
+            }));
+    }
+
+    //Se busca la información de los capitulos por su id de serie y el numero de temporada
+    async getInfoChapters(id, season) {
+        const infoChapters = `https://api.themoviedb.org/3/tv/${id}/season/${season}?api_key=${apiKey}&language=es-MX`;
+
+        return fetch(infoChapters)
+            .then((infoResponse) => infoResponse.json())
+            .then((infoData) => ({
+                episodes: infoData.episodes.map(episode => ({
+                    episode_number: episode.episode_number,
+                    name: episode.name,
+                    overview: episode.overview,
+                    vote_average: episode.vote_average,
+                    runtime: episode.runtime || 0
+                }))
             }));
     }
 

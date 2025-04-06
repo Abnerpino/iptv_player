@@ -11,12 +11,47 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo, id, temporadas }) =>
         else if (tipo === 'Cine') {
             const title = titulo.replace(/\s*\(\d{4}\)/, ''); // Elimina el año y solo deja el nombre de la Pelicula
             const posterPath = getPosterPath(imagen);
-            const info = await tmdbController.getDataMovie(title, posterPath);
+            const info = await tmdbController.getDataMovie(title, posterPath); //Obtiene la información general de la pelicula
             navigation.navigate('Pelicula', { imagen, titulo, info, link });
         }
         else {
-            const info = await tmdbController.getInfoSerie(id);
-            navigation.navigate('Serie', { imagen, titulo, info, link, id, temporadas });
+            const info = await tmdbController.getInfoSerie(id); // Obtitne la información general de la serie
+            
+            // Genera un nuevo arreglo con la información que ya existia de los capitulos y temporadas y le agrega la información obtenida de la consulta a los capitulos para que esté completa
+            const seasons = await Promise.all(
+                // Recorremos cada temporada y procesamos sus capítulos
+                temporadas.map(async (temp) => {
+                    // Hacemos la consulta a la API
+                    const resultadoAPI = await tmdbController.getInfoChapters(id, temp.temporada);
+                    
+                    // Mapeamos los episodios de la API a un formato más accesible
+                    const episodiosAPI = resultadoAPI.episodes.reduce((acc, episode) => {
+                        acc[episode.episode_number] = {
+                            name: episode.name,
+                            overview: episode.overview,
+                            vote_average: episode.vote_average,
+                            runtime: episode.runtime || 0
+                        };
+                        return acc;
+                    }, {});
+                    
+                    // Fusionamos los datos
+                    const capitulosActualizados = temp.capitulos.map(cap => {
+                        const numCapitulo = parseInt(cap.capitulo, 10);
+                        return {
+                            ...cap,
+                            ...episodiosAPI[numCapitulo] || {} // Si existe, fusionamos los datos
+                        };
+                    });
+                    
+                    return {
+                        ...temp,
+                        capitulos: capitulosActualizados
+                    };
+                })
+            );
+            
+            navigation.navigate('Serie', { imagen, titulo, info, link, id, seasons });
         }
     }
 

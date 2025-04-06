@@ -12,7 +12,7 @@ const Serie = ({ navigation, route }) => {
     const poster = route.params.imagen;
     const details = route.params.info;
     const link = route.params.link;
-    const seasons = route.params.temporadas;
+    const seasons = route.params.seasons;
     const id = route.params.id;
     const credits = route.params.info[1];
 
@@ -74,7 +74,7 @@ const Serie = ({ navigation, route }) => {
                     <View style={styles.row}>
                         <Image
                             source={{ uri: `https://image.tmdb.org/t/p/original${details.poster_path}` }} // URL de la imagen
-                            style={{ width: '15.5%', height: '100%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
+                            style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
                             resizeMode='contain'
                         />
                         <View style={{ flexDirection: 'row', paddingLeft: 35, width: '100%', }}>
@@ -90,7 +90,7 @@ const Serie = ({ navigation, route }) => {
                                 <Text style={styles.text}>{details.original_name ? details.original_name : 'N/A'}</Text>
                                 <Text style={styles.text}>{getDate(`${details.first_air_date}T06:00:00.000Z`)}</Text>
                                 <Text style={styles.text}>{details.genres ? details.genres.map(genre => genre.name).join('/') : 'N/A'}</Text>
-                                <StarRating rating={details.vote_average ? details.vote_average : 0}/>
+                                <StarRating rating={details.vote_average ? details.vote_average : 0} size={20}/>
                                 <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{details.overview ? details.overview : 'N/A'}</Text>
                                 <TouchableOpacity onPress={() => setModalVisibleO(true)}>
                                     <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
@@ -114,7 +114,7 @@ const Serie = ({ navigation, route }) => {
                     </View>
 
                     {selectedSeason && (
-                        <View style={{ paddingVertical: 10, paddingHorizontal: 15 }}>
+                        <View style={{ paddingVertical: 10 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 {/* Botón EPISODIOS */}
                                 <TouchableOpacity
@@ -162,10 +162,12 @@ const Serie = ({ navigation, route }) => {
                             {selectedTab === 'episodios' ? (
                                 <FlatList
                                     data={selectedSeason.capitulos}
-                                    scrollEnabled={false} // ✅ Desactiva scroll interno para evitar conflictos con el ScrollView ya que la oritentación de desplazamiento es la misma
+                                    scrollEnabled={false} // Desactiva scroll interno para evitar conflictos con el ScrollView ya que la oritentación de desplazamiento es la misma
                                     keyExtractor={(item, index) => index.toString()}
                                     renderItem={({ item }) => (
                                         <ItemEpisode
+                                            navigation={navigation}
+                                            season={selectedSeason.temporada}
                                             episode={item}
                                         />
                                     )}
@@ -240,7 +242,8 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
+        
     },
     column: {
         flexDirection: 'column',
