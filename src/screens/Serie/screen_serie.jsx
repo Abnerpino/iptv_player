@@ -18,7 +18,9 @@ const Serie = ({ navigation, route }) => {
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
-    const [selectedSeason, setSelectedSeason] = useState(seasons[0]); //Estado para manejar la información de la temporada seleccionada
+    const [selectedSeason, setSelectedSeason] = useState(seasons[0]); //Estado para manejar la información del episodio seleccionado
+    const [selectedEpisode, setSelectedEpisode] = useState(seasons[0].capitulos[0].capitulo); //Estado para manejar el numero del episodio seleccionado
+    const [selectedLinkEpisode, setSelectedLinkEpisode] = useState(seasons[0].capitulos[0].link); //Estado para manejar la url de stream del episodio seleccionado
     const [favorite, setFavorite] = useState(false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
 
@@ -29,16 +31,6 @@ const Serie = ({ navigation, route }) => {
         const year = fecha.getFullYear();
         const newDate = date ? `${day}/${month}/${year}` : 'N/A';
         return newDate;
-    };
-
-    const convertDuration = (minutes) => {
-        if (minutes) {
-            const hours = Math.floor(minutes / 60); // Obtener las horas
-            const minutesRemaining = minutes % 60; // Obtener los minutos restantes
-            return `${hours}h ${minutesRemaining}m`; // Formato de salida
-        } else {
-            return 'N/A';
-        }
     };
 
     //Función para controlar el cierre del modal de la trama
@@ -98,18 +90,18 @@ const Serie = ({ navigation, route }) => {
                             </View>
                         </View>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 20, paddingBottom: 10 }}>
                         <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { marginRight: 20 }]}>
                             <Icon name="play-circle-o" size={22} color="white"/>
-                            <Text style={styles.textButton}>Play</Text>
+                            <Text style={styles.textButton}>{`Play: T${selectedSeason.temporada}-E${selectedEpisode}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, { marginRight: 20 }]}>
                             <Icon name="list-alt" size={22} color="white"/>
-                            <Text style={styles.textButton}>Temporada</Text>
+                            <Text style={styles.textButton}>{`Temporada: ${selectedSeason.temporada}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setFavorite(!favorite)} style={styles.button}>
                             <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
-                            <Text style={styles.textButton}>Favoritos</Text>
+                            <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -169,6 +161,10 @@ const Serie = ({ navigation, route }) => {
                                             navigation={navigation}
                                             season={selectedSeason.temporada}
                                             episode={item}
+                                            onSelectEpisode={(episodio) => {
+                                                setSelectedEpisode(episodio);
+                                                setSelectedLinkEpisode(item.link);
+                                            }}
                                         />
                                     )}
                                 />
@@ -226,7 +222,11 @@ const Serie = ({ navigation, route }) => {
                     openModal={modalVisibleS}
                     handleCloseModal={handleCloseModalS}
                     seasons={seasons}//.map((season) => season.temporada)} //Envia un nuevo arreglo solo con el valor de las temporadas
-                    onSelectSeason={(season) => setSelectedSeason(season)}
+                    onSelectSeason={(season) => {
+                        setSelectedSeason(season);
+                        setSelectedEpisode(season.capitulos[0].capitulo);
+                        setSelectedLinkEpisode(season.capitulos[0].link);
+                    }}
                 />
             </View>
         </ImageBackground>
@@ -255,11 +255,12 @@ const styles = StyleSheet.create({
         marginVertical: 5,
     },
     button: {
-        width: '15%',
+        width: '25%',
         flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 5,
-        padding: 5,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
     textButton: {

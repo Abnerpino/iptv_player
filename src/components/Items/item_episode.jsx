@@ -1,31 +1,24 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import StarRating from '../StarRating';
-import { ScreenWidth } from '@rneui/base';
 
-const ItemEpisode = ({ navigation, season, episode }) => {
+const ItemEpisode = ({ navigation, season, episode, onSelectEpisode }) => {
     const link = episode.link;
 
     return (
-        <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={styles.container}>
-            <Image
-                source={{ uri: episode.poster }}
-                style={styles.image}
-                resizeMode='cover'
-            />
+        <TouchableOpacity 
+            style={styles.container}
+            onPress={() => {
+                onSelectEpisode(episode.capitulo);
+                navigation.navigate('Reproductor', { link })
+            }}
+        >
+            <Image source={{ uri: episode.poster }} style={styles.image} resizeMode='cover' />
             <View style={styles.details}>
-                <Text style={styles.title}>{`Temporada ${season} - Episodio ${episode.capitulo}: ${episode.name}`}</Text>
+                <Text style={styles.title}>{episode.name !== `Episodio ${episode.capitulo}` ? `Temporada ${season} - Episodio ${episode.capitulo}: "${episode.name}"` : `Temporada ${season} - Episodio ${episode.capitulo}`}</Text>
                 <StarRating rating={episode.vote_average ? episode.vote_average : 0} size={16} />
-                <Text style={styles.duration}>
-                    {episode.runtime ? `${episode.runtime % 60}m` : 'Duración no disponible'}
-                </Text>
-                <Text
-                    style={styles.overview}
-                    numberOfLines={2}
-                    ellipsizeMode='tail'
-                >
-                    {episode.overview ? episode.overview : 'Trama no disponible'}
-                </Text>
+                <Text style={styles.duration}>{episode.runtime ? `${episode.runtime % 60}m` : 'N/A'}</Text>
+                <Text style={styles.overview} numberOfLines={2} ellipsizeMode='tail' >{episode.overview ? episode.overview : 'Sinopsis no disponible'}</Text>
             </View>
         </TouchableOpacity>
     );
