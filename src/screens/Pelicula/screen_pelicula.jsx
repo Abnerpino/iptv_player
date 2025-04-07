@@ -43,9 +43,14 @@ const Pelicula = ({ navigation, route }) => {
         >
             <View style={styles.container}>
                 {/* Vista principal en columna */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
                     {/* Fila con textos */}
-                    <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{title}</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Icon name="arrow-circle-left" size={26} color="white"/>
+                    </TouchableOpacity>
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{title}</Text>
+                    </View>
                 </View>
 
                 {/* ScrollView para contenido desplazable */}
@@ -54,7 +59,7 @@ const Pelicula = ({ navigation, route }) => {
                     <View style={styles.row}>
                         <Image
                             source={{ uri: poster }} // URL de la imagen
-                            style={{ width: '15.5%', height: '100%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
+                            style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
                             resizeMode='contain'
                         />
                         <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
@@ -70,7 +75,7 @@ const Pelicula = ({ navigation, route }) => {
                                 <Text style={styles.text}>{getDate(`${details.release_date}T06:00:00.000Z`)}</Text>
                                 <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, borderRadius: 5 }]}>{convertDuration(details.runtime)}</Text>
                                 <Text style={styles.text}>{details.genres ? details.genres.join(' / ') : 'N/A'}</Text>
-                                <StarRating rating={details.vote_average ? details.vote_average : 0}/>
+                                <StarRating rating={details.vote_average ? details.vote_average : 0} size={20}/>
                             </View>
                         </View>
                     </View>
@@ -81,7 +86,7 @@ const Pelicula = ({ navigation, route }) => {
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
                             <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
-                            <Text style={styles.textButton}>Favoritos</Text>
+                            <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                         </TouchableOpacity>
                     </View>
                     <View style={{ paddingVertical: 10 }}>
@@ -117,7 +122,7 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
     },
     column: {
         flexDirection: 'column',
@@ -129,9 +134,12 @@ const styles = StyleSheet.create({
         marginVertical: 6.5,
     },
     button: {
-        width: '15%',
+        width: '25%',
+        flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 5,
-        padding: 5,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
     textButton: {

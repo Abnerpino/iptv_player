@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableHighlight, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
 import MenuLateral from '../../components/MenuLateral';
 import CardItem from '../../components/Cards/card_item';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Seccion = ({ navigation, route }) => {
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
@@ -33,7 +34,14 @@ const Seccion = ({ navigation, route }) => {
 
     return (
         <View style={{ flexDirection: 'column', flex: 1, backgroundColor: '#000' }}>
-            <Text style={styles.sectionTitle}>{category}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 10 }}>
+                    <Icon name="arrow-circle-left" size={26} color="white"/>
+                </TouchableOpacity>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text style={styles.sectionTitle}>{category}</Text>
+                </View>
+            </View>
             <View style={styles.container}>
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Buscar en categorias</Text>

@@ -53,11 +53,15 @@ const Serie = ({ navigation, route }) => {
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'center',
                     paddingVertical: 10
                 }}>
-                    {/* Fila con textos */}
-                    <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{title}</Text>
+                    {/* Fila con el botón de regreso y el titulo de la serie */}
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Icon name="arrow-circle-left" size={26} color="white"/>
+                    </TouchableOpacity>
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{title}</Text>
+                    </View>
                 </View>
 
                 {/* ScrollView para contenido desplazable */}
