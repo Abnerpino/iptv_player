@@ -16,6 +16,7 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo, id, temporadas }) =>
         }
         else {
             const info = await tmdbController.getInfoSerie(id); // Obtitne la información general de la serie
+            const creditos = await tmdbController.getCreditsSerie(id); // Obtiene los creditos de la serie
             
             // Genera un nuevo arreglo con la información que ya existia de los capitulos y temporadas y le agrega la información obtenida de la consulta a los capitulos para que esté completa
             const seasons = await Promise.all(
@@ -51,7 +52,7 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo, id, temporadas }) =>
                 })
             );
             
-            navigation.navigate('Serie', { imagen, titulo, info, link, id, seasons });
+            navigation.navigate('Serie', { imagen, titulo, info, link, id, seasons, creditos });
         }
     }
 

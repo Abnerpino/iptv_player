@@ -147,6 +147,35 @@ class TMDBController {
             console.log('Error al obtener los creditos de la pelicula: ', error);
         }
     }
+
+    //Se buscan los creditos de la serie por su id
+    async getCreditsSerie(id) {
+        const creditsUrl = `https://api.themoviedb.org/3/tv/${id}/credits?api_key=${apiKey}&language=es-MX`;
+
+        try {
+            const creditsResponse = await fetch(creditsUrl);
+            const creditsData = await creditsResponse.json();
+
+            let cont = 1; // Inicializar el contador
+            // Filtrar actores
+            const actores = creditsData.cast
+                .filter(actor => actor.known_for_department === "Acting")
+                .map(actor => {
+                    // Asignar imagen según la condición
+                    const imagen = actor.profile_path === "null" ? null : `https://image.tmdb.org/t/p/w600_and_h900_bestv2${actor.profile_path}`;
+
+                    return {
+                        id: cont++, // Asignar el contador y luego incrementarlo
+                        nombre: actor.name,
+                        imagen: imagen
+                    };
+                });
+            
+            return actores; //Se retorna el arreglo de objetos con los creditos
+        } catch (error) {
+            console.log('Error al obtener los creditos de la pelicula: ', error);
+        }
+    }
 }
 
 export default TMDBController;

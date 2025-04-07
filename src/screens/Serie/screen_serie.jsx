@@ -14,7 +14,7 @@ const Serie = ({ navigation, route }) => {
     const link = route.params.link;
     const seasons = route.params.seasons;
     const id = route.params.id;
-    const credits = route.params.info[1];
+    const credits = route.params.creditos;
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
@@ -42,6 +42,10 @@ const Serie = ({ navigation, route }) => {
     function handleCloseModalS() {
         setModalVisibleS(false);
     }
+
+    const ItemSeparator = () => (
+        <View style={{ width: 10 }} /> // Espacio entre elementos
+    );
 
     return (
         <ImageBackground
@@ -129,7 +133,7 @@ const Serie = ({ navigation, route }) => {
                                 </TouchableOpacity>
 
                                 {/* Botón Reparto (solo si hay datos) */}
-                                {credits && credits.cast && credits.cast.length > 0 && (
+                                {credits.length > 0 && (
                                     <TouchableOpacity
                                         onPress={() => setSelectedTab('reparto')}
                                         style={{
@@ -174,46 +178,20 @@ const Serie = ({ navigation, route }) => {
                                 />
                             ) : (
                                 <FlatList
-                                    data={credits.cast}
-                                    keyExtractor={(item, index) => index.toString()}
+                                    data={credits}
                                     horizontal
-                                    showsHorizontalScrollIndicator={false}
                                     renderItem={({ item }) => (
-                                        <View style={{
-                                            width: 120,
-                                            marginRight: 10,
-                                            alignItems: 'center'
-                                        }}>
-                                            <Image
-                                                source={{ uri: `https://image.tmdb.org/t/p/w200${item.profile_path}` }}
-                                                style={{ width: 100, height: 140, borderRadius: 8 }}
-                                                resizeMode="cover"
-                                            />
-                                            <Text style={{ color: '#fff', textAlign: 'center', marginTop: 5 }}>{item.name}</Text>
-                                            <Text style={{ color: '#ccc', fontSize: 12, textAlign: 'center' }}>{item.character}</Text>
-                                        </View>
+                                        <CardActor
+                                            imagen={item.imagen}
+                                            nombre={item.nombre}
+                                        />
                                     )}
+                                    keyExtractor={(item) => item.id}
+                                    ItemSeparatorComponent={ItemSeparator}
                                 />
                             )}
                         </View>
                     )}
-
-
-                    {/* Vista en columna con texto y FlatList */}
-                    <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
-                        {/*<FlatList
-                            data={credits[0]}
-                            horizontal
-                            renderItem={({ item }) => (
-                                <CardActor
-                                    imagen={item.imagen}
-                                    nombre={item.nombre}
-                                />
-                            )}
-                            keyExtractor={(item) => item.id}
-                            ItemSeparatorComponent={ItemSeparator}
-                        />*/}
-                    </View>
                 </ScrollView>
                 {/* Modal para mostrar la trama completa */}
                 <ModalOverview
