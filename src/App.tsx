@@ -9,23 +9,26 @@ import { StatusBar } from "react-native";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider } from "react-redux";
-import store from "./services/redux/store";
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from "./services/redux/store";
 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
   return (
     <Provider store={store}>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/*<Stack.Screen name="Login" component={Login} />*/}
-          <Stack.Screen name="Menu" component={Menu} />
-          <Stack.Screen name="Seccion" component={Seccion} />
-          <Stack.Screen name="Pelicula" component={Pelicula} />
-          <Stack.Screen name="Serie" component={Serie} />
-          <Stack.Screen name="Reproductor" component={Reproductor}/>
-        </Stack.Navigator>
-      </NavigationContainer>
+      <PersistGate loading={null} persistor={persistor}>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {/*<Stack.Screen name="Login" component={Login} />*/}
+            <Stack.Screen name="Menu" component={Menu} />
+            <Stack.Screen name="Seccion" component={Seccion} />
+            <Stack.Screen name="Pelicula" component={Pelicula} />
+            <Stack.Screen name="Serie" component={Serie} />
+            <Stack.Screen name="Reproductor" component={Reproductor}/>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PersistGate>
     </Provider>
   );
 }
