@@ -126,7 +126,9 @@ class M3UController {
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
                 'group-title': group[1] || '',
-                link: streamUrl || ''
+                link: streamUrl || '',
+                visto: false,
+                favorito: false
               });
             } else { //Si el tipo de contenido no es ni live ni movie, significa que son series
               const title = this.separateTitle(name[1]);
