@@ -1,5 +1,4 @@
 import TMDBController from "./tmdbController";
-import Categorias from "../models/categorias";
 
 const tmdbController = new TMDBController;
 
@@ -61,12 +60,13 @@ http://teerom.site:8080/series/PinoFederico/Pino150601/732942.mkv
 http://teerom.site:8080/series/PinoFederico/Pino150601/732938.mkv`;
 
 class M3UController {
-    parseM3U = () => {
+    parseM3U = (movies, categoriasPelis) => {
+        const totalFavMovies = categoriasPelis?.find(item => item.id === 3)?.total ?? 0; //Obtiene el total de peliculas de la categoria Favortios si es que ya hay peliculas guardadas
         let live = []; //Arreglo para guardar los canales en vivo
         let catsLive = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE VISTO', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categorias de los canales
         let contLiveId = 4; //Contador para el id de cada categoria de canales, inicia en 4 porque ya existen tres categorias
         let movie = []; //Arreglo para guardar las peliculas
-        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categorias de las peliculas
+        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: totalFavMovies }]; //Arreglo para almacenar las categorias de las peliculas
         let contMovieId = 4; //Contador para el id de cada categoria de peliculas, inicia en 4 porque ya existen tres categorias
         let seriesPromises = []; //Arreglo para guardar las series de cada promesa
         let catsSerie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categoriasde las series
@@ -122,13 +122,15 @@ class M3UController {
                 });
               }
 
+              const isFavorite = movies?.find(item => item['tvg-name'] === name[1])?.favorito ?? false; //Obtiene, cuando ya hay peliculas guardadas, el valor que indica si una pelicula está agregada a Favortios o no
+
               movie.push({
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
                 'group-title': group[1] || '',
                 link: streamUrl || '',
                 visto: false,
-                favorito: false
+                favorito: isFavorite
               });
             } else { //Si el tipo de contenido no es ni live ni movie, significa que son series
               const title = this.separateTitle(name[1]);
@@ -264,8 +266,8 @@ class M3UController {
       return path.substring(ultimoSlash); // Extrae desde esa posición hasta el final
     }
 
-    handleGetDataByType = () => {
-      return this.parseM3U().then(([live, movie, series]) => {
+    handleGetDataByType = (pelis, catsPelis) => {
+      return this.parseM3U(pelis, catsPelis).then(([live, movie, serie]) => {
           let categorias = []; //Arreglo para guardar todas las categorias
           let contenido = []; //Arreglo para guardar todo el contenido
 
@@ -280,8 +282,8 @@ class M3UController {
                 contenido.push(movie[1]); //Obtiene el contenido de las peliculas
                 break;
               case 2:
-                categorias.push(series[0]); //Obtiene las categorias de las series
-                contenido.push(series[1]); //Obtiene el contenido de las series
+                categorias.push(serie[0]); //Obtiene las categorias de las series
+                contenido.push(serie[1]); //Obtiene el contenido de las series
                 break;
             }
           }
@@ -293,6 +295,9 @@ class M3UController {
       });
     };
       
+    render() {
+      return null; // Ajusta según lo que necesites renderizar
+    }
 }
 
 export default M3UController;

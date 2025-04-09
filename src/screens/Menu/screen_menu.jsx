@@ -21,7 +21,7 @@ const Menu = ({ navigation, route }) => {
             console.log("Ya existe contenido");
         } else {
             console.log("Obteniendo contenido de la red");
-            m3uController.handleGetDataByType()
+            m3uController.handleGetDataByType(movies, catsMovies)
                 .then(([categories, content]) => {
                     if (isMounted) {
                         dispatch(setCatsTV(categories[0]));
