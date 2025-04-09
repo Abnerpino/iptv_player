@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFavoriteSerie } from '../../services/redux/slices/contentSlice';
+import { setCatFavoriteSeries } from '../../services/redux/slices/categoriesSlice';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
@@ -16,13 +19,41 @@ const Serie = ({ navigation, route }) => {
     const id = route.params.id;
     const credits = route.params.creditos;
 
+    const { series } = useSelector(state => state.content);
+    const { catsSeries } = useSelector(state => state.categories);
+    const dispatch = useDispatch();
+    const serie = series.find(serie => serie.id === id);
+    const [favorite, setFavorite] = useState(serie?.favorito ?? false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
+    const favoritos = catsSeries.find(categoria => categoria.id === 3);
+
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]); //Estado para manejar la información del episodio seleccionado
     const [selectedEpisode, setSelectedEpisode] = useState(seasons[0].capitulos[0].capitulo); //Estado para manejar el numero del episodio seleccionado
     const [selectedLinkEpisode, setSelectedLinkEpisode] = useState(seasons[0].capitulos[0].link); //Estado para manejar la url de stream del episodio seleccionado
-    const [favorite, setFavorite] = useState(false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
+
+    const handleToggleFavorite = () => {
+        const newFavoriteStatus = !favorite;
+
+        // Verificamos si ya está en favoritos (para evitar agregar de nuevo)
+        if (serie?.favorito === newFavoriteStatus) return;
+
+        setFavorite(newFavoriteStatus);
+    
+        dispatch(setFavoriteSerie({
+            id: id,
+            changes: { favorito: newFavoriteStatus }
+        }));
+
+        const currentTotal = favoritos.total;
+        let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+    
+        dispatch(setCatFavoriteSeries({
+            id: 3,
+            changes: { total: newTotal }
+        }));
+    };
 
     const getDate = (date) => {
         const fecha = new Date(date);
@@ -107,7 +138,7 @@ const Serie = ({ navigation, route }) => {
                             <Icon name="list-alt" size={22} color="white"/>
                             <Text style={styles.textButton}>{`Temporada: ${selectedSeason.temporada}`}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setFavorite(!favorite)} style={styles.button}>
+                        <TouchableOpacity onPress={handleToggleFavorite} style={styles.button}>
                             <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
                             <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                         </TouchableOpacity>

@@ -26,9 +26,16 @@ const categoriesSlice = createSlice({
     setCatsSeries: (state, action) => {
       state.catsSeries = action.payload;
     },
+    setCatFavoriteSeries: (state, action) => {
+      const { id, changes } = action.payload;
+      const index = state.catsSeries.findIndex(categorie => categorie.id === id);
+      if (index !== -1) {
+        state.catsSeries[index] = { ...state.catsSeries[index], ...changes };
+      }
+    },
   },
 });
 
-export const { setCatsTV, setCatsMovies, setCatFavoriteMovies, setCatsSeries } = categoriesSlice.actions;
+export const { setCatsTV, setCatsMovies, setCatFavoriteMovies, setCatsSeries, setCatFavoriteSeries } = categoriesSlice.actions;
 
 export default categoriesSlice.reducer;
