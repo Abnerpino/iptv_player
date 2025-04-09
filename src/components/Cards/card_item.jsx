@@ -3,7 +3,7 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardItem = ({ navigation, imagen, titulo, link, tipo, id, temporadas }) => {
+const CardItem = ({ navigation, imagen, titulo, link, tipo, id, visto, temporadas }) => {
     const handleNavigateToScreen = async () => {
         if (tipo === 'TV') {
             navigation.navigate('Reproductor', { link });
@@ -12,7 +12,7 @@ const CardItem = ({ navigation, imagen, titulo, link, tipo, id, temporadas }) =>
             const title = titulo.replace(/\s*\(\d{4}\)/, ''); // Elimina el año y solo deja el nombre de la Pelicula
             const posterPath = getPosterPath(imagen);
             const info = await tmdbController.getDataMovie(title, posterPath); //Obtiene la información general de la pelicula
-            navigation.navigate('Pelicula', { imagen, titulo, info, link });
+            navigation.navigate('Pelicula', { imagen, titulo, info, link, visto });
         }
         else {
             const info = await tmdbController.getInfoSerie(id); // Obtitne la información general de la serie

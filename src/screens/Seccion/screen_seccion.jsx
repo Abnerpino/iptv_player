@@ -1,34 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
 import MenuLateral from '../../components/MenuLateral';
 import CardItem from '../../components/Cards/card_item';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Seccion = ({ navigation, route }) => {
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
-    const categories = route.params.categorias; //Obtiene todas las categorias de la Multimedia
-    const content = route.params.contenido; //Obtiene todo el contenido de la Multimedia
-
+    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories); //Obtiene las categorias del estado global
+    const { tv, movies, series } = useSelector(state => state.content); //Obtiene el contenido del estado global
+    
+    //Las categorias y el contenido se mantienen acutalizados cada que el store cambia
+    const [categories, content] = useMemo(() => {
+        if (type === 'TV') return [catsTv, tv];
+        if (type === 'Cine') return [catsMovies, movies];
+        return [catsSeries, series];
+    }, [type, catsTv, catsMovies, catsSeries, tv, movies, series]);
+    
     const [category, setCategory] = useState('TODO'); //Estado para manejar el nombre de la categoria seleccionada
     const [selectedId, setSelectedId] = useState(1); //Estado para el manejo del ID de la categoria seleccionada
-    const [contenido, setContenido] = useState(content);
+    const [contenido, setContenido] = useState(content); //Estado para manejar el contenido por categoria
 
+    //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
+    useEffect(() => {
+        if (category === 'FAVORITOS') {
+            const favoritos = content.filter(item => item.favorito === true);
+            setContenido(favoritos);
+        } else if (category === 'TODO') {
+            setContenido(content);
+        } else {
+            const filtrado = content.filter(item => item['group-title'] === category);
+            setContenido(filtrado);
+        }
+    }, [content, category]);
+
+    //Muestra el contenido de la categoria seleccionada
     function seleccionarCategoria(idCategoria) {
         if (idCategoria !== selectedId) {
             setSelectedId(idCategoria);
             const nameCategory = categories.find(item => item.id === idCategoria);
             setCategory(nameCategory.name);
-            if (nameCategory.name !== 'TODO') {
-                const newContent = [];
-                content.map(content => {
-                    if (nameCategory.name === content['group-title']) {
-                        newContent.push(content);
-                    }
-                });
-                setContenido(newContent);
-            } else {
-                setContenido(content);
-            }
         }
     }
 
@@ -71,6 +82,7 @@ const Seccion = ({ navigation, route }) => {
                                 imagen={item['tvg-logo']}
                                 titulo={item['tvg-name']}
                                 link={item.link}
+                                visto={item.visto}
                                 temporadas={item.temporadas}
                                 tipo={type}
                             />

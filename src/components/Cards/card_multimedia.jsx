@@ -1,21 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-import M3UController from '../../services/controllers/m3uController';
 
-const m3uController = new M3UController;
+const CardMultimedia = ({ navigation, tipo, fondo }) => {
+    const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)'); //Estado para manejar el color del botón de actualizar contenido   
 
-const CardMultimedia = ({ navigation, tipo, fondo, data }) => {
-    const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)'); //Estado para manejar el color del botón de actualizar contenido
-    const categorias = data.categories;
-    const contenido = data.content;
-
-    const imagen =
-        tipo === 'TV'
-            ? require('../../assets/tv.png')
-            : tipo === 'Cine'
-                ? require('../../assets/cine.png')
-                : require('../../assets/series.png')
-    ;
+    const imagen = tipo === 'TV' ? require('../../assets/tv.png') : (tipo === 'Cine' ? require('../../assets/cine.png') : require('../../assets/series.png'));
 
     const handlePressIn = () => {
         setButtonColor('rgb(0,0,0)'); // Cambia el color al presionar
@@ -26,7 +15,7 @@ const CardMultimedia = ({ navigation, tipo, fondo, data }) => {
     };
 
     const handleNavigateToScreen = () => {
-        navigation.navigate('Seccion', { tipo, categorias, contenido });
+        navigation.navigate('Seccion', { tipo });
     };
 
     return (

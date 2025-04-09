@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
+import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import M3UController from '../../services/controllers/m3uController';
 
@@ -7,18 +10,31 @@ const m3uController = new M3UController;
 
 const Menu = ({ navigation, route }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [data, setData] = useState({ categories: [], content: [] }); // Estado para manejar la información de todo el contenido y todas las categorias
+    const dispatch = useDispatch();
+    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
+    const { tv, movies, series } = useSelector(state => state.content);
     
     useEffect(() => {
         let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
 
-        m3uController.handleGetDataByType()
-            .then(([categories, content]) => {
-                if (isMounted) {
-                    setData({ categories, content });
-                }
-            })
-            .catch(error => console.log("Error al obtener datos:", error));
+        if (catsTv.length > 0 && tv.length > 0 && catsMovies.length > 0 && movies.length > 0 && catsSeries.length > 0 && series.length > 0) {
+            console.log("Ya existe contenido");
+        } else {
+            console.log("Obteniendo contenido de la red");
+            m3uController.handleGetDataByType()
+                .then(([categories, content]) => {
+                    if (isMounted) {
+                        dispatch(setCatsTV(categories[0]));
+                        dispatch(setTV(content[0]));
+                        dispatch(setCatsMovies(categories[1]));
+                        dispatch(setMovies(content[1]));
+                        dispatch(setCatsSeries(categories[2]));
+                        dispatch(setSeries(content[2]));
+    
+                    }
+                })
+                .catch(error => console.log("Error al obtener datos:", error));
+        }
 
         return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
     }, []); // Se ejecuta solo cuando se monta el componente
@@ -41,24 +57,6 @@ const Menu = ({ navigation, route }) => {
         // Limpia el intervalo al desmontar el componente
         return () => clearInterval(intervalId);
     }, []);
-    
-    const getMultimediaByType = (type) => {
-        let cats = [];
-        let cont = [];
-
-        if (type === 'TV') {
-            cats = data.categories[0];
-            cont = data.content[0];
-        } else if (type === 'Cine') {
-            cats = data.categories[1];
-            cont = data.content[1];
-        } else {
-            cats = data.categories[2];
-            cont = data.content[2];
-        }
-
-        return {categories: cats, content: cont}
-    };
 
     const optionsDate = {
         year: 'numeric',
@@ -94,7 +92,6 @@ const Menu = ({ navigation, route }) => {
                         navigation={navigation}
                         tipo={multimedia.tipo}
                         fondo={multimedia.fondo}
-                        data={getMultimediaByType(multimedia.tipo)}
                     />
                 ))}
             </View>

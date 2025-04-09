@@ -1,17 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFavoriteMovie } from '../../services/redux/slices/contentSlice';
+import { setCatsMovies, setCatFavoriteMovies } from '../../services/redux/slices/categoriesSlice';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Pelicula = ({ navigation, route }) => {
-    const [favorite, setFavorite] = useState(false);
-
     const title = route.params.titulo;
     const poster = route.params.imagen;
     const details = route.params.info[0];
     const credits = route.params.info[1];
     const link = route.params.link;
+    const visto = route.params.visto;
+    //const favorito = route.params.favorito;
+    const { movies } = useSelector(state => state.content);
+    const { catsMovies } = useSelector(state => state.categories);
+    
+    const dispatch = useDispatch();
+    const movie = movies.find(movie => movie['tvg-name'] === title);
+    const [favorite, setFavorite] = useState(movie?.favorito ?? false);
+    const favoritos = catsMovies.find(categoria => categoria.id === 3);
+
+
+    const handleToggleFavorite = () => {
+        const newFavoriteStatus = !favorite;
+
+        // Verificamos si ya está en favoritos (para evitar agregar de nuevo)
+        if (movie?.favorito === newFavoriteStatus) return;
+
+        setFavorite(newFavoriteStatus);
+
+        dispatch(setFavoriteMovie({
+            title: title,
+            changes: { favorito: newFavoriteStatus }
+        }));
+
+        const currentTotal = favoritos.total;
+        let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+
+        dispatch(setCatFavoriteMovies({
+            id: 3,
+            changes: { total: newTotal }
+        }));
+    };
 
     const getDate = (date) => {
         const fecha = new Date(date);
@@ -84,7 +117,7 @@ const Pelicula = ({ navigation, route }) => {
                             <Icon name="play-circle-o" size={22} color="white"/>
                             <Text style={styles.textButton}>Play</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setFavorite(!favorite)} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
+                        <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
                             <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
                             <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                         </TouchableOpacity>
