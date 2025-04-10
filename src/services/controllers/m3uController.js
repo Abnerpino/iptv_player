@@ -67,10 +67,10 @@ class M3UController {
         let catsLive = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE VISTO', total: 0 }, { id: 3, name: 'FAVORITOS', total: 0 }]; //Arreglo para almacenar las categorias de los canales
         let contLiveId = 4; //Contador para el id de cada categoria de canales, inicia en 4 porque ya existen tres categorias
         let movie = []; //Arreglo para guardar las peliculas
-        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: totalFavMovies }]; //Arreglo para almacenar las categorias de las peliculas
+        let catsMovie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE VISTO', total: 0 }, { id: 3, name: 'FAVORITOS', total: totalFavMovies }]; //Arreglo para almacenar las categorias de las peliculas
         let contMovieId = 4; //Contador para el id de cada categoria de peliculas, inicia en 4 porque ya existen tres categorias
         let seriesPromises = []; //Arreglo para guardar las series de cada promesa
-        let catsSerie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE MIRADA', total: 0 }, { id: 3, name: 'FAVORITOS', total: totalFavSeries }]; //Arreglo para almacenar las categoriasde las series
+        let catsSerie = [{ id: 1, name: 'TODO', total: 0 }, { id: 2, name: 'RECIENTEMENTE VISTO', total: 0 }, { id: 3, name: 'FAVORITOS', total: totalFavSeries }]; //Arreglo para almacenar las categoriasde las series
         let contSerieId = 4; //Contador para el id de cada categoria de series, inicia en 4 porque ya existen tres categorias
         let sameSerie = ''; //Guarda el titulo (nombre y año) de una Serie para evitar consultas repetidas
         
@@ -107,7 +107,9 @@ class M3UController {
                 'tvg-name': name[1] || '',
                 'tvg-logo': logo[1] || '',
                 'group-title': group[1] || '',
-                link: streamUrl || ''
+                link: streamUrl || '',
+                visto: false,
+                favorito: false
               });
             } else if (contentType === 'movie') { //Si el tipo de contenido es movie, significa que son peliculas
               catsMovie[0].total++; //Suma 1 al valor del total de la primera categoria (TODO)
@@ -226,6 +228,7 @@ class M3UController {
                       'group-title': group[1] || '',
                       link: streamUrl || '',
                       temporadas: seasons,
+                      visto: false,
                       favorito: isSerieFav
                     };
                   }

@@ -20,12 +20,22 @@ const Seccion = ({ navigation, route }) => {
     const [category, setCategory] = useState('TODO'); //Estado para manejar el nombre de la categoria seleccionada
     const [selectedId, setSelectedId] = useState(1); //Estado para el manejo del ID de la categoria seleccionada
     const [contenido, setContenido] = useState(content); //Estado para manejar el contenido por categoria
+    const [mensaje, setMensaje] = useState(''); //Estado para manejar el mensaje a mostrar cuando Favoritos y Recientemente Visto estén vacios
 
     //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
     useEffect(() => {
-        if (category === 'FAVORITOS') {
+        if (category === 'RECIENTEMENTE VISTO') {
+            const vistos = content.filter(item => item.visto === true);
+            setContenido(vistos);
+            if (vistos.length < 1) {
+                setMensaje(type === 'TV' ? 'Sin canales vistos' : (type === 'Cine' ? 'Sin películas vistas' : 'Sin series vistas'))
+            }
+        } else if (category === 'FAVORITOS') {
             const favoritos = content.filter(item => item.favorito === true);
             setContenido(favoritos);
+            if (favoritos.length < 1) {
+                setMensaje(type === 'TV' ? 'Sin canales favoritos' : (type === 'Cine' ? 'Sin películas favoritas' : 'Sin series favoritas'))
+            }
         } else if (category === 'TODO') {
             setContenido(content);
         } else {
@@ -71,23 +81,29 @@ const Seccion = ({ navigation, route }) => {
                     />
                 </View>
                 <View style={styles.peliculasContainer}>
-                    <FlatList
-                        data={contenido}
-                        numColumns={5}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={({ item }) => (
-                            <CardItem
-                                navigation={navigation}
-                                id={item.id}
-                                imagen={item['tvg-logo']}
-                                titulo={item['tvg-name']}
-                                link={item.link}
-                                visto={item.visto}
-                                temporadas={item.temporadas}
-                                tipo={type}
-                            />
-                        )}
-                    />
+                    {(category === 'FAVORITOS' && contenido.length === 0) || (category === 'RECIENTEMENTE VISTO' && contenido.length === 0) ? (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                            <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>{mensaje}</Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={contenido}
+                            numColumns={5}
+                            keyExtractor={(item, index) => index.toString()}
+                            renderItem={({ item }) => (
+                                <CardItem
+                                    navigation={navigation}
+                                    id={item.id}
+                                    imagen={item['tvg-logo']}
+                                    titulo={item['tvg-name']}
+                                    link={item.link}
+                                    visto={item.visto}
+                                    temporadas={item.temporadas}
+                                    tipo={type}
+                                />
+                            )}
+                        />
+                    )}
                 </View>
             </View>
         </View>
