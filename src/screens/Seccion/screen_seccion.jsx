@@ -46,10 +46,10 @@ const Seccion = ({ navigation, route }) => {
     return (
         <View style={{ flexDirection: 'column', flex: 1, backgroundColor: '#000' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 10 }}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
                     <Icon name="arrow-circle-left" size={26} color="white"/>
                 </TouchableOpacity>
-                <View style={{ flex: 1, justifyContent: 'center' }}>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.sectionTitle}>{category}</Text>
                 </View>
             </View>
@@ -115,9 +115,8 @@ const styles = StyleSheet.create({
     sectionTitle: {
         color: '#FFF',
         textAlign: 'center',
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 10,
     },
     movieItem: {
         flex: 1,

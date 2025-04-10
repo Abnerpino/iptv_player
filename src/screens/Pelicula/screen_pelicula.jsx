@@ -78,11 +78,11 @@ const Pelicula = ({ navigation, route }) => {
                 {/* Vista principal en columna */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
                     {/* Fila con textos */}
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
                         <Icon name="arrow-circle-left" size={26} color="white"/>
                     </TouchableOpacity>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{title}</Text>
+                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{title}</Text>
                     </View>
                 </View>
 
