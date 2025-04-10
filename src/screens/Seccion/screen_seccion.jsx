@@ -22,15 +22,23 @@ const Seccion = ({ navigation, route }) => {
     const [selectedId, setSelectedId] = useState(1); //Estado para el manejo del ID de la categoria seleccionada
     const [contenido, setContenido] = useState(content); //Estado para manejar el contenido por categoria
     const [mensaje, setMensaje] = useState(''); //Estado para manejar el mensaje a mostrar cuando Favoritos y Recientemente Visto estén vacios
-    const [searchText, setSearchText] = useState(''); //Estado para manejar la búsqueda de categorias
+    const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
+    const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
+    const [mostrarBusqueda, setMostrarBusqueda] = useState(false); //Estado para manejar cuando mostrar la barra de busqueda
 
-    //Filtra las categorias segun sea la busqueda
+    //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
         return categories.filter(item =>
-            item.name.toLowerCase().includes(searchText.toLowerCase())
+            item.name.toLowerCase().includes(searchCat.toLowerCase())
         );
-    }, [searchText, categories]);
+    }, [searchCat, categories]);
 
+    //Filtra el contenido según sea la búsqueda
+    const filteredContent = useMemo(() => {
+        return content.filter(item =>
+            item['tvg-name'].toLowerCase().includes(searchCont.toLowerCase())
+        );
+    }, [searchCont, content]);
 
     //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
     useEffect(() => {
@@ -65,17 +73,17 @@ const Seccion = ({ navigation, route }) => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#000' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
-                    <Icon name="arrow-circle-left" size={26} color="white" />
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.sectionTitle}>{category}</Text>
-                </View>
-            </View>
             <View style={styles.container}>
                 <View style={styles.menuContainer}>
-                    <BarraBusqueda message={"Buscar en categorías"} searchText={searchText} setSearchText={setSearchText} />
+                    <View style={{ flexDirection: 'row' }}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5 }}>
+                            <Icon name="arrow-circle-left" size={26} color="white" />
+                        </TouchableOpacity>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text style={{ color: 'white', fontSize: 20 }}>IPTV Player</Text>
+                        </View>
+                    </View>
+                    <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
 
                     {filteredCategories.length === 0 ? (
                         <View style={{ padding: 10 }}>
@@ -98,13 +106,32 @@ const Seccion = ({ navigation, route }) => {
 
                 </View>
                 <View style={styles.peliculasContainer}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10 }}>
+                        <View style={{ flex: 1, alignItems: 'center' }}>
+                            {mostrarBusqueda ? (
+                                <BarraBusqueda message={`Buscar ${type === 'TV' ? 'canal' : (type === 'Cine' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
+                            ) : (
+                                <Text style={styles.sectionTitle}>{category}</Text>
+                            )}
+                        </View>
+                        <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 10, marginRight: 5 }}>
+                            <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={20} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+
                     {(category === 'FAVORITOS' && contenido.length === 0) || (category === 'RECIENTEMENTE VISTO' && contenido.length === 0) ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                             <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>{mensaje}</Text>
                         </View>
+                    ) : filteredContent.length === 0 ? (
+                        <View style={{ padding: 10 }}>
+                            <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                No se ha encontrado {type === 'TV' ? 'el canal' : (type === 'Cine' ? 'la película' : 'la serie')}
+                            </Text>
+                        </View>
                     ) : (
                         <FlatList
-                            data={contenido}
+                            data={filteredContent}
                             numColumns={5}
                             keyExtractor={(item, index) => index.toString()}
                             renderItem={({ item }) => (
@@ -122,6 +149,7 @@ const Seccion = ({ navigation, route }) => {
                         />
                     )}
                 </View>
+
             </View>
         </View>
     );
@@ -135,7 +163,6 @@ const styles = StyleSheet.create({
     },
     menuContainer: {
         width: '25%',
-        backgroundColor: '#101010',
     },
     searchContainer: {
         flexDirection: 'row',
