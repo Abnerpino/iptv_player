@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MenuLateral from '../../components/MenuLateral';
@@ -35,10 +35,10 @@ const Seccion = ({ navigation, route }) => {
 
     //Filtra el contenido según sea la búsqueda
     const filteredContent = useMemo(() => {
-        return content.filter(item =>
+        return contenido.filter(item =>
             item['tvg-name'].toLowerCase().includes(searchCont.toLowerCase())
         );
-    }, [searchCont, content]);
+    }, [searchCont, contenido]);
 
     //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
     useEffect(() => {
@@ -75,12 +75,15 @@ const Seccion = ({ navigation, route }) => {
         <View style={{ flex: 1, backgroundColor: '#000' }}>
             <View style={styles.container}>
                 <View style={styles.menuContainer}>
-                    <View style={{ flexDirection: 'row' }}>
+                    <View style={{ flexDirection: 'row', height: '12.5%' }}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5 }}>
                             <Icon name="arrow-circle-left" size={26} color="white" />
                         </TouchableOpacity>
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                            <Text style={{ color: 'white', fontSize: 20 }}>IPTV Player</Text>
+                        <View style={{ flex: 1 }}>
+                            <Image
+                                source={require('../../assets/imagotipo.png')}
+                                style={{ height: '100%', width: '100%', resizeMode: 'contain' }}
+                            />
                         </View>
                     </View>
                     <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
@@ -149,7 +152,6 @@ const Seccion = ({ navigation, route }) => {
                         />
                     )}
                 </View>
-
             </View>
         </View>
     );
@@ -163,20 +165,6 @@ const styles = StyleSheet.create({
     },
     menuContainer: {
         width: '25%',
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1c1c1c',
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        marginBottom: 10,
-    },
-    input: {
-        flex: 1,
-        color: 'white',
-        fontSize: 16,
-        paddingVertical: 8,
     },
     peliculasContainer: {
         width: '75%',

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 
 const CardMultimedia = ({ navigation, tipo, fondo }) => {
-    const [buttonColor, setButtonColor] = useState('rgba(0,0,0,0.5)'); //Estado para manejar el color del botón de actualizar contenido   
+    const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido   
 
     const imagen = tipo === 'TV' ? require('../../assets/tv.png') : (tipo === 'Cine' ? require('../../assets/cine.png') : require('../../assets/series.png'));
 
     const handlePressIn = () => {
-        setButtonColor('rgb(0,0,0)'); // Cambia el color al presionar
+        setButtonColor('rgba(255,255,255,1)'); // Cambia el color al presionar
     };
 
     const handlePressOut = () => {
@@ -32,19 +32,18 @@ const CardMultimedia = ({ navigation, tipo, fondo }) => {
                     source={imagen}
                     resizeMode="contain"
                     style={{
-                        width: '60%', // Resto del ancho
-                        height: '60%', // Resto del alto
+                        width: tipo === 'TV' ? '80%' : '60%',
+                        height: tipo === 'TV' ? '80%' : '60%',
                         alignSelf: 'center',
                     }}>
                 </Image>
             </View>
-            <TouchableOpacity style={{ flex: 0.2, justifyContent: 'center', width: '100%', backgroundColor: buttonColor }} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+            <TouchableOpacity style={{ flex: 0.2, justifyContent: 'center', width: '100%', backgroundColor: buttonColor, borderBottomRightRadius: 10, borderBottomLeftRadius: 10, }} onPressIn={handlePressIn} onPressOut={handlePressOut}>
                 <View style={{ flexDirection: 'row', width: '100%', height: '100%', marginHorizontal: 20 }}>
                     <Text style={{
                         color: '#fff',
                         fontSize: 12,
-                        borderTopLeftRadius: 10,
-                        borderBottomLeftRadius: 10,
+                        
                         paddingVertical: 10,
                         height: '100%',
                         width: '70%',

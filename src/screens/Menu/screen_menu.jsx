@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
 import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
@@ -13,7 +14,7 @@ const Menu = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
     const { tv, movies, series } = useSelector(state => state.content);
-    
+
     useEffect(() => {
         let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
 
@@ -30,7 +31,7 @@ const Menu = ({ navigation, route }) => {
                         dispatch(setMovies(content[1]));
                         dispatch(setCatsSeries(categories[2]));
                         dispatch(setSeries(content[2]));
-    
+
                     }
                 })
                 .catch(error => console.log("Error al obtener datos:", error));
@@ -78,10 +79,25 @@ const Menu = ({ navigation, route }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header con logo y fecha */}
+            {/* Header con logo, fecha e iconos */}
             <View style={styles.header}>
-                <Text style={styles.logo}>IPTV PLAYER</Text>
-                <Text style={styles.date}>{formattedDate}</Text>
+                <View style={{ width: '15%', justifyContent: 'center' }}>
+                    <Image
+                        source={require('../../assets/imagotipo.png')}
+                        style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'flex-start' }}
+                    />
+                </View>
+                <View style={{ alignItems: 'center', width: '70%', justifyContent: 'center' }}>
+                    <Text style={styles.date}>{formattedDate}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', width: '15%', justifyContent: 'flex-end' }}>
+                    <TouchableOpacity onPress={() => { console.log('Notificación') }} style={{ marginHorizontal: 10 }}>
+                        <Icon name="bell" size={26} color="yellow" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => { console.log('Acerca de...') }}>
+                        <Icon name="info-circle" size={26} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Fila 1: TV en Directo, Cine, Series */}
@@ -113,18 +129,15 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
-    },
-    logo: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
+        marginBottom: 10,
+        marginHorizontal: 5,
+        height: '15%',
+        width: '99%',
     },
     date: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 18,
     },
     row: {
         flexDirection: 'row',
@@ -140,6 +153,7 @@ const styles = StyleSheet.create({
     footerText: {
         color: '#fff',
         fontSize: 14,
+        marginHorizontal: 5
     },
 });
 
