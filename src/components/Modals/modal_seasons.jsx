@@ -3,7 +3,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) => {
     return(
-        <Modal visible={openModal} transparent animationType="slide">
+        <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
