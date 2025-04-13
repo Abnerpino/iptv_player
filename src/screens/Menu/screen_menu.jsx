@@ -123,7 +123,7 @@ const Menu = ({ navigation, route }) => {
                     <TouchableOpacity onPress={() => { console.log('Notificación') }} style={{ marginRight: 15 }}>
                         <Icon name="bell-badge" size={26} color="yellow" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => { console.log('Acerca de...') }} style={{ marginRight: 15 }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
                         <Icon2 name="info-circle" size={26} color="#FFF" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => { console.log('Conexión') }} style={{ marginRight: 15 }}>

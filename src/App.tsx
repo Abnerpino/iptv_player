@@ -1,6 +1,7 @@
 import React from "react";
 import Login from "./screens/Login";
 import Menu from "./screens/Menu";
+import About from "./screens/About";
 import Seccion from "./screens/Seccion";
 import Pelicula from "./screens/Pelicula";
 import Serie from "./screens/Serie";
@@ -22,6 +23,7 @@ const App = () => {
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {/*<Stack.Screen name="Login" component={Login} />*/}
             <Stack.Screen name="Menu" component={Menu} />
+            <Stack.Screen name="About" component={About} />
             <Stack.Screen name="Seccion" component={Seccion} />
             <Stack.Screen name="Pelicula" component={Pelicula} />
             <Stack.Screen name="Serie" component={Serie} />
