@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MenuLateral from '../../components/MenuLateral';
@@ -72,88 +72,98 @@ const Seccion = ({ navigation, route }) => {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#000' }}>
-            <View style={styles.container}>
-                <View style={styles.menuContainer}>
-                    <View style={{ flexDirection: 'row', height: '12.5%' }}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5 }}>
-                            <Icon name="arrow-circle-left" size={26} color="white" />
-                        </TouchableOpacity>
-                        <View style={{ flex: 1 }}>
-                            <Image
-                                source={require('../../assets/imagotipo.png')}
-                                style={{ height: '100%', width: '100%', resizeMode: 'contain' }}
+        <ImageBackground
+            source={require('../../assets/fondo2.jpg')}
+            style={{
+                flex: 1,
+                width: '100%',
+                height: '100%',
+            }}
+            resizeMode='cover'
+        >
+            <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0.5)' }}>
+                <View style={styles.container}>
+                    <View style={styles.menuContainer}>
+                        <View style={{ flexDirection: 'row', height: '12.5%' }}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5 }}>
+                                <Icon name="arrow-circle-left" size={26} color="white" />
+                            </TouchableOpacity>
+                            <View style={{ flex: 1 }}>
+                                <Image
+                                    source={require('../../assets/imagotipo.png')}
+                                    style={{ height: '100%', width: '100%', resizeMode: 'contain' }}
+                                />
+                            </View>
+                        </View>
+                        <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
+
+                        {filteredCategories.length === 0 ? (
+                            <View style={{ padding: 10 }}>
+                                <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>No se ha encontrado la categoría</Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={filteredCategories}
+                                numColumns={1}
+                                renderItem={({ item }) => (
+                                    <MenuLateral
+                                        categoria={item}
+                                        seleccionado={selectedId}
+                                        seleccionar={seleccionarCategoria}
+                                    />
+                                )}
+                                keyExtractor={item => item.id}
                             />
-                        </View>
+                        )}
+
                     </View>
-                    <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
-
-                    {filteredCategories.length === 0 ? (
-                        <View style={{ padding: 10 }}>
-                            <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>No se ha encontrado la categoría</Text>
+                    <View style={styles.peliculasContainer}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10 }}>
+                            <View style={{ flex: 1, alignItems: 'center' }}>
+                                {mostrarBusqueda ? (
+                                    <BarraBusqueda message={`Buscar ${type === 'TV' ? 'canal' : (type === 'Cine' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
+                                ) : (
+                                    <Text style={styles.sectionTitle}>{category}</Text>
+                                )}
+                            </View>
+                            <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 10, marginRight: 5 }}>
+                                <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={20} color="#FFF" />
+                            </TouchableOpacity>
                         </View>
-                    ) : (
-                        <FlatList
-                            data={filteredCategories}
-                            numColumns={1}
-                            renderItem={({ item }) => (
-                                <MenuLateral
-                                    categoria={item}
-                                    seleccionado={selectedId}
-                                    seleccionar={seleccionarCategoria}
-                                />
-                            )}
-                            keyExtractor={item => item.id}
-                        />
-                    )}
 
-                </View>
-                <View style={styles.peliculasContainer}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10 }}>
-                        <View style={{ flex: 1, alignItems: 'center' }}>
-                            {mostrarBusqueda ? (
-                                <BarraBusqueda message={`Buscar ${type === 'TV' ? 'canal' : (type === 'Cine' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
-                            ) : (
-                                <Text style={styles.sectionTitle}>{category}</Text>
-                            )}
-                        </View>
-                        <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 10, marginRight: 5 }}>
-                            <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={20} color="#FFF" />
-                        </TouchableOpacity>
+                        {(category === 'FAVORITOS' && contenido.length === 0) || (category === 'RECIENTEMENTE VISTO' && contenido.length === 0) ? (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>{mensaje}</Text>
+                            </View>
+                        ) : filteredContent.length === 0 ? (
+                            <View style={{ padding: 10 }}>
+                                <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                    No se ha encontrado {type === 'TV' ? 'el canal' : (type === 'Cine' ? 'la película' : 'la serie')}
+                                </Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={filteredContent}
+                                numColumns={5}
+                                keyExtractor={(item, index) => index.toString()}
+                                renderItem={({ item }) => (
+                                    <CardItem
+                                        navigation={navigation}
+                                        id={item.id}
+                                        imagen={item['tvg-logo']}
+                                        titulo={item['tvg-name']}
+                                        link={item.link}
+                                        visto={item.visto}
+                                        temporadas={item.temporadas}
+                                        tipo={type}
+                                    />
+                                )}
+                            />
+                        )}
                     </View>
-
-                    {(category === 'FAVORITOS' && contenido.length === 0) || (category === 'RECIENTEMENTE VISTO' && contenido.length === 0) ? (
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                            <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>{mensaje}</Text>
-                        </View>
-                    ) : filteredContent.length === 0 ? (
-                        <View style={{ padding: 10 }}>
-                            <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
-                                No se ha encontrado {type === 'TV' ? 'el canal' : (type === 'Cine' ? 'la película' : 'la serie')}
-                            </Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={filteredContent}
-                            numColumns={5}
-                            keyExtractor={(item, index) => index.toString()}
-                            renderItem={({ item }) => (
-                                <CardItem
-                                    navigation={navigation}
-                                    id={item.id}
-                                    imagen={item['tvg-logo']}
-                                    titulo={item['tvg-name']}
-                                    link={item.link}
-                                    visto={item.visto}
-                                    temporadas={item.temporadas}
-                                    tipo={type}
-                                />
-                            )}
-                        />
-                    )}
                 </View>
             </View>
-        </View>
+        </ImageBackground>
     );
 };
 
@@ -161,7 +171,6 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         flex: 1,
-        backgroundColor: '#000',
     },
     menuContainer: {
         width: '25%',
