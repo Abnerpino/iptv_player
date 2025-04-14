@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler  } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
@@ -82,11 +82,11 @@ const Menu = ({ navigation, route }) => {
 
     const handleConfirmExit = () => {
         BackHandler.exitApp(); // Cerrar la aplicación
-      };
-    
-      const handleCancelExit = () => {
+    };
+
+    const handleCancelExit = () => {
         setModalVisible(false);
-      };
+    };
 
     const optionsDate = {
         year: 'numeric',
@@ -107,65 +107,75 @@ const Menu = ({ navigation, route }) => {
     ];
 
     return (
-        <View style={styles.container}>
-            {/* Header con logo, fecha e iconos */}
-            <View style={styles.header}>
-                <View style={{ width: '17%', justifyContent: 'center', marginLeft: -15, marginRight: 15 }}>
-                    <Image
-                        source={require('../../assets/imagotipo.png')}
-                        style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'flex-start' }}
-                    />
+        <ImageBackground
+            source={require('../../assets/fondo1.jpg')}
+            style={{
+                flex: 1,
+                width: '100%',
+                height: '100%',
+            }}
+            resizeMode='cover'
+        >
+            <View style={styles.container}>
+                {/* Header con logo, fecha e iconos */}
+                <View style={styles.header}>
+                    <View style={{ width: '17%', justifyContent: 'center', marginLeft: -15, marginRight: 15 }}>
+                        <Image
+                            source={require('../../assets/imagotipo.png')}
+                            style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'flex-start' }}
+                        />
+                    </View>
+                    <View style={{ alignItems: 'center', width: '66%', justifyContent: 'center' }}>
+                        <Text style={styles.date}>{formattedDate}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
+                        <TouchableOpacity onPress={() => { console.log('Notificación') }} style={{ marginRight: 15 }}>
+                            <Icon name="bell-badge" size={26} color="yellow" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
+                            <Icon2 name="info-circle" size={26} color="#FFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => { console.log('Conexión') }} style={{ marginRight: 15 }}>
+                            <Icon3 name="network-check" size={26} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setModalVisible(true)}>
+                            <Icon3 name="exit-to-app" size={26} color="white" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-                <View style={{ alignItems: 'center', width: '66%', justifyContent: 'center' }}>
-                    <Text style={styles.date}>{formattedDate}</Text>
+
+                {/* Fila 1: TV en Directo, Cine, Series */}
+                <View style={styles.row}>
+                    {tiposMultimedia.map((multimedia, idx) => (
+                        <CardMultimedia
+                            key={idx}
+                            navigation={navigation}
+                            tipo={multimedia.tipo}
+                            fondo={multimedia.fondo}
+                        />
+                    ))}
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity onPress={() => { console.log('Notificación') }} style={{ marginRight: 15 }}>
-                        <Icon name="bell-badge" size={26} color="yellow" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
-                        <Icon2 name="info-circle" size={26} color="#FFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => { console.log('Conexión') }} style={{ marginRight: 15 }}>
-                        <Icon3 name="network-check" size={26} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setModalVisible(true)}>
-                        <Icon3 name="exit-to-app" size={26} color="white" />
-                    </TouchableOpacity>
+
+                {/* Footer con fecha de expiración y tipo de paquete */}
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>EXPIRACIÓN: octubre 4, 2024</Text>
+                    <Text style={styles.footerText}>PAQUETE: 3 Meses</Text>
                 </View>
-            </View>
 
-            {/* Fila 1: TV en Directo, Cine, Series */}
-            <View style={styles.row}>
-                {tiposMultimedia.map((multimedia, idx) => (
-                    <CardMultimedia
-                        key={idx}
-                        navigation={navigation}
-                        tipo={multimedia.tipo}
-                        fondo={multimedia.fondo}
-                    />
-                ))}
+                <ModalExit
+                    visible={modalVisible}
+                    onConfirm={handleConfirmExit}
+                    onCancel={handleCancelExit}
+                />
             </View>
-
-            {/* Footer con fecha de expiración y tipo de paquete */}
-            <View style={styles.footer}>
-                <Text style={styles.footerText}>EXPIRACIÓN: octubre 4, 2024</Text>
-                <Text style={styles.footerText}>PAQUETE: 3 Meses</Text>
-            </View>
-
-            <ModalExit
-                visible={modalVisible}
-                onConfirm={handleConfirmExit}
-                onCancel={handleCancelExit}
-            />
-        </View>
+        </ImageBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#141829',
+        backgroundColor: 'rgba(16,16,16,0.5)',
         padding: 20,
     },
     header: {
