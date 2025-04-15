@@ -3,18 +3,21 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, imagen, titulo, link, tipo, id, visto, temporadas }) => {
+const CardContenido = ({ navigation, imagen, titulo, link, tipo, id, visto, temporadas, onStartLoading, onFinishLoading }) => {
     const handleNavigateToScreen = async () => {
         if (tipo === 'TV') {
             navigation.navigate('Reproductor', { link });
         }
         else if (tipo === 'Cine') {
+            onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
             const title = titulo.replace(/\s*\(\d{4}\)/, ''); // Elimina el año y solo deja el nombre de la Pelicula
             const posterPath = getPosterPath(imagen);
             const info = await tmdbController.getDataMovie(title, posterPath); //Obtiene la información general de la pelicula
+            onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             navigation.navigate('Pelicula', { imagen, titulo, info, link, visto });
         }
         else {
+            onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
             const info = await tmdbController.getInfoSerie(id); // Obtitne la información general de la serie
             const creditos = await tmdbController.getCreditsSerie(id); // Obtiene los creditos de la serie
             
@@ -51,7 +54,7 @@ const CardContenido = ({ navigation, imagen, titulo, link, tipo, id, visto, temp
                     };
                 })
             );
-            
+            onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             navigation.navigate('Serie', { imagen, titulo, info, link, id, seasons, creditos });
         }
     }

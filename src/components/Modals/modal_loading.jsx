@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Modal, Animated, StyleSheet, View, Text } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-const ModalLoading = () => {
+const ModalLoading = ({ visible }) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const [dots, setDots] = useState(''); // Estado para manejar los puntos del mensaje "Cargando"
 
@@ -33,7 +33,7 @@ const ModalLoading = () => {
     });
 
     return (
-        <Modal transparent visible={true} animationType="fade">
+        <Modal transparent visible={visible} animationType="fade">
             <View style={styles.modalContainer}>
                 <Animated.View style={[styles.circleContainer, { transform: [{ rotate: spin }] }]}>
                     <Svg width={100} height={100} viewBox="0 0 100 100">

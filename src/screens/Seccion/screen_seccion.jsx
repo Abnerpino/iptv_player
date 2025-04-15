@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import MenuLateral from '../../components/MenuLateral';
 import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
+import ModalLoading from '../../components/Modals/modal_loading';
 
 const Seccion = ({ navigation, route }) => {
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
@@ -25,6 +26,10 @@ const Seccion = ({ navigation, route }) => {
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
     const [mostrarBusqueda, setMostrarBusqueda] = useState(false); //Estado para manejar cuando mostrar la barra de busqueda
+    const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
+
+    const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
+    const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
 
     //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
@@ -156,12 +161,15 @@ const Seccion = ({ navigation, route }) => {
                                         visto={item.visto}
                                         temporadas={item.temporadas}
                                         tipo={type}
+                                        onStartLoading={handleStartLoading}
+                                        onFinishLoading={handleFinishLoading}
                                     />
                                 )}
                             />
                         )}
                     </View>
                 </View>
+                <ModalLoading visible={loading} />
             </View>
         </ImageBackground>
     );
