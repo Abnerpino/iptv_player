@@ -1,4 +1,5 @@
 import React from "react";
+import Inicio from "./screens/Inicio";
 import Login from "./screens/Login";
 import Menu from "./screens/Menu";
 import About from "./screens/About";
@@ -23,6 +24,7 @@ const App = () => {
       <PersistGate loading={null} persistor={persistor}>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Inicio" component={Inicio} />
             {/*<Stack.Screen name="Login" component={Login} />*/}
             <Stack.Screen name="Menu" component={Menu} />
             <Stack.Screen name="About" component={About} />
