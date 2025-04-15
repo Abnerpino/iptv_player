@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackgro
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MenuLateral from '../../components/MenuLateral';
-import CardItem from '../../components/Cards/card_item';
+import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
 
 const Seccion = ({ navigation, route }) => {
@@ -147,7 +147,7 @@ const Seccion = ({ navigation, route }) => {
                                 numColumns={5}
                                 keyExtractor={(item, index) => index.toString()}
                                 renderItem={({ item }) => (
-                                    <CardItem
+                                    <CardContenido
                                         navigation={navigation}
                                         id={item.id}
                                         imagen={item['tvg-logo']}
