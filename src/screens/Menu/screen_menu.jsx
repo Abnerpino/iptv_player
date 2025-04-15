@@ -135,7 +135,7 @@ const Menu = ({ navigation, route }) => {
                         <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
                             <Icon2 name="info-circle" size={26} color="#FFF" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => { console.log('Conexión') }} style={{ marginRight: 15 }}>
+                        <TouchableOpacity onPress={() => navigation.navigate('SpeedTest')} style={{ marginRight: 15 }}>
                             <Icon3 name="network-check" size={26} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setModalVisible(true)}>
