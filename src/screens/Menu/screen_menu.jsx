@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -63,22 +64,21 @@ const Menu = ({ navigation, route }) => {
         return () => clearInterval(intervalId);
     }, []);
 
-    // Manejar el botón físico de Android
-    useEffect(() => {
-        if (route.name !== 'Menu') return; //Previene que solo en la pantalla Menu se active el modal de salir cuando se presione el boton Regresar
-
-        const backAction = () => {
-            setModalVisible(true);
-            return true; // Evitar el cierre automático
-        };
-
-        const backHandler = BackHandler.addEventListener(
-            'hardwareBackPress',
-            backAction
-        );
-
-        return () => backHandler.remove();
-    }, [route.name]);
+    /*Se ejecuta solo cuando la pantalla Menú está enfocada (es decir, solo cuando nos encontramos en Menú) y previene que,
+    si se presiona el botón "Regresar" de Android en otra pantalla, no se active el modal para salir de la app*/
+    useFocusEffect(
+        useCallback(() => {
+            const backAction = () => {
+                setModalVisible(true);
+                return true;
+            };
+    
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    
+            return () => backHandler.remove();
+        }, [])
+    );
+    
 
     const handleConfirmExit = () => {
         BackHandler.exitApp(); // Cerrar la aplicación
