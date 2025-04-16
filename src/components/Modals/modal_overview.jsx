@@ -16,7 +16,7 @@ const ModalOverview = ({ openModal, handleCloseModal, overview }) => {
                             <Icon name="window-close" size={27} color="red"/>
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 20, paddingVertical: 10, }}>
+                    <View style={{ paddingHorizontal: 20, paddingVertical: 10, maxHeight: '88%', }}>
                         <Text style={styles.text}>{overview}</Text>
                     </View>
                 </View>
@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF",
         borderRadius: 10,
         width: "70%",
+        maxHeight: '80%'
     },
     header: {
         flexDirection: 'row',

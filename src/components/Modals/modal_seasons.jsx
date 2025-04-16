@@ -15,7 +15,7 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                             <Icon name="window-close" size={27} color="red"/>
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 14, paddingVertical: 10, }}>
+                    <View style={{ paddingHorizontal: 14, paddingVertical: 10, maxHeight: '88%', }}>
                         <FlatList
                             data={seasons}
                             numColumns={4}
@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF",
         borderRadius: 10,
         width: "70%",
+        maxHeight: '80%'
     },
     header: {
         flexDirection: 'row',
