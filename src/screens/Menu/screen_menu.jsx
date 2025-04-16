@@ -7,6 +7,7 @@ import Icon2 from 'react-native-vector-icons/FontAwesome';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
 import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
+import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import M3UController from '../../services/controllers/m3uController';
 import ModalNotifications from '../../components/Modals/modal_notifications';
@@ -14,23 +15,28 @@ import ModalExit from '../../components/Modals/modal_exit';
 
 const m3uController = new M3UController;
 
-const msg = [
-    { id: 1, mensaje: "¡La fecha de expiración de su paquete es el lunes 14! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios" },
-    //{ id: 2, mensaje: "¡La fecha de expiración de su paquete es el lunes 15! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
-    //{ id: 3, mensaje: "¡La fecha de expiración de su paquete es el lunes 16! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
-    //{ id: 4, mensaje: "¡La fecha de expiración de su paquete es el lunes 17! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
-];
-
-const Menu = ({ navigation, route }) => {
+const Menu = ({ navigation }) => {
+    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
+    const { tv, movies, series } = useSelector(state => state.content);
+    const notificaciones = useSelector(state => state.notifications.list);
+    const dispatch = useDispatch();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
     const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de salir
-    const dispatch = useDispatch();
-    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
-    const { tv, movies, series } = useSelector(state => state.content);
+    const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
 
     useEffect(() => {
         let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
+
+        if (notificaciones.length === 0) {
+            const msg = [
+                //{ id: 1, mensaje: "¡La fecha de expiración de su paquete es el lunes 14! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
+                //{ id: 2, mensaje: "¡La fecha de expiración de su paquete es el lunes 15! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
+                //{ id: 3, mensaje: "¡La fecha de expiración de su paquete es el lunes 16! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
+                //{ id: 4, mensaje: "¡La fecha de expiración de su paquete es el lunes 17! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
+            ];
+            dispatch(setListNotifications(msg));
+        }
 
         if (catsTv.length > 0 && tv.length > 0 && catsMovies.length > 0 && movies.length > 0 && catsSeries.length > 0 && series.length > 0) {
             console.log("Ya existe contenido");
@@ -72,6 +78,17 @@ const Menu = ({ navigation, route }) => {
         // Limpia el intervalo al desmontar el componente
         return () => clearInterval(intervalId);
     }, []);
+
+    useEffect(() => {
+        if (notificaciones.length === 0 ) return; //Si no hay ninguna notificación, no hace nada
+
+        const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
+        if (result) { //Si result no es indefinido, significa que todavia hay alguna notificación sin ver
+            setAllSeenNotifications(false);
+        } else { //Si result es indefinido, significa que todas las notificaciones han sido vistas
+            setAllSeenNotifications(true);
+        }
+    }, [notificaciones]);
 
     /*Se ejecuta solo cuando la pantalla Menú está enfocada (es decir, solo cuando nos encontramos en Menú) y previene que,
     si se presiona el botón "Regresar" de Android en otra pantalla, no se active el modal para salir de la app*/
@@ -142,7 +159,11 @@ const Menu = ({ navigation, route }) => {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
                         <TouchableOpacity onPress={() => setModalNVisible(true)} style={{ marginRight: 15 }}>
-                            <Icon name="bell-badge" size={26} color="yellow" />
+                            <Icon
+                                name={notificaciones.length === 0 ? "bell-outline" : (allSeenNotifications ? "bell" : "bell-badge")}
+                                color={notificaciones.length === 0 ? "white" : (allSeenNotifications ? "white" : "yellow")}
+                                size={26}
+                            />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
                             <Icon2 name="info-circle" size={26} color="#FFF" />
@@ -177,7 +198,6 @@ const Menu = ({ navigation, route }) => {
                 <ModalNotifications
                     openModal={modalNVisible}
                     handleCloseModal={handleCloseModal}
-                    notificaciones={msg}
                 />
 
                 <ModalExit
