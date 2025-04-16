@@ -1,25 +1,26 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const ModalExit = ({ visible, onConfirm, onCancel }) => (
-    <Modal transparent visible={visible} onRequestClose={onCancel} animationType="fade">
-        <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>¿Realmente deseas salir?</Text>
-                </View>
-                <View style={styles.buttonsContainer}>
-                    <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'red' }]}>
-                        <Text style={styles.text}>Sí</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'green' }]}>
-                        <Text style={styles.text}>No</Text>
-                    </TouchableOpacity>
+const ModalExit = ({ visible, onConfirm, onCancel }) => {
+    return (
+        <Modal transparent visible={visible} onRequestClose={onCancel} animationType="fade">
+            <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>¿Realmente deseas salir?</Text>
+                    </View>
+                    <View style={styles.buttonsContainer}>
+                        <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'red' }]}>
+                            <Text style={styles.text}>Sí</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'green' }]}>
+                            <Text style={styles.text}>No</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
-        </View>
-    </Modal>
-);
+        </Modal>
+    );
+};
 
 const styles = StyleSheet.create({
     modalContainer: {
