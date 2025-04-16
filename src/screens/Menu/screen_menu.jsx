@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
+import Icon4 from 'react-native-vector-icons/Feather';
 import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
 import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
@@ -80,7 +81,7 @@ const Menu = ({ navigation }) => {
     }, []);
 
     useEffect(() => {
-        if (notificaciones.length === 0 ) return; //Si no hay ninguna notificación, no hace nada
+        if (notificaciones.length === 0) return; //Si no hay ninguna notificación, no hace nada
 
         const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
         if (result) { //Si result no es indefinido, significa que todavia hay alguna notificación sin ver
@@ -189,10 +190,23 @@ const Menu = ({ navigation }) => {
                     ))}
                 </View>
 
-                {/* Footer con fecha de expiración y tipo de paquete */}
+                {/* Footer con fecha de expiración, usuario y tipo de paquete */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>EXPIRACIÓN: octubre 4, 2024</Text>
-                    <Text style={styles.footerText}>PAQUETE: 3 Meses</Text>
+                    <View style={{ flexDirection: 'row', width: '33%', paddingLeft: 5 }}>
+                        <Icon name="calendar-clock" size={20} color="#FFF" />
+                        <Text style={[styles.footerText, { fontWeight: 'bold' }]}>EXPIRACIÓN:</Text>
+                        <Text style={styles.footerText}>octubre 4, 2024</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', width: '34%', justifyContent: 'center' }}>
+                        <Icon4 name="user" size={20} color="#FFF" />
+                        <Text style={[styles.footerText, { fontWeight: 'bold' }]}>USUARIO:</Text>
+                        <Text style={styles.footerText}>Abner15</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', width: '33%', justifyContent: 'flex-end', paddingRight: 5 }}>
+                        <Icon name="package-variant-closed" size={20} color="#FFF" />
+                        <Text style={[styles.footerText, { fontWeight: 'bold' }]}>PAQUETE:</Text>
+                        <Text style={styles.footerText}>3 Meses</Text>
+                    </View>
                 </View>
 
                 <ModalNotifications
@@ -236,13 +250,12 @@ const styles = StyleSheet.create({
     },
     footer: {
         marginTop: 'auto',
-        justifyContent: 'space-between',
         flexDirection: 'row',
     },
     footerText: {
         color: '#fff',
         fontSize: 14,
-        marginHorizontal: 5
+        marginLeft: 5
     },
 });
 
