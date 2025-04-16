@@ -5,6 +5,7 @@ import { combineReducers } from 'redux';
 import activationReducer from './slices/activationSlice';
 import contentReducer from './slices/contentSlice';
 import categoriesReducer from './slices/categoriesSlice';
+import notificationsReducer from './slices/notificationsSlice';
 
 const persistConfig = {
   key: 'root',
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
   activation: activationReducer,
   content: contentReducer,
   categories: categoriesReducer,
+  notifications: notificationsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
