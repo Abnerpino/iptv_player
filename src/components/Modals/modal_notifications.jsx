@@ -1,7 +1,18 @@
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useSelector, useDispatch } from 'react-redux';
+import { markAsViewed } from '../../services/redux/slices/notificationsSlice';
+import ItemNotification from '../Items/item_notification';
 
-const ModalNotifications = ({ openModal, handleCloseModal, notificaciones }) => {
+const ModalNotifications = ({ openModal, handleCloseModal }) => {
+    const dispatch = useDispatch();
+    const notificaciones = useSelector(state => state.notifications.list);
+    
+    // Funcion para controlar las notificaciones que ya han sido vistas (se debe de presionar sobre la notificación para que se considere vista)
+    function verNotificacion(idNotificacion) {
+        dispatch(markAsViewed(idNotificacion));
+    }
+
     return (
         <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
             <View style={styles.modalContainer}>
@@ -25,11 +36,13 @@ const ModalNotifications = ({ openModal, handleCloseModal, notificaciones }) => 
                                 data={notificaciones}
                                 numColumns={1}
                                 renderItem={({ item }) => (
-                                    <View style={[styles.notificactionConteiner, { marginBottom: notificaciones.length === item.id ? 0 : 12.5 }]}>
-                                        <Text style={styles.text}>{item.mensaje}</Text>
-                                    </View>
+                                    <ItemNotification
+                                        notificacion={item}
+                                        seleccionar={verNotificacion}
+                                        longitud={notificaciones.length}
+                                    />
                                 )}
-                                keyExtractor={item => item.id}
+                                keyExtractor={item => item.id.toString()}
                             />
                         )}
                     </View>
@@ -66,17 +79,6 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlignVertical: 'center',
         paddingLeft: 5
-    },
-    notificactionConteiner: {
-        backgroundColor: '#0A6522',
-        borderRadius: 5,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-    },
-    text: {
-        fontSize: 16,
-        color: "#FFF",
-        textAlign: 'justify',
     },
 });
 
