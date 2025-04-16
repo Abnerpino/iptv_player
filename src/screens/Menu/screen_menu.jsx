@@ -9,13 +9,22 @@ import { setTV, setMovies, setSeries } from '../../services/redux/slices/content
 import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import M3UController from '../../services/controllers/m3uController';
+import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalExit from '../../components/Modals/modal_exit';
 
 const m3uController = new M3UController;
 
+const msg = [
+    { id: 1, mensaje: "¡La fecha de expiración de su paquete es el lunes 14! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios" },
+    //{ id: 2, mensaje: "¡La fecha de expiración de su paquete es el lunes 15! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
+    //{ id: 3, mensaje: "¡La fecha de expiración de su paquete es el lunes 16! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
+    //{ id: 4, mensaje: "¡La fecha de expiración de su paquete es el lunes 17! Haga el pago antes de esa fecha para evitar cortes en su servicio.\n\nAtte: Su Proveedor" },
+];
+
 const Menu = ({ navigation, route }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de salir
+    const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
+    const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de salir
     const dispatch = useDispatch();
     const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
     const { tv, movies, series } = useSelector(state => state.content);
@@ -69,23 +78,26 @@ const Menu = ({ navigation, route }) => {
     useFocusEffect(
         useCallback(() => {
             const backAction = () => {
-                setModalVisible(true);
+                setModalEVisible(true);
                 return true;
             };
-    
+
             const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-    
+
             return () => backHandler.remove();
         }, [])
     );
-    
+
+    const handleCloseModal = () => {
+        setModalNVisible(false);
+    };
 
     const handleConfirmExit = () => {
         BackHandler.exitApp(); // Cerrar la aplicación
     };
 
     const handleCancelExit = () => {
-        setModalVisible(false);
+        setModalEVisible(false);
     };
 
     const optionsDate = {
@@ -129,7 +141,7 @@ const Menu = ({ navigation, route }) => {
                         <Text style={styles.date}>{formattedDate}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
-                        <TouchableOpacity onPress={() => { console.log('Notificación') }} style={{ marginRight: 15 }}>
+                        <TouchableOpacity onPress={() => setModalNVisible(true)} style={{ marginRight: 15 }}>
                             <Icon name="bell-badge" size={26} color="yellow" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
@@ -138,7 +150,7 @@ const Menu = ({ navigation, route }) => {
                         <TouchableOpacity onPress={() => navigation.navigate('SpeedTest')} style={{ marginRight: 15 }}>
                             <Icon3 name="network-check" size={26} color="white" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setModalVisible(true)}>
+                        <TouchableOpacity onPress={() => setModalEVisible(true)}>
                             <Icon3 name="exit-to-app" size={26} color="white" />
                         </TouchableOpacity>
                     </View>
@@ -162,8 +174,14 @@ const Menu = ({ navigation, route }) => {
                     <Text style={styles.footerText}>PAQUETE: 3 Meses</Text>
                 </View>
 
+                <ModalNotifications
+                    openModal={modalNVisible}
+                    handleCloseModal={handleCloseModal}
+                    notificaciones={msg}
+                />
+
                 <ModalExit
-                    visible={modalVisible}
+                    visible={modalEVisible}
                     onConfirm={handleConfirmExit}
                     onCancel={handleCancelExit}
                 />
