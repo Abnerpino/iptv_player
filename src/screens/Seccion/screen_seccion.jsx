@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import MenuLateral from '../../components/MenuLateral';
+import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ModalLoading from '../../components/Modals/modal_loading';
@@ -111,7 +111,7 @@ const Seccion = ({ navigation, route }) => {
                                 data={filteredCategories}
                                 numColumns={1}
                                 renderItem={({ item }) => (
-                                    <MenuLateral
+                                    <ItemCategory
                                         categoria={item}
                                         seleccionado={selectedId}
                                         seleccionar={seleccionarCategoria}

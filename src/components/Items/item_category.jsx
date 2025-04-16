@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
 import { View, Text, TouchableHighlight } from "react-native";
 
-const MenuLateral = ({ categoria, seleccionado, seleccionar }) => {
+const ItemCategory = ({ categoria, seleccionado, seleccionar }) => {
     const backgroundColor = categoria.id === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
 
     const handleSelectionCategory = () => {
@@ -22,4 +21,4 @@ const MenuLateral = ({ categoria, seleccionado, seleccionar }) => {
     );
 }
 
-export default MenuLateral;
+export default ItemCategory;
