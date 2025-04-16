@@ -117,7 +117,7 @@ const Seccion = ({ navigation, route }) => {
                                         seleccionar={seleccionarCategoria}
                                     />
                                 )}
-                                keyExtractor={item => item.id}
+                                keyExtractor={item => item.id.toString()}
                             />
                         )}
 
@@ -150,21 +150,21 @@ const Seccion = ({ navigation, route }) => {
                             <FlatList
                                 data={filteredContent}
                                 numColumns={5}
-                                keyExtractor={(item, index) => index.toString()}
                                 renderItem={({ item }) => (
                                     <CardContenido
                                         navigation={navigation}
-                                        id={item.id}
+                                        id={item.id} //Solo aplica para series
                                         imagen={item['tvg-logo']}
                                         titulo={item['tvg-name']}
                                         link={item.link}
                                         visto={item.visto}
-                                        temporadas={item.temporadas}
+                                        temporadas={item.temporadas} //Solo aplica para series
                                         tipo={type}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                     />
                                 )}
+                                keyExtractor={(index) => index.toString()}
                             />
                         )}
                     </View>

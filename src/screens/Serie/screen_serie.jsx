@@ -217,7 +217,7 @@ const Serie = ({ navigation, route }) => {
                                             nombre={item.nombre}
                                         />
                                     )}
-                                    keyExtractor={(item) => item.id}
+                                    keyExtractor={(item) => item.id.toString()}
                                     ItemSeparatorComponent={ItemSeparator}
                                 />
                             )}

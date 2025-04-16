@@ -30,7 +30,7 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                                     <Text style={styles.text}>{`Temporada ${item.temporada}`}</Text>
                                 </TouchableOpacity>
                             )}
-                            keyExtractor={item => item.temporada}
+                            keyExtractor={item => item.temporada} //No hace falta convertirlo porque ya es string
                         />
                     </View>
                 </View>
