@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Icon2 from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
+import Icon5 from 'react-native-vector-icons/AntDesign';
 import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
 import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
@@ -128,7 +129,7 @@ const Menu = ({ navigation }) => {
         timeZone: 'America/Mexico_City', // Establece la zona horaria
     };
 
-    const formattedDate = currentDate.toLocaleString('es-MX', optionsDate);
+    const formattedDate = currentDate.toLocaleString('es-MX', optionsDate).split(',');
 
     const tiposMultimedia = [
         { tipo: 'TV', fondo: '#3D41E9' },
@@ -155,19 +156,22 @@ const Menu = ({ navigation }) => {
                             style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'flex-start' }}
                         />
                     </View>
-                    <View style={{ alignItems: 'center', width: '66%', justifyContent: 'center' }}>
-                        <Text style={styles.date}>{formattedDate}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '66%', justifyContent: 'center', }}>
+                        <Icon name="calendar" size={26} color="#FFF" />
+                        <Text style={[styles.date, { marginLeft: 7.5, marginRight: 20 }]}>{formattedDate[0]}</Text>
+                        <Icon2 name="clock" size={26} color="#FFF" />
+                        <Text style={styles.date}>{formattedDate[1]}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
                         <TouchableOpacity onPress={() => setModalNVisible(true)} style={{ marginRight: 15 }}>
-                            <Icon
+                            <Icon2
                                 name={notificaciones.length === 0 ? "bell-outline" : (allSeenNotifications ? "bell" : "bell-badge")}
                                 color={notificaciones.length === 0 ? "white" : (allSeenNotifications ? "white" : "yellow")}
                                 size={26}
                             />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
-                            <Icon2 name="info-circle" size={26} color="#FFF" />
+                            <Icon name="info-circle" size={26} color="#FFF" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('SpeedTest')} style={{ marginRight: 15 }}>
                             <Icon3 name="network-check" size={26} color="white" />
@@ -193,7 +197,7 @@ const Menu = ({ navigation }) => {
                 {/* Footer con fecha de expiración, usuario y tipo de paquete */}
                 <View style={styles.footer}>
                     <View style={{ flexDirection: 'row', width: '33%', paddingLeft: 5 }}>
-                        <Icon name="calendar-clock" size={20} color="#FFF" />
+                        <Icon2 name="calendar-clock" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>EXPIRACIÓN:</Text>
                         <Text style={styles.footerText}>octubre 4, 2024</Text>
                     </View>
@@ -203,7 +207,7 @@ const Menu = ({ navigation }) => {
                         <Text style={styles.footerText}>Abner15</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '33%', justifyContent: 'flex-end', paddingRight: 5 }}>
-                        <Icon name="package-variant-closed" size={20} color="#FFF" />
+                        <Icon2 name="package-variant-closed" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>PAQUETE:</Text>
                         <Text style={styles.footerText}>3 Meses</Text>
                     </View>
