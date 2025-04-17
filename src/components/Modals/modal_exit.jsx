@@ -1,4 +1,6 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ModalExit = ({ visible, onConfirm, onCancel }) => {
     return (
@@ -6,14 +8,17 @@ const ModalExit = ({ visible, onConfirm, onCancel }) => {
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>¿Realmente deseas salir?</Text>
+                        <Icon name="exit" size={27} color="#333" />
+                        <Text style={styles.title}>SALIR</Text>
                     </View>
                     <View style={styles.buttonsContainer}>
-                        <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'red' }]}>
-                            <Text style={styles.text}>Sí</Text>
+                        <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'green' }]}>
+                            <Icon2 name="check" size={24} color="#FFF" />
+                            <Text style={styles.text}>Aceptar</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'green' }]}>
-                            <Text style={styles.text}>No</Text>
+                        <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'red' }]}>
+                            <Icon2 name="cancel" size={24} color="#FFF" />
+                            <Text style={styles.text}>Cancelar</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -54,10 +59,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-evenly'
     },
     button: {
+        flexDirection: 'row',
         borderRadius: 5,
         padding: 5,
         marginVertical: 10,
-        width: '15%',
+        width: '30%',
     },
     text: {
         fontSize: 18,
