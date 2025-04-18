@@ -4,28 +4,51 @@ import Svg, { Path } from 'react-native-svg';
 
 const ModalLoading = ({ visible }) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
+    const animationRef = useRef(null);
+    const intervalRef = useRef(null);
     const [dots, setDots] = useState(''); // Estado para manejar los puntos del mensaje "Cargando"
 
-    // Animación de rotación
+    // Control de la animación de rotación
     useEffect(() => {
-        Animated.loop(
-            Animated.timing(rotateAnim, {
-                toValue: 1,
-                duration: 1000,
-                useNativeDriver: true,
-            })
-        ).start();
-    }, []);
+        if (visible) {
+            rotateAnim.setValue(0); // Reinicia valor de animación
+            animationRef.current = Animated.loop(
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                })
+            );
+            animationRef.current.start();
+        } else {
+            if (animationRef.current) {
+                animationRef.current.stop(); // Detine animación al cerrar
+            }
+        }
+    }, [visible]);
 
-    // Animación de puntos "..."
+    // Control de los puntos "..."
     useEffect(() => {
-        let count = 0;
-        const interval = setInterval(() => {
-            setDots('.'.repeat((count % 4))); // '', '.', '..', '...'
-            count++;
-        }, 500);
-        return () => clearInterval(interval);
-    }, []);
+        if (visible) {
+            let count = 0;
+            intervalRef.current = setInterval(() => {
+                setDots('.'.repeat(count % 4));
+                count++;
+            }, 500);
+        } else {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+                setDots(''); // Limpiar puntos cuando se cierra
+            }
+        }
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
+    }, [visible]);
 
     const spin = rotateAnim.interpolate({
         inputRange: [0, 1],
@@ -65,12 +88,12 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         justifyContent: 'center',
         alignItems: 'center',
-      },
+    },
     text: {
         fontSize: 18,
         fontWeight: '500',
         color: '#FFF',
-      },
+    },
 });
 
 export default ModalLoading;
