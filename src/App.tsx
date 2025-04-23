@@ -1,6 +1,6 @@
 import React from "react";
 import Inicio from "./screens/Inicio";
-import Login from "./screens/Login";
+import Activation from "./screens/Activation";
 import Menu from "./screens/Menu";
 import About from "./screens/About";
 import SpeedTest from "./screens/SpeedTest";
@@ -25,7 +25,7 @@ const App = () => {
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Inicio" component={Inicio} />
-            {/*<Stack.Screen name="Login" component={Login} />*/}
+            <Stack.Screen name="Activation" component={Activation} />
             <Stack.Screen name="Menu" component={Menu} />
             <Stack.Screen name="About" component={About} />
             <Stack.Screen name="SpeedTest" component={SpeedTest} />
