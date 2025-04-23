@@ -1,23 +1,107 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, ImageBackground } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
+import RNRestart from 'react-native-restart';
+import { useDispatch, useSelector } from 'react-redux';
+import HostingController from '../../services/controllers/hostingController';
+import { setAndroid, setDevice, setDeviceID, setDeviceModel, setID, setIsRegistered } from '../../services/redux/slices/clientSlice';
+import { setListNotifications } from '../../services/redux/slices/notificationsSlice';
+
+const hostingController = new HostingController();
 
 const Inicio = ({ navigation }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current; // Valor inicial de opacidad (0 = transparente)
+    const { id, deviceId, isActive } = useSelector(state => state.client)
+    const dispatch = useDispatch();
+    // Valor de animación de opacidad, comienza en 0 (transparente)
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Inicia animación de fade-in
+        // Inicia animación de opacidad (fade-in) al montar el componente
         Animated.timing(fadeAnim, {
-            toValue: 1, // opacidad 100%
-            duration: 500, // medio segundo
+            toValue: 1,              // opacidad final (100%)
+            duration: 500,           // duración de la animación: 0.5 segundos
             useNativeDriver: true,
         }).start();
 
-        // Cambia de pantalla después de 1.5 segundos
-        const timeout = setTimeout(() => {
-            navigation.replace('Menu');
-        }, 1500);
+        let isRequestDone = false;     // bandera para saber si la petición terminó
+        let isDelayDone = false;       // bandera para saber si ya pasaron los 1.5 segundos
+        let result = null;             // almacena el resultado de la petición
 
-        return () => clearTimeout(timeout);
+        // Simula el retraso mínimo de 1.5 segundos antes de permitir navegación
+        const delay = new Promise(resolve => setTimeout(() => {
+            isDelayDone = true;         // marca que el tiempo ya pasó
+            resolve();
+        }, 1500));
+
+        // Ejecuta la petición asincrónica
+        const request = async () => {
+            try {
+                if (!deviceId) {
+                    let devId = await DeviceInfo.getUniqueId();
+                    dispatch(setDeviceID(devId));
+                    dispatch(setDeviceModel(DeviceInfo.getModel()));
+                    dispatch(setAndroid(DeviceInfo.getSystemVersion()));
+                    const response = await hostingController.verificarCliente(devId);
+                    result = response; // guarda el resultado de la petición
+                } else {
+                    if (isActive) {
+                        const notifications = await hostingController.obtenerNotificaciones(id);
+                        dispatch(setListNotifications(notifications ? notifications : []));
+                        result = {};
+                        //Agregar alguna condición para que haga la petición automatica cada 48h
+                    } else {
+                        const response = await hostingController.verificarCliente(deviceId);
+                        console.log(response);
+                        result = response;
+                    }
+                }
+            } catch (error) {
+                console.error('Error en la petición:', error);
+                //Agregar aqui que se muestre un modal para recargar aplicación
+                //RNRestart.restart();
+            } finally {
+                isRequestDone = true;    // marca que la petición terminó
+            }
+        };
+
+        // Ejecuta ambas operaciones: petición y espera de 1.5 segundos
+        request();
+
+        // Cuando la espera termina, si la petición ya finalizó, maneja el resultado
+        delay.then(() => {
+            if (isRequestDone) {
+                manejarResultado(result);
+            }
+        });
+
+        // Verifica constantemente si ambas operaciones ya terminaron
+        const checkRequestInterval = setInterval(() => {
+            if (isRequestDone && isDelayDone) {
+                clearInterval(checkRequestInterval); // limpia el intervalo
+                manejarResultado(result);            // ejecuta navegación o muestra error
+            }
+        }, 100); // se revisa cada 100ms
+
+        // Función para decidir qué hacer con el resultado de la petición
+        const manejarResultado = (data) => {
+            if (data === null) {
+                console.error('Resultado de la petición es null');
+                //Agregar aqui que se muestre un modal para recargar aplicación
+                //RNRestart.restart();
+                return;
+            }
+
+            if ((Array.isArray(data)) || (typeof data === 'object' && Object.keys(data).length > 0)) {
+                navigation.replace('Activation', { data }); // si es un arreglo o un objeto con información, ir a Activation
+            } else if (typeof data === 'object' && Object.keys(data).length === 0) {
+                navigation.replace('Menu');       // si es un objeto y está vacío, ir a Menu
+            } else {
+                console.error('Tipo de respuesta desconocido');
+            }
+        };
+
+        // Limpieza del intervalo si el componente se desmonta antes de completar
+        return () => clearInterval(checkRequestInterval);
     }, []);
 
     return (
