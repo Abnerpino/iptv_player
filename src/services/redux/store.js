@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { combineReducers } from 'redux';
-import activationReducer from './slices/activationSlice';
+import clientReducer from './slices/clientSlice';
 import contentReducer from './slices/contentSlice';
 import categoriesReducer from './slices/categoriesSlice';
 import notificationsReducer from './slices/notificationsSlice';
@@ -13,7 +13,7 @@ const persistConfig = {
 };
 
 const rootReducer = combineReducers({
-  activation: activationReducer,
+  client: clientReducer,
   content: contentReducer,
   categories: categoriesReducer,
   notifications: notificationsReducer,
