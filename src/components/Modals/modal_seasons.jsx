@@ -2,17 +2,17 @@ import { Modal, Text, TouchableOpacity, View, StyleSheet, FlatList } from "react
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) => {
-    return(
+    return (
         <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
-                            <Icon name="list-alt" size={27} color="#333"/>
+                            <Icon name="list-alt" size={27} color="#333" />
                             <Text style={styles.textHeader}>TEMPORADAS</Text>
                         </View>
                         <TouchableOpacity onPress={handleCloseModal}>
-                            <Icon name="window-close" size={27} color="red"/>
+                            <Icon name="window-close" size={27} color="red" />
                         </TouchableOpacity>
                     </View>
                     <View style={{ paddingHorizontal: 14, paddingVertical: 10, maxHeight: '88%', }}>
@@ -27,10 +27,10 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                                         handleCloseModal();   // Cierra el modal
                                     }}
                                 >
-                                    <Text style={styles.text}>{`Temporada ${item.temporada}`}</Text>
+                                    <Text style={styles.text}>{`Temporada ${item[0].season}`}</Text>
                                 </TouchableOpacity>
                             )}
-                            keyExtractor={item => item.temporada} //No hace falta convertirlo porque ya es string
+                            keyExtractor={item => item[0].season.toString()}
                         />
                     </View>
                 </View>
