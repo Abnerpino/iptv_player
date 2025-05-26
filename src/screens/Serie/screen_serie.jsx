@@ -1,37 +1,68 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { useDispatch, useSelector } from 'react-redux';
-import { setFavoriteSerie } from '../../services/redux/slices/contentSlice';
-import { setCatFavoriteSeries } from '../../services/redux/slices/categoriesSlice';
+import { changeContentProperties, changeCategoryProperties, setEpisodeAsViewed } from '../../services/redux/slices/streamingSlice';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
 import ModalSeasons from '../../components/Modals/modal_seasons';
 import ItemEpisode from '../../components/Items/item_episode';
-import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Serie = ({ navigation, route }) => {
-    const title = route.params.titulo;
-    const poster = route.params.imagen;
-    const details = route.params.info;
-    const link = route.params.link;
-    const seasons = route.params.seasons;
-    const id = route.params.id;
-    const credits = route.params.creditos;
+    const contenido = route.params.selectedContent;
+    const isSaga = contenido.saga;
+    const poster = contenido.cover;
+    const seasons = route.params.episodes;
+    const serieInfo = route.params.info;
+    const background = serieInfo ? serieInfo.backdrop_path : null;
+    const originalName = serieInfo ? serieInfo.original_name : null;
+    const genres = serieInfo ? serieInfo.genres : null;
+    const overview = serieInfo ? serieInfo.overview : null;
 
-    const { series } = useSelector(state => state.content);
-    const { catsSeries } = useSelector(state => state.categories);
+    const { catsSeries, series } = useSelector(state => state.streaming);
     const dispatch = useDispatch();
-    const serie = series.find(serie => serie.id === id);
+    const serie = series.find(serie => serie.series_id === contenido.series_id);
+    const vistos = catsSeries.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(serie?.favorito ?? false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
-    const favoritos = catsSeries.find(categoria => categoria.id === 3);
+    const favoritos = catsSeries.find(categoria => categoria.id === '0.3');
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
-    const [selectedSeason, setSelectedSeason] = useState(seasons[0]); //Estado para manejar la información del episodio seleccionado
-    const [selectedEpisode, setSelectedEpisode] = useState(seasons[0].capitulos[0].capitulo); //Estado para manejar el numero del episodio seleccionado
-    const [selectedLinkEpisode, setSelectedLinkEpisode] = useState(seasons[0].capitulos[0].link); //Estado para manejar la url de stream del episodio seleccionado
+    const [selectedSeason, setSelectedSeason] = useState(seasons[0]);//serie.episodes[1]); //Estado para manejar la información de la temporada seleccionada
+    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
+    const [selectedLinkEpisode, setSelectedLinkEpisode] = useState(selectedEpisode.link);//serie.episodes[1][0].link); //Estado para manejar la url de stream del episodio seleccionado
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
+    const [error, setError] = useState(false);
+
+    const handleMarkAsViewed = (episodio) => {
+        // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
+        if (episodio?.viewed === true) return;
+
+        dispatch(changeContentProperties({
+            type: 'episodes',
+            contentId: episodio.id,
+            changes: { visto: true },
+        }));
+
+        // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
+        if (serie?.visto === true) return;
+
+        dispatch(changeContentProperties({
+            type: 'series',
+            contentId: serie.series_id,
+            changes: { visto: true },
+        }));
+
+        const currentTotal = vistos.total;
+        let newTotal = currentTotal + 1;
+
+        dispatch(changeCategoryProperties({
+            type: 'series',
+            categoryId: '0.2',
+            changes: { total: newTotal }
+        }));
+    };
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
@@ -40,17 +71,19 @@ const Serie = ({ navigation, route }) => {
         if (serie?.favorito === newFavoriteStatus) return;
 
         setFavorite(newFavoriteStatus);
-    
-        dispatch(setFavoriteSerie({
-            id: id,
+
+        dispatch(changeContentProperties({
+            type: 'series',
+            contentId: serie.series_id,
             changes: { favorito: newFavoriteStatus }
         }));
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
-    
-        dispatch(setCatFavoriteSeries({
-            id: 3,
+
+        dispatch(changeCategoryProperties({
+            type: 'series',
+            categoryId: '0.3',
             changes: { total: newTotal }
         }));
     };
@@ -60,7 +93,7 @@ const Serie = ({ navigation, route }) => {
         const day = fecha.getDate().toString().padStart(2, '0');
         const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
         const year = fecha.getFullYear();
-        const newDate = date ? `${day}/${month}/${year}` : 'N/A';
+        const newDate = `${day}/${month}/${year}`;
         return newDate;
     };
 
@@ -80,7 +113,7 @@ const Serie = ({ navigation, route }) => {
 
     return (
         <ImageBackground
-            source={{ uri: `https://image.tmdb.org/t/p/original${details.backdrop_path}` }} //Imagen de fondo
+            source={background ? { uri: `https://image.tmdb.org/t/p/original${background}` } : (isSaga ? { uri: contenido.backdrop_path } : require('../../assets/fondo.jpg'))} //Imagen de fondo
             style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
             <View style={styles.container}>
@@ -92,10 +125,10 @@ const Serie = ({ navigation, route }) => {
                 }}>
                     {/* Fila con el botón de regreso y el titulo de la serie */}
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
-                        <Icon name="arrow-circle-left" size={26} color="white"/>
+                        <Icon name="arrow-circle-left" size={26} color="white" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{title}</Text>
+                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{contenido.name}</Text>
                     </View>
                 </View>
 
@@ -104,8 +137,9 @@ const Serie = ({ navigation, route }) => {
                     {/* Vista en fila dentro del ScrollView */}
                     <View style={styles.row}>
                         <Image
-                            source={{ uri: `https://image.tmdb.org/t/p/original${details.poster_path}` }} // URL de la imagen
+                            source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
                             style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
+                            onError={() => setError(true)}
                             resizeMode='contain'
                         />
                         <View style={{ flexDirection: 'row', paddingLeft: 35, width: '100%', }}>
@@ -115,31 +149,40 @@ const Serie = ({ navigation, route }) => {
                                 <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
                                 <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
                                 <Text style={[styles.text, { fontWeight: 'bold' }]}>Trama:</Text>
-                                
+
                             </View>
                             <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75, paddingRight: '31%', }}>
-                                <Text style={styles.text}>{details.original_name ? details.original_name : 'N/A'}</Text>
-                                <Text style={styles.text}>{getDate(`${details.first_air_date}T06:00:00.000Z`)}</Text>
-                                <Text style={styles.text}>{details.genres ? details.genres.map(genre => genre.name).join('/') : 'N/A'}</Text>
-                                <StarRating rating={details.vote_average ? details.vote_average : 0} size={20}/>
-                                <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{details.overview ? details.overview : 'N/A'}</Text>
-                                <TouchableOpacity onPress={() => setModalVisibleO(true)}>
-                                    <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
-                                </TouchableOpacity>
+                                <Text style={styles.text}>{originalName ? originalName : 'N/A'}</Text>
+                                <Text style={styles.text}>{contenido.release_date ? getDate(`${contenido.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
+                                <Text style={styles.text}>{genres ? genres.map(genre => genre.name).join(', ') : (isSaga ? contenido.genre : 'N/A')}</Text>
+                                <StarRating rating={contenido.rating ? contenido.rating : 0} size={20} />
+                                <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{overview ? overview : (isSaga ? contenido.plot : 'Trama no disponible')}</Text>
+                                {overview || (isSaga && contenido.plot) ? (
+                                    <TouchableOpacity onPress={() => setModalVisibleO(true)}>
+                                        <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
+                                    </TouchableOpacity>
+                                ) : <Text>{'\n'}</Text>}
+
                             </View>
                         </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 20, paddingBottom: 10 }}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Reproductor', { link })} style={[styles.button, { marginRight: 20 }]}>
-                            <Icon name="play-circle-o" size={22} color="white"/>
-                            <Text style={styles.textButton}>{`Play: T${selectedSeason.temporada}-E${selectedEpisode}`}</Text>
+                        <TouchableOpacity
+                            style={[styles.button, { marginRight: 20 }]}
+                            onPress={() => {
+                                handleMarkAsViewed(selectedEpisode);
+                                navigation.navigate('Reproductor', { selectedLinkEpisode });
+                            }}
+                        >
+                            <Icon name="play-circle-o" size={22} color="white" />
+                            <Text style={styles.textButton}>{`Play: T${selectedSeason[0].season}-E${selectedEpisode.episode_num}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, { marginRight: 20 }]}>
-                            <Icon name="list-alt" size={22} color="white"/>
-                            <Text style={styles.textButton}>{`Temporada: ${selectedSeason.temporada}`}</Text>
+                            <Icon name="list-alt" size={22} color="white" />
+                            <Text style={styles.textButton}>{`Temporada: ${selectedSeason[0].season}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleToggleFavorite} style={styles.button}>
-                            <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"}/>
+                            <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
                             <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                         </TouchableOpacity>
                     </View>
@@ -159,12 +202,12 @@ const Serie = ({ navigation, route }) => {
                                     }}
                                 >
                                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                                        EPISODIOS ({selectedSeason.capitulos.length})
+                                        EPISODIOS ({selectedSeason.length})
                                     </Text>
                                 </TouchableOpacity>
 
                                 {/* Botón Reparto (solo si hay datos) */}
-                                {credits.length > 0 && (
+                                {serieInfo && serieInfo.cast.length > 0 && (
                                     <TouchableOpacity
                                         onPress={() => setSelectedTab('reparto')}
                                         style={{
@@ -192,24 +235,24 @@ const Serie = ({ navigation, route }) => {
                             {/* Contenido dinámico según pestaña seleccionada */}
                             {selectedTab === 'episodios' ? (
                                 <FlatList
-                                    data={selectedSeason.capitulos}
+                                    data={selectedSeason}
                                     scrollEnabled={false} // Desactiva scroll interno para evitar conflictos con el ScrollView ya que la oritentación de desplazamiento es la misma
-                                    keyExtractor={(item, index) => index.toString()}
+                                    keyExtractor={(item) => item.id} //No es necesario hacer la conversión porque ya es string
                                     renderItem={({ item }) => (
                                         <ItemEpisode
                                             navigation={navigation}
-                                            season={selectedSeason.temporada}
                                             episode={item}
                                             onSelectEpisode={(episodio) => {
                                                 setSelectedEpisode(episodio);
                                                 setSelectedLinkEpisode(item.link);
+                                                handleMarkAsViewed(episodio);
                                             }}
                                         />
                                     )}
                                 />
                             ) : (
                                 <FlatList
-                                    data={credits}
+                                    data={serieInfo.cast}
                                     horizontal
                                     renderItem={({ item }) => (
                                         <CardActor
@@ -217,7 +260,7 @@ const Serie = ({ navigation, route }) => {
                                             nombre={item.nombre}
                                         />
                                     )}
-                                    keyExtractor={(item) => item.id.toString()}
+                                    keyExtractor={(item, index) => index.toString()}
                                     ItemSeparatorComponent={ItemSeparator}
                                 />
                             )}
@@ -228,7 +271,7 @@ const Serie = ({ navigation, route }) => {
                 <ModalOverview
                     openModal={modalVisibleO}
                     handleCloseModal={handleCloseModalO}
-                    overview={details.overview}
+                    overview={isSaga ? contenido.plot : overview}
                 />
                 {/* Modal para mostrar las temporadas */}
                 <ModalSeasons
@@ -237,8 +280,8 @@ const Serie = ({ navigation, route }) => {
                     seasons={seasons}//.map((season) => season.temporada)} //Envia un nuevo arreglo solo con el valor de las temporadas
                     onSelectSeason={(season) => {
                         setSelectedSeason(season);
-                        setSelectedEpisode(season.capitulos[0].capitulo);
-                        setSelectedLinkEpisode(season.capitulos[0].link);
+                        setSelectedEpisode(season[0]);
+                        setSelectedLinkEpisode(season[0].link);
                     }}
                 />
             </View>
@@ -256,7 +299,7 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'stretch',
-        
+
     },
     column: {
         flexDirection: 'column',
@@ -281,7 +324,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
-        paddingLeft: 5 
+        paddingLeft: 5
     },
 });
 

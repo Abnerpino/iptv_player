@@ -2,30 +2,31 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useXtream } from '../../services/hooks/useXtream';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
-import Icon5 from 'react-native-vector-icons/AntDesign';
-import { setTV, setMovies, setSeries } from '../../services/redux/slices/contentSlice';
-import { setCatsTV, setCatsMovies, setCatsSeries } from '../../services/redux/slices/categoriesSlice';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
-import M3UController from '../../services/controllers/m3uController';
 import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalExit from '../../components/Modals/modal_exit';
-
-const m3uController = new M3UController;
+import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
-    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories);
-    const { tv, movies, series } = useSelector(state => state.content);
+    const { live, vod, series } = useSelector(state => state.streaming);
+    const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
     const notificaciones = useSelector(state => state.notifications.list);
     const dispatch = useDispatch();
+    const { getFullStreaming } = useXtream();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
     const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de salir
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
+    const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
+
+    const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
+    const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
 
     useEffect(() => {
         let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
@@ -40,24 +41,23 @@ const Menu = ({ navigation }) => {
             dispatch(setListNotifications(msg));
         }
 
-        if (catsTv.length > 0 && tv.length > 0 && catsMovies.length > 0 && movies.length > 0 && catsSeries.length > 0 && series.length > 0) {
-            console.log("Ya existe contenido");
-        } else {
-            console.log("Obteniendo contenido de la red");
-            m3uController.handleGetDataByType(movies, catsMovies, series, catsSeries)
-                .then(([categories, content]) => {
-                    if (isMounted) {
-                        dispatch(setCatsTV(categories[0]));
-                        dispatch(setTV(content[0]));
-                        dispatch(setCatsMovies(categories[1]));
-                        dispatch(setMovies(content[1]));
-                        dispatch(setCatsSeries(categories[2]));
-                        dispatch(setSeries(content[2]));
+        const descargarContenido = async () => {
+            if (live.length > 0 && vod.length > 0 && series.length > 0) {
+                console.log("Contenido existente");
+            } else {
+                try {
+                    console.log("Actualizando contenido");
+                    handleStartLoading?.(); // Inicia el modal de carga
+                    await getFullStreaming();
+                    handleFinishLoading?.(); // Termina el modal de carga
+                } catch (error) {
+                    console.log('Ocurrió un error al obtener el contenido: ', error);
+                }
 
-                    }
-                })
-                .catch(error => console.log("Error al obtener datos:", error));
+            }
         }
+
+        descargarContenido();
 
         return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
     }, []); // Se ejecuta solo cuando se monta el componente
@@ -132,9 +132,9 @@ const Menu = ({ navigation }) => {
     const formattedDate = currentDate.toLocaleString('es-MX', optionsDate).split(',');
 
     const tiposMultimedia = [
-        { tipo: 'TV', fondo: '#3D41E9' },
-        { tipo: 'Cine', fondo: '#DD3652' },
-        { tipo: 'Series', fondo: '#9743B5' }
+        { tipo: 'live', fondo: '#3D41E9' },
+        { tipo: 'vod', fondo: '#DD3652' },
+        { tipo: 'series', fondo: '#9743B5' }
     ];
 
     return (
@@ -199,17 +199,17 @@ const Menu = ({ navigation }) => {
                     <View style={{ flexDirection: 'row', width: '33%', paddingLeft: 5 }}>
                         <Icon2 name="calendar-clock" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>EXPIRACIÓN:</Text>
-                        <Text style={styles.footerText}>octubre 4, 2024</Text>
+                        <Text style={styles.footerText}>{expirationDate}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '34%', justifyContent: 'center' }}>
                         <Icon4 name="user" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>USUARIO:</Text>
-                        <Text style={styles.footerText}>Abner15</Text>
+                        <Text style={styles.footerText}>{username}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '33%', justifyContent: 'flex-end', paddingRight: 5 }}>
                         <Icon2 name="package-variant-closed" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>PAQUETE:</Text>
-                        <Text style={styles.footerText}>3 Meses</Text>
+                        <Text style={styles.footerText}>{purchasedPackage}</Text>
                     </View>
                 </View>
 
@@ -223,6 +223,8 @@ const Menu = ({ navigation }) => {
                     onConfirm={handleConfirmExit}
                     onCancel={handleCancelExit}
                 />
+
+                <ModalLoading visible={loading} />
             </View>
         </ImageBackground>
     );

@@ -4,14 +4,17 @@ import DeviceInfo from 'react-native-device-info';
 import RNRestart from 'react-native-restart';
 import { useDispatch, useSelector } from 'react-redux';
 import HostingController from '../../services/controllers/hostingController';
-import { setAndroid, setDevice, setDeviceID, setDeviceModel, setID, setIsRegistered } from '../../services/redux/slices/clientSlice';
+import { useXtream } from '../../services/hooks/useXtream';
+import { setAndroid, setDeviceID, setDeviceModel, setExpirationDate, setHost, setIsActive, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
 import { setListNotifications } from '../../services/redux/slices/notificationsSlice';
 
 const hostingController = new HostingController();
 
 const Inicio = ({ navigation }) => {
-    const { id, deviceId, isActive } = useSelector(state => state.client)
+    const { getInfoAccount } = useXtream();
     const dispatch = useDispatch();
+    const { id, deviceId, isActive } = useSelector(state => state.client);
+    
     // Valor de animación de opacidad, comienza en 0 (transparente)
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -36,6 +39,8 @@ const Inicio = ({ navigation }) => {
         // Ejecuta la petición asincrónica
         const request = async () => {
             try {
+                //dispatch(setDeviceID(''));
+                console.log('deviceId: ', deviceId);
                 if (!deviceId) {
                     let devId = await DeviceInfo.getUniqueId();
                     dispatch(setDeviceID(devId));
@@ -44,14 +49,22 @@ const Inicio = ({ navigation }) => {
                     const response = await hostingController.verificarCliente(devId);
                     result = response; // guarda el resultado de la petición
                 } else {
-                    if (isActive) {
+                    //await getInfoAccount();
+                    const response = await hostingController.verificarCliente(deviceId);
+                    const status = response?.active ?? false;
+                    if (status) {
                         const notifications = await hostingController.obtenerNotificaciones(id);
+                        dispatch(setUsername(response.user_name));
+                        dispatch(setUser(response.user));
+                        dispatch(setPassword(response.password));
+                        dispatch(setHost(response.host));
+                        dispatch(setExpirationDate(response.expiration));
+                        dispatch(setPurchasedPackage(response.package));
                         dispatch(setListNotifications(notifications ? notifications : []));
                         result = {};
                         //Agregar alguna condición para que haga la petición automatica cada 48h
                     } else {
-                        const response = await hostingController.verificarCliente(deviceId);
-                        console.log(response);
+                        dispatch(setIsActive(response.active));
                         result = response;
                     }
                 }
@@ -91,9 +104,13 @@ const Inicio = ({ navigation }) => {
                 return;
             }
 
-            if ((Array.isArray(data)) || (typeof data === 'object' && Object.keys(data).length > 0)) {
-                navigation.replace('Activation', { data }); // si es un arreglo o un objeto con información, ir a Activation
-            } else if (typeof data === 'object' && Object.keys(data).length === 0) {
+            if (Array.isArray(data)) {
+                navigation.replace('Activation', { data }); // si es un arreglo, ir a Activation
+            } else if (typeof data === 'object' && Object.keys(data).length > 0) {
+                console.log('Necesita reactivación');
+                //Agregar pantalla para reactivación
+            }
+             else if (typeof data === 'object' && Object.keys(data).length === 0) {
                 navigation.replace('Menu');       // si es un objeto y está vacío, ir a Menu
             } else {
                 console.error('Tipo de respuesta desconocido');

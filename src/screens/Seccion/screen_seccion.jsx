@@ -1,26 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
-import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useSelector, useDispatch } from 'react-redux';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ModalLoading from '../../components/Modals/modal_loading';
+import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 
 const Seccion = ({ navigation, route }) => {
+    const dispatch = useDispatch();
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
-    const { catsTv, catsMovies, catsSeries } = useSelector(state => state.categories); //Obtiene las categorias del estado global
-    const { tv, movies, series } = useSelector(state => state.content); //Obtiene el contenido del estado global
+    const { catsLive, catsVod, catsSeries, live, vod, series } = useSelector(state => state.streaming);
 
     //Las categorias y el contenido se mantienen acutalizados cada que el store cambia
     const [categories, content] = useMemo(() => {
-        if (type === 'TV') return [catsTv, tv];
-        if (type === 'Cine') return [catsMovies, movies];
+        if (type === 'live') return [catsLive, live];
+        if (type === 'vod') return [catsVod, vod];
         return [catsSeries, series];
-    }, [type, catsTv, catsMovies, catsSeries, tv, movies, series]);
+    }, [type, catsLive, catsVod, catsSeries, live, vod, series]);
 
     const [category, setCategory] = useState('TODO'); //Estado para manejar el nombre de la categoria seleccionada
-    const [selectedId, setSelectedId] = useState(1); //Estado para el manejo del ID de la categoria seleccionada
+    const [selectedId, setSelectedId] = useState('0.1'); //Estado para el manejo del ID de la categoria seleccionada
     const [contenido, setContenido] = useState(content); //Estado para manejar el contenido por categoria
     const [mensaje, setMensaje] = useState(''); //Estado para manejar el mensaje a mostrar cuando Favoritos y Recientemente Visto estén vacios
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
@@ -34,45 +35,60 @@ const Seccion = ({ navigation, route }) => {
     //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
         return categories.filter(item =>
-            item.name.toLowerCase().includes(searchCat.toLowerCase())
+            item.category_name.toLowerCase().includes(searchCat.toLowerCase())
         );
     }, [searchCat, categories]);
 
     //Filtra el contenido según sea la búsqueda
     const filteredContent = useMemo(() => {
         return contenido.filter(item =>
-            item['tvg-name'].toLowerCase().includes(searchCont.toLowerCase())
+            item.name?.toLowerCase().includes(searchCont.toLowerCase())
         );
     }, [searchCont, contenido]);
 
     //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
     useEffect(() => {
-        if (category === 'RECIENTEMENTE VISTO') {
-            const vistos = content.filter(item => item.visto === true);
-            setContenido(vistos);
-            if (vistos.length < 1) {
-                setMensaje(type === 'TV' ? 'Sin canales vistos' : (type === 'Cine' ? 'Sin películas vistas' : 'Sin series vistas'))
-            }
-        } else if (category === 'FAVORITOS') {
-            const favoritos = content.filter(item => item.favorito === true);
-            setContenido(favoritos);
-            if (favoritos.length < 1) {
-                setMensaje(type === 'TV' ? 'Sin canales favoritos' : (type === 'Cine' ? 'Sin películas favoritas' : 'Sin series favoritas'))
-            }
-        } else if (category === 'TODO') {
-            setContenido(content);
-        } else {
-            const filtrado = content.filter(item => item['group-title'] === category);
-            setContenido(filtrado);
+        switch (category) {
+            case 'TODO':
+                setContenido(content);
+                break;
+            case 'RECIENTEMENTE VISTO':
+                const vistos = content.filter(item => item.visto === true);
+                dispatch(changeCategoryProperties({
+                    type: type,
+                    categoryId: '0.2',
+                    changes: { total: vistos.length }
+                }));
+                setContenido(vistos);
+                if (vistos.length < 1) {
+                    setMensaje(type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas'))
+                }
+                break;
+            case 'FAVORITOS':
+                const favoritos = content.filter(item => item.favorito === true);
+                dispatch(changeCategoryProperties({
+                    type: type,
+                    categoryId: '0.3',
+                    changes: { total: favoritos.length }
+                }));
+                setContenido(favoritos);
+                if (favoritos.length < 1) {
+                    setMensaje(type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas'))
+                }
+                break;
+            default:
+                const filtrado = content.filter(item => item.category_id === selectedId);
+                setContenido(filtrado);
+                break;
         }
-    }, [content, category]);
+    }, [category]);
 
     //Muestra el contenido de la categoria seleccionada
     function seleccionarCategoria(idCategoria) {
         if (idCategoria !== selectedId) {
             setSelectedId(idCategoria);
-            const nameCategory = categories.find(item => item.id === idCategoria);
-            setCategory(nameCategory.name);
+            const categoria = categories.find(item => item.category_id === idCategoria);
+            setCategory(categoria.category_name);
         }
     }
 
@@ -117,7 +133,7 @@ const Seccion = ({ navigation, route }) => {
                                         seleccionar={seleccionarCategoria}
                                     />
                                 )}
-                                keyExtractor={item => item.id.toString()}
+                                keyExtractor={item => item.category_id}
                             />
                         )}
 
@@ -126,7 +142,7 @@ const Seccion = ({ navigation, route }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10 }}>
                             <View style={{ flex: 1, alignItems: 'center' }}>
                                 {mostrarBusqueda ? (
-                                    <BarraBusqueda message={`Buscar ${type === 'TV' ? 'canal' : (type === 'Cine' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
+                                    <BarraBusqueda message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
                                 ) : (
                                     <Text style={styles.sectionTitle}>{category}</Text>
                                 )}
@@ -143,7 +159,7 @@ const Seccion = ({ navigation, route }) => {
                         ) : filteredContent.length === 0 ? (
                             <View style={{ padding: 10 }}>
                                 <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
-                                    No se ha encontrado {type === 'TV' ? 'el canal' : (type === 'Cine' ? 'la película' : 'la serie')}
+                                    No se ha encontrado {type === 'live' ? 'el canal' : (type === 'vod' ? 'la película' : 'la serie')}
                                 </Text>
                             </View>
                         ) : (
@@ -153,18 +169,13 @@ const Seccion = ({ navigation, route }) => {
                                 renderItem={({ item }) => (
                                     <CardContenido
                                         navigation={navigation}
-                                        id={item.id} //Solo aplica para series
-                                        imagen={item['tvg-logo']}
-                                        titulo={item['tvg-name']}
-                                        link={item.link}
-                                        visto={item.visto}
-                                        temporadas={item.temporadas} //Solo aplica para series
                                         tipo={type}
+                                        contenidoId={type === 'series' ? item.series_id : item.stream_id}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                     />
                                 )}
-                                keyExtractor={(index) => index.toString()}
+                                keyExtractor={item => item.num.toString()}
                             />
                         )}
                     </View>

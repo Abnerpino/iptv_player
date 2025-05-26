@@ -38,7 +38,7 @@ const Activation = ({ navigation, route }) => {
       const filtered = localUsername.replace(/[^a-zA-Z0-9_\-.]/g, '');
       if (filtered.length < 4) {
         setError('La longitud mínima es de 4 caracteres');
-      } else if (usuarios.includes(filtered.toLowerCase())) {
+      } else if (usuarios.includes(filtered.toLowerCase())) {//(usuarios.some(usuario => usuario.toLowerCase().includes(filtered.toLowerCase()))) {
         setError('¡Ya existe ese usuario! Ingrese uno diferente');
       } else {
         setError('');
@@ -94,7 +94,7 @@ const Activation = ({ navigation, route }) => {
     const info = {
       "device_id": deviceId,
       "client_name": name.trim(),
-      "user_name": localUsername.toLowerCase(),
+      "user_name": localUsername,
       "user": '',
       "password": '',
       "host": 'http://dns002.xyz',
@@ -128,7 +128,7 @@ const Activation = ({ navigation, route }) => {
     const response = await hostingController.verificarCliente(deviceId); //Consultamos la información del cliente para verficar su activación
     const notifications = await hostingController.obtenerNotificaciones(response ? response.id : '00000');
     handleFinishLoading?.(); // Termina el modal de carga
-    
+
     if (response) { //Si devuelve una respuesta valida...
       if (response.active) { //Si la cuenta ya está activa...
         dispatch(setID(response.id));
