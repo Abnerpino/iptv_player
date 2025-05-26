@@ -2,23 +2,26 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import StarRating from '../StarRating';
 
-const ItemEpisode = ({ navigation, season, episode, onSelectEpisode }) => {
+const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
     const link = episode.link;
+    const imagen = episode.movie_image;
 
     return (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={styles.container}
             onPress={() => {
-                onSelectEpisode(episode.capitulo);
+                onSelectEpisode(episode);
                 navigation.navigate('Reproductor', { link })
             }}
         >
-            <Image source={{ uri: episode.poster }} style={styles.image} resizeMode='cover' />
+            {imagen ? (
+                <Image source={{ uri: imagen }} style={styles.image} resizeMode='cover' />
+            ) : <View style={styles.notImage} />}
             <View style={styles.details}>
-                <Text style={styles.title}>{episode.name !== `Episodio ${episode.capitulo}` ? `Temporada ${season} - Episodio ${episode.capitulo}: "${episode.name}"` : `Temporada ${season} - Episodio ${episode.capitulo}`}</Text>
-                <StarRating rating={episode.vote_average ? episode.vote_average : 0} size={16} />
-                <Text style={styles.duration}>{episode.runtime ? `${episode.runtime % 60}m` : 'N/A'}</Text>
-                <Text style={styles.overview} numberOfLines={2} ellipsizeMode='tail' >{episode.overview ? episode.overview : 'Sinopsis no disponible'}</Text>
+                <Text style={styles.title}>{episode.title}</Text>
+                <StarRating rating={episode.rating ? episode.rating : 0} size={16} />
+                <Text style={styles.duration}>{episode.duration_secs ? `${Math.floor(episode.duration_secs / 60)}m` : '0m'}</Text>
+                <Text style={styles.overview} numberOfLines={2} ellipsizeMode='tail' >{episode.plot ? episode.plot : 'Sinopsis no disponible'}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -42,6 +45,12 @@ const styles = StyleSheet.create({
         borderColor: '#fff',
         borderWidth: 0.1
     },
+    notImage: {
+        width: '20%',
+        borderRadius: 2,
+        borderColor: '#fff',
+        borderWidth: 0.1
+    },
     details: {
         flex: 1,
         paddingLeft: 12,
@@ -57,6 +66,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
         backgroundColor: 'rgba(80,80,100,0.5)',
         paddingHorizontal: 10,
+        paddingBottom: 1,
         borderRadius: 5,
         alignSelf: 'flex-start'
     },
