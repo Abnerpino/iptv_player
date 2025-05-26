@@ -10,6 +10,7 @@ const BarraBusqueda = ({ message, searchText, setSearchText }) => {
                 placeholder={message}
                 placeholderTextColor="#888"
                 value={searchText}
+                disableFullscreenUI={true}
                 onChangeText={setSearchText}
             />
             {searchText.length > 0 && (
