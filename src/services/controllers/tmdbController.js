@@ -2,34 +2,93 @@ const apiKey = '46cdd28e2e3e11e156481c7a3826cfc3';
 
 class TMDBController {
     //Obtiene la informacion de una pelicula
-    async getDataMovie(title, poster) {
-        const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&language=es-MX`;
+    async getDataMovie(title, year, release) {
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
 
         try {
-            //Se buscan peliculas que coincidan con el nombre
+            //Se buscan peliculas que coincidan con el nombre y año
             const searchResponse = await fetch(searchUrl);
             const searchData = await searchResponse.json();
-            
-            const info = searchData.results.find(result => poster === result.poster_path); //Se selecciona la que coincida con el poster
-            const detalles = await this.getDetailsMovie(info.id); //Obtiene solo los detalles necesarios
-            const creditos = await this.getCreditsMovie(info.id); //Obtiene solo los creditos necesarios
-            return [detalles, creditos];
+
+            const movie = searchData.results.find(result => release === result.release_date); //Selecciona la que coincida con la fecha de estreno
+            if (movie) {
+                const info = await this.getDataMovieById(movie.id);
+                return info;
+            } else {
+                return null;
+            }
         } catch (error) {
             console.error('Error al obtener la pelicula: ', error);
+        }
+    }
+
+    async getDataMovieById(tmdbID) {
+        try {
+            const detalles = await this.getDetailsMovie(tmdbID); //Obtiene solo los detalles necesarios
+            const creditos = await this.getCreditsMovie(tmdbID); //Obtiene solo los creditos necesarios
+            return {
+                tmdb_id: detalles.tmdb_id,
+                backdrop_path: detalles.backdrop_path,
+                original_title: detalles.original_title,
+                overview: detalles.overview,
+                runtime: detalles.runtime,
+                genres: detalles.genres,
+                cast: creditos
+            };
+        } catch (error) {
+            console.error('Error al obtener la pelicula: ', error);
+        }
+    }
+
+    //Obtiene la informacion de una serie
+    async getDataSerie(title, year, release) {
+        const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
+
+        try {
+            //Se buscan series que coincidan con el nombre y año
+            const searchResponse = await fetch(searchUrl);
+            const searchData = await searchResponse.json();
+
+            const serie = searchData.results.find(result => release === result.first_air_date); //Selecciona la que coincida con la fecha de estreno
+            if (serie) {
+                const info = await this.getDataSerieById(serie.id);
+                return info;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            console.error('Error al obtener la Serie: ', error);
+        }
+    }
+
+    async getDataSerieById(tmdbID) {
+        try {
+            const detalles = await this.getDetailsSerie(tmdbID); //Obtiene solo los detalles necesarios
+            const creditos = await this.getCreditsSerie(tmdbID); //Obtiene solo los creditos necesarios
+            return {
+                tmdb_id: detalles.tmdb_id,
+                original_name: detalles.original_name,
+                backdrop_path: detalles.backdrop_path,
+                genres: detalles.genres,
+                overview: detalles.overview,
+                cast: creditos
+            };
+        } catch (error) {
+            console.error('Error al obtener la Serie: ', error);
         }
     }
 
     //Busca una serie usando la propiedad still_path de algun episodio de alguna temporada
     findSerie(title, year, season, episode, still) {
         const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
-    
+
         return fetch(searchUrl)
             .then((searchResponse) => searchResponse.json())
             .then((searchData) => {
                 // Iterar sobre cada resultado buscando el primer episodio de la primera temporada
                 let matchPromises = searchData.results.map((result) => {
                     const matchUrl = `https://api.themoviedb.org/3/tv/${result.id}/season/${season}/episode/${episode}?api_key=${apiKey}&language=es-MX`;
-                    
+
                     return fetch(matchUrl)
                         .then((matchResponse) => matchResponse.json())
                         .then((matchData) => {
@@ -49,7 +108,7 @@ class TMDBController {
                             return null;
                         });
                 });
-    
+
                 // Retornar la primera promesa que tenga un resultado válido
                 return Promise.all(matchPromises).then((results) => results.find((info) => info !== null) || null);
             })
@@ -57,7 +116,7 @@ class TMDBController {
                 throw new Error(`Error en TMDB: ${error.message || error}`);
             });
     }
-    
+
     //Se busca la información de la serie por su id
     async getInfoSerie(id) {
         const infoSerie = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
@@ -101,7 +160,7 @@ class TMDBController {
             const detailsData = await detailsRespone.json();
             //Se guardan solo los detalles que son relevantes
             const details = {
-                id: detailsData.id,
+                tmdb_id: detailsData.id,
                 backdrop_path: detailsData.backdrop_path,
                 original_title: detailsData.original_title,
                 overview: detailsData.overview,
@@ -116,6 +175,28 @@ class TMDBController {
         }
     }
 
+    //Se buscan los detalles de la serie por su id
+    async getDetailsSerie(id) {
+        const detailsUrl = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
+
+        try {
+            const detailsRespone = await fetch(detailsUrl);
+            const detailsData = await detailsRespone.json();
+            //Se guardan solo los detalles que son relevantes
+            const details = {
+                tmdb_id: detailsData.id,
+                original_name: detailsData.original_name,
+                backdrop_path: detailsData.backdrop_path,
+                first_air_date: detailsData.first_air_date,
+                genres: detailsData.genres,
+                overview: detailsData.overview
+            };
+            return details; //Se retorna el objeto con los detalles
+        } catch (error) {
+            console.log('Error al obtener los detallaes de la serie: ', error);
+        }
+    }
+
     //Se buscan los creditos de la pelicula por su id
     async getCreditsMovie(id) {
         const creditsUrl = `https://api.themoviedb.org/3/movie/${id}/credits?api_key=${apiKey}&language=es-MX`;
@@ -124,24 +205,18 @@ class TMDBController {
             const creditsResponse = await fetch(creditsUrl);
             const creditsData = await creditsResponse.json();
 
-            const credits = [];
-            let cont = 1; // Inicializar el contador
-            // Filtrar actores
-            const actores = creditsData.cast
+            const credits = creditsData.cast
                 .filter(actor => actor.known_for_department === "Acting")
                 .map(actor => {
                     // Asignar imagen según la condición
                     const imagen = actor.profile_path === "null" ? null : `https://image.tmdb.org/t/p/w600_and_h900_bestv2${actor.profile_path}`;
 
                     return {
-                        id: cont++, // Asignar el contador y luego incrementarlo
                         nombre: actor.name,
                         imagen: imagen
                     };
                 });
-            // Agregar el objeto de actores al arreglo credits
-            credits.push(actores);
-            
+
             return credits; //Se retorna el arreglo de objetos con los creditos
         } catch (error) {
             console.log('Error al obtener los creditos de la pelicula: ', error);
@@ -156,8 +231,6 @@ class TMDBController {
             const creditsResponse = await fetch(creditsUrl);
             const creditsData = await creditsResponse.json();
 
-            let cont = 1; // Inicializar el contador
-            // Filtrar actores
             const actores = creditsData.cast
                 .filter(actor => actor.known_for_department === "Acting")
                 .map(actor => {
@@ -165,15 +238,14 @@ class TMDBController {
                     const imagen = actor.profile_path === "null" ? null : `https://image.tmdb.org/t/p/w600_and_h900_bestv2${actor.profile_path}`;
 
                     return {
-                        id: cont++, // Asignar el contador y luego incrementarlo
                         nombre: actor.name,
                         imagen: imagen
                     };
                 });
-            
+
             return actores; //Se retorna el arreglo de objetos con los creditos
         } catch (error) {
-            console.log('Error al obtener los creditos de la pelicula: ', error);
+            console.log('Error al obtener los creditos de la serie: ', error);
         }
     }
 }
