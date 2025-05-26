@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 const CardMultimedia = ({ navigation, tipo, fondo }) => {
     const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido   
 
-    const imagen = tipo === 'TV' ? require('../../assets/tv.png') : (tipo === 'Cine' ? require('../../assets/cine.png') : require('../../assets/series.png'));
+    const imagen = tipo === 'live' ? require('../../assets/tv.png') : (tipo === 'vod' ? require('../../assets/cine.png') : require('../../assets/series.png'));
 
     const handlePressIn = () => {
         setButtonColor('rgba(255,255,255,1)'); // Cambia el color al presionar
@@ -32,8 +32,8 @@ const CardMultimedia = ({ navigation, tipo, fondo }) => {
                     source={imagen}
                     resizeMode="contain"
                     style={{
-                        width: tipo === 'TV' ? '80%' : '60%',
-                        height: tipo === 'TV' ? '80%' : '60%',
+                        width: tipo === 'live' ? '80%' : '60%',
+                        height: tipo === 'live' ? '80%' : '60%',
                         alignSelf: 'center',
                     }}>
                 </Image>
