@@ -17,10 +17,10 @@ class HostingController {
             const result = allRecords.find(record => record.device_id === deviceId); //Busca si ya existe algún cliente con el id del dispositivo
 
             if (result) { //Si ya existe...
-                return result; //Retorna toda la información del cliente
                 console.log("Ya existe el device_id");
+                return result; //Retorna toda la información del cliente
             } else { //Si todavía no existe
-                const users = allRecords.map(record => record.user_name); //Genera un nuevo arreglo de solo nombres de usuario
+                const users = allRecords.map(record => record.user_name.toLowerCase()); //Genera un nuevo arreglo de solo nombres de usuario
                 return users; //Retorna los usuarios
             }
         } catch (error) {
