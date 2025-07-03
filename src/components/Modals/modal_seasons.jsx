@@ -27,10 +27,10 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                                         handleCloseModal();   // Cierra el modal
                                     }}
                                 >
-                                    <Text style={styles.text}>{`Temporada ${item[0].season}`}</Text>
+                                    <Text style={styles.text}>{`Temporada ${item.numero}`}</Text>
                                 </TouchableOpacity>
                             )}
-                            keyExtractor={item => item[0].season.toString()}
+                            keyExtractor={item => item.numero}
                         />
                     </View>
                 </View>

@@ -2,41 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useDispatch, useSelector } from 'react-redux';
+import { getItemById, updateItem } from '../../services/realm/streaming';
 import { changeContentProperties, changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
 
 const Pelicula = ({ navigation, route }) => {
-    const contenido = route.params.selectedContent;
-    const poster = contenido.stream_icon;
-    const movieInfo = route.params.info;
-    const background = movieInfo ? movieInfo.backdrop_path : null;
-    const originalTitle = movieInfo ? movieInfo.original_title : null;
-    const genres = movieInfo ? movieInfo.genres : null;
-    const runtime = movieInfo ? movieInfo.runtime : null;
-    const overview = movieInfo ? movieInfo.overview : null;
+    const pelicula = route.params.selectedContent;
+    const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
+    const background = pelicula.backdrop_path;
+    const originalTitle = pelicula.original_title;
+    const genres = pelicula.genre !== "" ? pelicula.genre : pelicula.genres !== "" ? pelicula.genres : null;
+    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : pelicula.runtime;
+    const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
+    const rating = pelicula.rating ?? pelicula.vote_average;
+    const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
+    const link = pelicula.link;
     const { catsVod, vod } = useSelector(state => state.streaming);
 
     const dispatch = useDispatch();
-    const movie = vod.find(peli => peli.stream_id === contenido.stream_id);
-    const link = contenido.link;
+    //const movie = vod.find(peli => peli.stream_id === pelicula.stream_id);
     const vistos = catsVod.find(categoria => categoria.category_id === '0.2');
-    const [favorite, setFavorite] = useState(movie?.favorito ?? false);
+    const [favorite, setFavorite] = useState(pelicula?.favorito ?? false);
     const favoritos = catsVod.find(categoria => categoria.category_id === '0.3');
     const [error, setError] = useState(false);
 
     const handleMarkAsViewed = () => {
         // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
-        if (movie?.visto === true) return;
+        if (pelicula?.visto === true) return;
 
-        dispatch(changeContentProperties({
-            type: 'vod',
-            contentId: movie.stream_id,
-            changes: { visto: true },
-        }));
+        updateItem('vod', 'stream_id', pelicula.stream_id, { visto: true });
 
         const currentTotal = vistos.total;
-        let newTotal = currentTotal + 1 ;
+        let newTotal = currentTotal + 1;
 
         dispatch(changeCategoryProperties({
             type: 'vod',
@@ -49,15 +47,11 @@ const Pelicula = ({ navigation, route }) => {
         const newFavoriteStatus = !favorite;
 
         // Verificamos si ya está en Favoritos (para evitar agregar de nuevo)
-        if (movie?.favorito === newFavoriteStatus) return;
+        if (pelicula?.favorito === newFavoriteStatus) return;
 
         setFavorite(newFavoriteStatus);
 
-        dispatch(changeContentProperties({
-            type: 'vod',
-            contentId: movie.stream_id,
-            changes: { favorito: newFavoriteStatus },
-        }));
+        updateItem('vod', 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus });
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
@@ -105,7 +99,7 @@ const Pelicula = ({ navigation, route }) => {
                         <Icon name="arrow-circle-left" size={26} color="white" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{contenido.name}</Text>
+                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{pelicula.name}</Text>
                     </View>
                 </View>
 
@@ -129,10 +123,10 @@ const Pelicula = ({ navigation, route }) => {
                             </View>
                             <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
                                 <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
-                                <Text style={styles.text}>{contenido.release_date ? getDate(`${contenido.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
+                                <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
                                 <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime ? runtime : 0)}</Text>
-                                <Text style={styles.text}>{genres ? genres.join(', ') : 'N/A'}</Text>
-                                <StarRating rating={contenido.rating ? contenido.rating : 0} size={20} />
+                                <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
+                                <StarRating rating={rating ? rating : 0} size={20} />
                             </View>
                         </View>
                     </View>
@@ -156,23 +150,23 @@ const Pelicula = ({ navigation, route }) => {
                         <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{overview ? overview : 'Sinopsis no disponible'}</Text>
                     </View>
                     {/* Vista en columna con texto y FlatList */}
-                    {movieInfo ? (
+                    {Array.isArray(cast) && cast.length > 0 ? (
                         <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
-                        <FlatList
-                            data={movieInfo.cast}
-                            horizontal
-                            renderItem={({ item }) => (
-                                <CardActor
-                                    imagen={item.imagen}
-                                    nombre={item.nombre}
-                                />
-                            )}
-                            keyExtractor={(item, index) => index.toString()}
-                            ItemSeparatorComponent={ItemSeparator}
-                        />
-                    </View>
+                            <FlatList
+                                data={cast}
+                                horizontal
+                                renderItem={({ item }) => (
+                                    <CardActor
+                                        imagen={item.imagen}
+                                        nombre={item.nombre}
+                                    />
+                                )}
+                                keyExtractor={(item, index) => index.toString()}
+                                ItemSeparatorComponent={ItemSeparator}
+                            />
+                        </View>
                     ) : null}
-                    
+
                 </ScrollView>
             </View>
         </ImageBackground>

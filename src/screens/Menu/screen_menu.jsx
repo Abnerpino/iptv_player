@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
+import { getItems } from '../../services/realm/streaming';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
@@ -14,7 +15,10 @@ import ModalExit from '../../components/Modals/modal_exit';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
-    const { live, vod, series } = useSelector(state => state.streaming);
+    //const { live, vod, series } = useSelector(state => state.streaming);
+    const live = useMemo(() => [...getItems('live')], []);
+    const vod = useMemo(() => [...getItems('vod')], []);
+    const series = useMemo(() => [...getItems('series')], []);
     const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
     const notificaciones = useSelector(state => state.notifications.list);
     const dispatch = useDispatch();
@@ -29,8 +33,6 @@ const Menu = ({ navigation }) => {
     const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
 
     useEffect(() => {
-        let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
-
         if (notificaciones.length === 0) {
             const msg = [
                 //{ id: 1, mensaje: "¡La fecha de expiración de su paquete es el lunes 14! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
@@ -42,6 +44,10 @@ const Menu = ({ navigation }) => {
         }
 
         const descargarContenido = async () => {
+            /*const live = useMemo(() => [...getItems('live')], []);
+            const vod = useMemo(() => [...getItems('vod')], []);
+            const series = useMemo(() => [...getItems('series')], []);*/
+
             if (live.length > 0 && vod.length > 0 && series.length > 0) {
                 console.log("Contenido existente");
             } else {
@@ -52,14 +58,12 @@ const Menu = ({ navigation }) => {
                     handleFinishLoading?.(); // Termina el modal de carga
                 } catch (error) {
                     console.log('Ocurrió un error al obtener el contenido: ', error);
+                    handleFinishLoading?.();
                 }
-
             }
-        }
+        };
 
         descargarContenido();
-
-        return () => { isMounted = false }; // Cleanup para evitar fugas de memoria
     }, []); // Se ejecuta solo cuando se monta el componente
 
     useEffect(() => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
+import { getItems } from '../../services/realm/streaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
@@ -11,7 +12,10 @@ import { changeCategoryProperties } from '../../services/redux/slices/streamingS
 const Seccion = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
-    const { catsLive, catsVod, catsSeries, live, vod, series } = useSelector(state => state.streaming);
+    const { catsLive, catsVod, catsSeries } = useSelector(state => state.streaming);
+    const live = useMemo(() => [...getItems('live')], []);
+    const vod = useMemo(() => [...getItems('vod')], []);
+    const series = useMemo(() => [...getItems('series')], []);
 
     //Las categorias y el contenido se mantienen acutalizados cada que el store cambia
     const [categories, content] = useMemo(() => {
@@ -46,7 +50,7 @@ const Seccion = ({ navigation, route }) => {
         );
     }, [searchCont, contenido]);
 
-    //Actualiza el contenido de las categorias (especialmente Favoritos) cuando hay un cambio
+    //Actualiza el contenido de las categorias (especialmente Favoritos y Vistos) cuando hay un cambio
     useEffect(() => {
         switch (category) {
             case 'TODO':
@@ -77,7 +81,7 @@ const Seccion = ({ navigation, route }) => {
                 }
                 break;
             default:
-                const filtrado = content.filter(item => item.category_id === selectedId);
+                const filtrado = content.filter(item => item.category_ids.some(id => id == selectedId));
                 setContenido(filtrado);
                 break;
         }
@@ -134,6 +138,11 @@ const Seccion = ({ navigation, route }) => {
                                     />
                                 )}
                                 keyExtractor={item => item.category_id}
+                                initialNumToRender={20}
+                                maxToRenderPerBatch={10}
+                                windowSize={5}
+                                removeClippedSubviews={true}
+                                updateCellsBatchingPeriod={50}
                             />
                         )}
 
@@ -170,12 +179,17 @@ const Seccion = ({ navigation, route }) => {
                                     <CardContenido
                                         navigation={navigation}
                                         tipo={type}
-                                        contenidoId={type === 'series' ? item.series_id : item.stream_id}
+                                        item={item}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                     />
                                 )}
                                 keyExtractor={item => item.num.toString()}
+                                initialNumToRender={20}
+                                maxToRenderPerBatch={10}
+                                windowSize={5}
+                                removeClippedSubviews={true}
+                                updateCellsBatchingPeriod={50}
                             />
                         )}
                     </View>

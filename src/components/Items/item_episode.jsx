@@ -19,7 +19,7 @@ const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
             ) : <View style={styles.notImage} />}
             <View style={styles.details}>
                 <Text style={styles.title}>{episode.title}</Text>
-                <StarRating rating={episode.rating ? episode.rating : 0} size={16} />
+                <StarRating rating={episode.rating ? Number(episode.rating) : 0} size={16} />
                 <Text style={styles.duration}>{episode.duration_secs ? `${Math.floor(episode.duration_secs / 60)}m` : '0m'}</Text>
                 <Text style={styles.overview} numberOfLines={2} ellipsizeMode='tail' >{episode.plot ? episode.plot : 'Sinopsis no disponible'}</Text>
             </View>
