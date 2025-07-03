@@ -85,7 +85,7 @@ const Seccion = ({ navigation, route }) => {
                 setContenido(filtrado);
                 break;
         }
-    }, [category]);
+    }, [category, categories]);
 
     //Muestra el contenido de la categoria seleccionada
     function seleccionarCategoria(idCategoria) {
