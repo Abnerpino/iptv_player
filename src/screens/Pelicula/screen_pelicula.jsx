@@ -9,6 +9,7 @@ import CardActor from '../../components/Cards/card_actor';
 
 const Pelicula = ({ navigation, route }) => {
     const pelicula = route.params.selectedContent;
+    const name = pelicula.name;
     const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;
@@ -99,7 +100,7 @@ const Pelicula = ({ navigation, route }) => {
                         <Icon name="arrow-circle-left" size={26} color="white" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{pelicula.name}</Text>
+                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{name}</Text>
                     </View>
                 </View>
 
@@ -135,7 +136,7 @@ const Pelicula = ({ navigation, route }) => {
                             style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}
                             onPress={() => {
                                 handleMarkAsViewed;
-                                navigation.navigate('Reproductor', { link });
+                                navigation.navigate('Reproductor', { link, name });
                             }}
                         >
                             <Icon name="play-circle-o" size={22} color="white" />
