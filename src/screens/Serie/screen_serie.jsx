@@ -26,7 +26,7 @@ const Serie = ({ navigation, route }) => {
     //const serie = series.find(serie => serie.series_id === contenido.series_id);
     const vistos = catsSeries.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(serie?.favorito ?? false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
-    const favoritos = catsSeries.find(categoria => categoria.id === '0.3');
+    const favoritos = catsSeries.find(categoria => categoria.category_id === '0.3');
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
@@ -65,7 +65,7 @@ const Serie = ({ navigation, route }) => {
 
         setFavorite(newFavoriteStatus);
 
-        updateItem('series', 'series_id', serie.series_id, { favorito: true });
+        updateItem('series', 'series_id', serie.series_id, { favorito: newFavoriteStatus });
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
