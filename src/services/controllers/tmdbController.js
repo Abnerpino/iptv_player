@@ -31,9 +31,11 @@ class TMDBController {
                 backdrop_path: detalles.backdrop_path,
                 original_title: detalles.original_title,
                 overview: detalles.overview,
+                poster_path: detalles.poster_path,
                 runtime: detalles.runtime,
-                genres: detalles.genres,
-                cast: creditos
+                genres: detalles.genres.map(genre => genre.name).join(', '),
+                vote_average: detalles.vote_average,
+                cast: JSON.stringify(creditos)
             };
         } catch (error) {
             console.error('Error al obtener la pelicula: ', error);
@@ -69,9 +71,11 @@ class TMDBController {
                 tmdb_id: detalles.tmdb_id,
                 original_name: detalles.original_name,
                 backdrop_path: detalles.backdrop_path,
-                genres: detalles.genres,
+                poster_path: detalles.poster_path,
+                vote_average: detalles.vote_average,
+                genres: detalles.genres.map(genre => genre.name).join(', '),
                 overview: detalles.overview,
-                cast: creditos
+                cast: JSON.stringify(creditos)
             };
         } catch (error) {
             console.error('Error al obtener la Serie: ', error);
@@ -164,7 +168,7 @@ class TMDBController {
                 backdrop_path: detailsData.backdrop_path,
                 original_title: detailsData.original_title,
                 overview: detailsData.overview,
-                release_date: detailsData.release_date,
+                poster_path: detailsData.poster_path,
                 runtime: detailsData.runtime,
                 vote_average: detailsData.vote_average,
                 genres: detailsData.genres.map(genre => genre.name)
@@ -187,7 +191,8 @@ class TMDBController {
                 tmdb_id: detailsData.id,
                 original_name: detailsData.original_name,
                 backdrop_path: detailsData.backdrop_path,
-                first_air_date: detailsData.first_air_date,
+                vote_average: detailsData.vote_average,
+                poster_path: detailsData.poster_path,
                 genres: detailsData.genres,
                 overview: detailsData.overview
             };
