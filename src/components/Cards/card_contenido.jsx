@@ -28,14 +28,14 @@ const CardContenido = ({ navigation, tipo, item, onStartLoading, onFinishLoading
                             'stream_id',
                             item.stream_id,
                             {
-                                tmdb_id: info.tmdb_id,
+                                tmdb_id: info.tmdb_id.toString(),
                                 backdrop_path: info.backdrop_path,
                                 original_title: info.original_title,
                                 overview: info.overview,
                                 poster_path: info.poster_path,
-                                runtime: info.runtime,
+                                runtime: info.runtime.toString(),
                                 genres: info.genres,
-                                vote_average: info.vote_average,
+                                vote_average: info.vote_average.toString(),
                                 cast: info.cast
                             }
                         );
@@ -60,11 +60,11 @@ const CardContenido = ({ navigation, tipo, item, onStartLoading, onFinishLoading
                             'series_id',
                             item.series_id,
                             {
-                                tmdb_id: info.tmdb_id,
+                                tmdb_id: info.tmdb_id.toString(),
                                 original_name: info.original_name,
                                 backdrop_path_aux: info.backdrop_path,
                                 poster_path: info.poster_path,
-                                vote_average: info.vote_average,
+                                vote_average: info.vote_average.toString(),
                                 genres: info.genres,
                                 overview: info.overview,
                                 cast: info.cast

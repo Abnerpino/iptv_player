@@ -14,9 +14,9 @@ const Pelicula = ({ navigation, route }) => {
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;
     const genres = pelicula.genre !== "" ? pelicula.genre : pelicula.genres !== "" ? pelicula.genres : null;
-    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : pelicula.runtime;
+    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : Number(pelicula.runtime);
     const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
-    const rating = pelicula.rating ?? pelicula.vote_average;
+    const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
     const link = pelicula.link;
     const { catsVod, vod } = useSelector(state => state.streaming);

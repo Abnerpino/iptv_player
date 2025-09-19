@@ -18,13 +18,12 @@ const Serie = ({ navigation, route }) => {
     const originalName = serie.original_name;
     const genres = serie.genre !== "" ? serie.genre : serie.genres !== "" ? serie.genres : null;
     const overview = serie.plot !== "" ? serie.plot : serie.overview;
-    const rating = serie.rating !== "" ? Number(serie.rating) : serie.vote_average;
+    const rating = serie.rating !== "" ? Number(serie.rating) : Number(serie.vote_average);
     const cast = serie.cast ? JSON.parse(serie.cast) : [];
     const seasons = serie?.temporadas ?? [];
 
-    const { catsSeries, series } = useSelector(state => state.streaming);
+    const { catsSeries } = useSelector(state => state.streaming);
     const dispatch = useDispatch();
-    //const serie = series.find(serie => serie.series_id === contenido.series_id);
     const vistos = catsSeries.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(serie?.favorito ?? false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
     const favoritos = catsSeries.find(categoria => categoria.category_id === '0.3');
