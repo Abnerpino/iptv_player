@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
@@ -29,8 +29,8 @@ const Seccion = ({ navigation, route }) => {
     const [category, setCategory] = useState(categories[3].category_name); //Estado para manejar el nombre de la categoria seleccionada
     const [selectedId, setSelectedId] = useState(categories[3].category_id); //Estado para el manejo del ID de la categoria seleccionada
 
-    const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
-    const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
+    const handleStartLoading = useCallback(() => setLoading(true), []); //Cambia el valor a verdadero para que se muestre el modal de carga
+    const handleFinishLoading = useCallback(() => setLoading(false), []); //Cambia el valor a falso para que se cierre el modal de carga
 
     // Este useMemo construye la consulta de Realm dinámicamente
     const contentToShow = useMemo(() => {
@@ -210,7 +210,7 @@ const Seccion = ({ navigation, route }) => {
                                         onFinishLoading={handleFinishLoading}
                                     />
                                 )}
-                                keyExtractor={item => item.num.toString()}
+                                keyExtractor={item => type === 'series' ? item.series_id.toString() : item.stream_id.toString()}
                                 initialNumToRender={20}
                                 maxToRenderPerBatch={10}
                                 windowSize={5}
