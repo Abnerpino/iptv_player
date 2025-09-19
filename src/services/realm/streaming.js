@@ -46,15 +46,21 @@ export const updateItem = (type, idKey, idValue, changes) => {
   });
 };
 
-export const marckEpisodeAsWatched = (serieId, episodioId) => {
+export const marckEpisodeAsWatched = (serieId, numSeason, episodioId) => {
   const serie = realm.objectForPrimaryKey('Serie', serieId);
   if (!serie) {
     console.log('No se encontró la serie');
     return;
   } else console.log('Serie encontrada');
 
+  const temporada = serie.temporadas.find(t => t.numero === numSeason);
+  if (!temporada) {
+    console.log('No se encontró la temporada');
+    return;
+  } else console.log('Temporada encontrada');
+
   realm.write(() => {
-    const episodio = serie.episodios.find(e => e.id === episodioId);
+    const episodio = temporada.episodios.find(e => e.id === episodioId);
     if (episodio) {
       episodio.visto = true;
     }
