@@ -171,7 +171,7 @@ class TMDBController {
                 poster_path: detailsData.poster_path,
                 runtime: detailsData.runtime,
                 vote_average: detailsData.vote_average,
-                genres: detailsData.genres.map(genre => genre.name)
+                genres: detailsData.genres
             };
             return details; //Se retorna el objeto con los detalles
         } catch (error) {
