@@ -11,6 +11,7 @@ import ModalSeasons from '../../components/Modals/modal_seasons';
 import ItemEpisode from '../../components/Items/item_episode';
 
 const Serie = ({ navigation, route }) => {
+    const tipo = route.params.tipo;
     const serie = route.params.selectedContent;
     const poster = serie.cover !== "" ? serie.cover : serie.poster_path !== "" ? `https://image.tmdb.org/t/p/original${serie.poster_path}` : null;
     const background = serie.backdrop_path !== "" ? serie.backdrop_path : serie.backdrop_path_aux !== "" ? `https://image.tmdb.org/t/p/original${serie.backdrop_path_aux}` : null;
@@ -32,7 +33,9 @@ const Serie = ({ navigation, route }) => {
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);//serie.episodes[1]); //Estado para manejar la información de la temporada seleccionada
     const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
-    const [selectedLinkEpisode, setSelectedLinkEpisode] = useState(selectedEpisode.link);//serie.episodes[1][0].link); //Estado para manejar la url de stream del episodio seleccionado
+    const [link, setLink] = useState(selectedEpisode.link);//serie.episodes[1][0].link); //Estado para manejar la url de stream del episodio seleccionado
+    const [name, setName] = useState(selectedEpisode.title);
+    const [episodios, setEpisodios] = useState(selectedSeason.episodios);
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
 
@@ -40,7 +43,7 @@ const Serie = ({ navigation, route }) => {
         // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
         if (episodio?.visto === true) return;
 
-        marckEpisodeAsWatched(serie.series_id, episodio.id);
+        marckEpisodeAsWatched(serie.series_id, selectedSeason.numero, episodio.id);
 
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
@@ -160,7 +163,8 @@ const Serie = ({ navigation, route }) => {
                             style={[styles.button, { marginRight: 20 }]}
                             onPress={() => {
                                 handleMarkAsViewed(selectedEpisode);
-                                navigation.navigate('Reproductor', { selectedLinkEpisode });
+                                const temporada = selectedSeason.numero;
+                                navigation.navigate('Reproductor', { link, name, tipo, episodios, temporada });
                             }}
                         >
                             <Icon name="play-circle-o" size={22} color="white" />
@@ -233,7 +237,8 @@ const Serie = ({ navigation, route }) => {
                                             episode={item}
                                             onSelectEpisode={(episodio) => {
                                                 setSelectedEpisode(episodio);
-                                                setSelectedLinkEpisode(item.link);
+                                                setLink(item.link);
+                                                setName(item.title);
                                                 handleMarkAsViewed(episodio);
                                             }}
                                         />
@@ -270,7 +275,9 @@ const Serie = ({ navigation, route }) => {
                     onSelectSeason={(season) => {
                         setSelectedSeason(season);
                         setSelectedEpisode(season.episodios[0]);
-                        setSelectedLinkEpisode(season.episodios[0].link);
+                        setLink(season.episodios[0].link);
+                        setName(season.episodios[0].title);
+                        setEpisodios(season.episodios);
                     }}
                 />
             </View>

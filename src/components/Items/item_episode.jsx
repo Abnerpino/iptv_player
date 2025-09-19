@@ -11,7 +11,9 @@ const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
             style={styles.container}
             onPress={() => {
                 onSelectEpisode(episode);
-                navigation.navigate('Reproductor', { link })
+                if (navigation) {
+                    navigation.navigate('Reproductor', { link })
+                }
             }}
         >
             {imagen ? (

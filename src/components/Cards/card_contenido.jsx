@@ -21,7 +21,8 @@ const CardContenido = React.memo(({ navigation, tipo, item, onStartLoading, onFi
         if (tipo === 'live') {
             if (selectedContent) {
                 const link = selectedContent.link;
-                navigation.navigate('Reproductor', { link });
+                const name = selectedContent.name;
+                navigation.navigate('Reproductor', { link, name, tipo });
             } else {
                 console.log('Contenido no disponible');
             }
@@ -94,7 +95,7 @@ const CardContenido = React.memo(({ navigation, tipo, item, onStartLoading, onFi
                     const response = await getEpisodes(selectedContent.series_id);
                     response ? console.log('Episodios agregados') : console.log('No se agregaron los episodios');
                     onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
-                    navigation.navigate('Serie', { selectedContent });
+                    navigation.navigate('Serie', { tipo, selectedContent });
                 } catch (error) {
                     //Mostrar mensaje de que no está disponible el contenido
                     console.log('CardContenido: ', error);
