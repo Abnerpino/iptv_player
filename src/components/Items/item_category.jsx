@@ -14,8 +14,8 @@ const ItemCategory = ({ categoria, seleccionado, seleccionar }) => {
             underlayColor={(categoria.category_id !== seleccionado) ? "#D5700F" : "#006172"}
         >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', }}>
-                <Text style={{ width: '80%', color: '#FFF', fontSize: 14, }} numberOfLines={1}>{categoria.category_name}</Text>
-                <Text style={{ width: '20%',color: '#FFF',  fontSize: 14, textAlign: 'right', }}>{categoria.total}</Text>
+                <Text style={{ width: '75%', color: '#FFF', fontSize: 14, }} numberOfLines={1}>{categoria.category_name}</Text>
+                <Text style={{ width: '25%',color: '#FFF',  fontSize: 14, textAlign: 'right', }}>{categoria.total}</Text>
             </View>
         </TouchableHighlight>
     );
