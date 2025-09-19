@@ -210,7 +210,7 @@ const Seccion = ({ navigation, route }) => {
                                         onFinishLoading={handleFinishLoading}
                                     />
                                 )}
-                                keyExtractor={item => type === 'series' ? item.series_id.toString() : item.stream_id.toString()}
+                                keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
                                 initialNumToRender={20}
                                 maxToRenderPerBatch={10}
                                 windowSize={5}
