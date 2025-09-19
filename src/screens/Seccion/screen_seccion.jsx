@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
@@ -13,28 +13,89 @@ const Seccion = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
     const { catsLive, catsVod, catsSeries } = useSelector(state => state.streaming);
-    const live = useMemo(() => [...getItems('live')], []);
-    const vod = useMemo(() => [...getItems('vod')], []);
-    const series = useMemo(() => [...getItems('series')], []);
-
-    //Las categorias y el contenido se mantienen acutalizados cada que el store cambia
-    const [categories, content] = useMemo(() => {
-        if (type === 'live') return [catsLive, live];
-        if (type === 'vod') return [catsVod, vod];
-        return [catsSeries, series];
-    }, [type, catsLive, catsVod, catsSeries, live, vod, series]);
-
-    const [category, setCategory] = useState('TODO'); //Estado para manejar el nombre de la categoria seleccionada
-    const [selectedId, setSelectedId] = useState('0.1'); //Estado para el manejo del ID de la categoria seleccionada
-    const [contenido, setContenido] = useState(content); //Estado para manejar el contenido por categoria
-    const [mensaje, setMensaje] = useState(''); //Estado para manejar el mensaje a mostrar cuando Favoritos y Recientemente Visto estén vacios
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
     const [mostrarBusqueda, setMostrarBusqueda] = useState(false); //Estado para manejar cuando mostrar la barra de busqueda
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
+    const flatListRef = useRef(null);   //Referencia al FlatList del contenido
+
+    // Obtiene las categorías correctas según el tipo
+    const categories = useMemo(() => {
+        if (type === 'live') return catsLive;
+        if (type === 'vod') return catsVod;
+        return catsSeries;
+    }, [type, catsLive, catsVod, catsSeries]);
+
+    const [category, setCategory] = useState(categories[3].category_name); //Estado para manejar el nombre de la categoria seleccionada
+    const [selectedId, setSelectedId] = useState(categories[3].category_id); //Estado para el manejo del ID de la categoria seleccionada
 
     const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
+
+    // Este useMemo construye la consulta de Realm dinámicamente
+    const contentToShow = useMemo(() => {
+        // 1. Obtenemos la colección base de Realm (sin filtrar)
+        let baseQuery = getItems(type);
+
+        // 2. Aplicamos el filtro de categoría
+        switch (category) {
+            case 'RECIENTEMENTE VISTO':
+                baseQuery = baseQuery.filtered('visto == true');
+                break;
+            case 'FAVORITOS':
+                baseQuery = baseQuery.filtered('favorito == true');
+                break;
+            case 'TODO':
+                // No se aplica ningún filtro de categoría
+                break;
+            default:
+                // Filtra por el ID de la categoría seleccionada
+                baseQuery = baseQuery.filtered('category_ids == $0', selectedId);
+                break;
+        }
+
+        // 3. Aplicamos el filtro de búsqueda si existe
+        if (searchCont.trim() !== '') {
+            baseQuery = baseQuery.filtered('name CONTAINS[c] $0', searchCont);
+        }
+
+        // 4. El resultado es una colección de Realm ya filtrada y optimizada
+        return baseQuery;
+    }, [type, category, selectedId, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
+
+    //useEffect para actualizar los totales en Redux
+    useEffect(() => {
+        // Obtenemos la colección base sin filtros
+        const allContent = getItems(type);
+
+        // Usamos .filtered().length para un conteo súper rápido
+        const totalVistos = allContent.filtered('visto == true').length;
+        const totalFavoritos = allContent.filtered('favorito == true').length;
+
+        // Despachamos los totales a Redux
+        dispatch(changeCategoryProperties({
+            type: type,
+            categoryId: '0.2', // ID para 'Recientemente Visto'
+            changes: { total: totalVistos }
+        }));
+
+        dispatch(changeCategoryProperties({
+            type: type,
+            categoryId: '0.3', // ID para 'Favoritos'
+            changes: { total: totalFavoritos }
+        }));
+
+    }, [type, dispatch]); // Se ejecuta solo cuando cambia el tipo de contenido
+
+    useEffect(() => {
+        // Si la lista tiene contenido, la mandamos al inicio.
+        if (flatListRef.current && contentToShow.length > 0) {
+            flatListRef.current.scrollToIndex({
+                index: 0,
+                animated: false,
+            });
+        }
+    }, [selectedId]);
 
     //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
@@ -42,50 +103,6 @@ const Seccion = ({ navigation, route }) => {
             item.category_name.toLowerCase().includes(searchCat.toLowerCase())
         );
     }, [searchCat, categories]);
-
-    //Filtra el contenido según sea la búsqueda
-    const filteredContent = useMemo(() => {
-        return contenido.filter(item =>
-            item.name?.toLowerCase().includes(searchCont.toLowerCase())
-        );
-    }, [searchCont, contenido]);
-
-    //Actualiza el contenido de las categorias (especialmente Favoritos y Vistos) cuando hay un cambio
-    useEffect(() => {
-        switch (category) {
-            case 'TODO':
-                setContenido(content);
-                break;
-            case 'RECIENTEMENTE VISTO':
-                const vistos = content.filter(item => item.visto === true);
-                dispatch(changeCategoryProperties({
-                    type: type,
-                    categoryId: '0.2',
-                    changes: { total: vistos.length }
-                }));
-                setContenido(vistos);
-                if (vistos.length < 1) {
-                    setMensaje(type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas'))
-                }
-                break;
-            case 'FAVORITOS':
-                const favoritos = content.filter(item => item.favorito === true);
-                dispatch(changeCategoryProperties({
-                    type: type,
-                    categoryId: '0.3',
-                    changes: { total: favoritos.length }
-                }));
-                setContenido(favoritos);
-                if (favoritos.length < 1) {
-                    setMensaje(type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas'))
-                }
-                break;
-            default:
-                const filtrado = content.filter(item => item.category_ids.some(id => id == selectedId));
-                setContenido(filtrado);
-                break;
-        }
-    }, [category, categories]);
 
     //Muestra el contenido de la categoria seleccionada
     function seleccionarCategoria(idCategoria) {
@@ -161,11 +178,19 @@ const Seccion = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {(category === 'FAVORITOS' && contenido.length === 0) || (category === 'RECIENTEMENTE VISTO' && contenido.length === 0) ? (
+                        {(category === 'FAVORITOS' && contentToShow.length === 0) ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>{mensaje}</Text>
+                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
+                                    {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
+                                </Text>
                             </View>
-                        ) : filteredContent.length === 0 ? (
+                        ) : (category === 'RECIENTEMENTE VISTO' && contentToShow.length === 0) ? (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
+                                    {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}
+                                </Text>
+                            </View>
+                        ) : contentToShow.length === 0 ? (
                             <View style={{ padding: 10 }}>
                                 <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
                                     No se ha encontrado {type === 'live' ? 'el canal' : (type === 'vod' ? 'la película' : 'la serie')}
@@ -173,7 +198,8 @@ const Seccion = ({ navigation, route }) => {
                             </View>
                         ) : (
                             <FlatList
-                                data={filteredContent}
+                                ref={flatListRef}
+                                data={contentToShow}
                                 numColumns={5}
                                 renderItem={({ item }) => (
                                     <CardContenido
