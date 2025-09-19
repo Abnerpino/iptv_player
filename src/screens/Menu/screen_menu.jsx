@@ -16,9 +16,9 @@ import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
     //const { live, vod, series } = useSelector(state => state.streaming);
-    const live = useMemo(() => [...getItems('live')], []);
-    const vod = useMemo(() => [...getItems('vod')], []);
-    const series = useMemo(() => [...getItems('series')], []);
+    const live = useMemo(() => getItems('live'), []);
+    const vod = useMemo(() => getItems('vod'), []);
+    const series = useMemo(() => getItems('series'), []);
     const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
     const notificaciones = useSelector(state => state.notifications.list);
     const dispatch = useDispatch();
