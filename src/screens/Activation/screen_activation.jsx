@@ -97,7 +97,7 @@ const Activation = ({ navigation, route }) => {
       "user_name": localUsername,
       "user": '',
       "password": '',
-      "host": 'http://dns002.xyz',
+      "host": '',
       "active": false,
       "expiration": '',
       "package": '',

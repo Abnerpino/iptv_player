@@ -1,4 +1,4 @@
-const apiKey = '46cdd28e2e3e11e156481c7a3826cfc3';
+const apiKey = 'Aquí tu Key de la API TMDB';
 
 class TMDBController {
     //Obtiene la informacion de una pelicula
