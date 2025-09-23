@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
 
@@ -8,6 +8,8 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
     const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
     const [timeAgo, setTimeAgo] = useState('Última actualización: nunca'); // Estado para guardar el texto formateado
+    const [isLoading, setIsLoading] = useState(false); // Estado para mostrar/ocultar la barra
+    const progressAnim = useRef(new Animated.Value(0)).current; //Referencia para la animación
 
     const imagen = tipo === 'live' ? require('../../assets/tv.png') : (tipo === 'vod' ? require('../../assets/cine.png') : require('../../assets/series.png'));
 
@@ -30,8 +32,7 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
 
     // Efecto para actualizar el contador de tiempo cada segundo
     useEffect(() => {
-        if (lastUpdateTime === null) {
-            // Si nunca se ha actualizado, no se inicia el intervalo
+        if (lastUpdateTime === null) { // Si nunca se ha actualizado, no se inicia el intervalo
             setTimeAgo('Última actualización: nunca');
             return;
         }
@@ -52,7 +53,7 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
             }
         };
 
-        // Ejecutamos la función una vez de inmediato para que el texto se actualice de "nunca" a "ahora" sin esperar el primer intervalo.
+        // Ejecuta la función una vez de inmediato para que el texto se actualice de "nunca" a "ahora" sin esperar el primer intervalo.
         updateText();
 
         // El intervalo ahora corre cada segundo para detectar el cambio de minuto.
@@ -76,51 +77,87 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
     };
 
     const handleUpdateStreaming = async () => {
+        setIsLoading(true); // Muestra la barra de progreso
+        progressAnim.setValue(0); // Reinicia la animación a 0%
         onStartLoading?.();
-        await getStreamingByType(tipo);
-        onFinishLoading?.();
 
+        // Inicia una animación que llega al 50% en 1 segundo, que simula el progreso mientras se espera la respuesta
+        Animated.timing(progressAnim, {
+            toValue: 0.5,
+            duration: 1000,
+            useNativeDriver: false,
+        }).start();
+
+        await getStreamingByType(tipo);
+
+        // Una vez terminado, anima el 50% restante en medio segundo.
+        Animated.timing(progressAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: false,
+        }).start(() => {
+            // Cuando la animación del 100% termina, oculta la barra.
+            setIsLoading(false);
+        });
+
+        onFinishLoading?.();
         // Al terminar, obtenemos la fecha y hora actual como un timestamp numérico
         const now = new Date().getTime();
 
         try {
-            // Guardamos el timestamp en AsyncStorage
+            // Guarda el timestamp en AsyncStorage
             await AsyncStorage.setItem(`@last_update_time_${tipo}`, now.toString());
-            // Actualizamos el estado para que el contador se reinicie inmediatamente
+            // Actualiza el estado para que el contador se reinicie inmediatamente
             setLastUpdateTime(now);
         } catch (e) {
             console.error("Error al guardar el tiempo de actualización", e);
         }
     };
 
+    // Interpola el valor animado para que se traduzca en un ancho (de '0%' a '100%')
+    const widthInterpolate = progressAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0%", "100%"]
+    });
+
     return (
-        <TouchableOpacity style={[styles.container, { backgroundColor: fondo }]} onPress={handleNavigateToScreen}>
-            <View style={styles.imageContainer1}>
-                <Image
-                    source={imagen}
-                    resizeMode="contain"
-                    style={{
-                        width: tipo === 'live' ? '80%' : '60%',
-                        height: tipo === 'live' ? '80%' : '60%',
-                        alignSelf: 'center',
-                    }}>
-                </Image>
-            </View>
-            <TouchableOpacity
-                style={[styles.updateContainer, { backgroundColor: buttonColor }]}
-                onPress={handleUpdateStreaming}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-            >
-                <Text style={[styles.updateText, { verticalAlign: 'middle' }]}>{timeAgo}</Text>
-                <View style={styles.imageContainer2}>
+        <View style={[styles.container, { backgroundColor: fondo }]}>
+            <TouchableOpacity style={styles.touchableContent} onPress={handleNavigateToScreen}>
+                <View style={styles.imageContainer1}>
                     <Image
-                        source={require('../../assets/update.png')}
+                        source={imagen}
                         resizeMode="contain"
-                        style={styles.updateImage} />
+                        style={{
+                            width: tipo === 'live' ? '80%' : '60%',
+                            height: tipo === 'live' ? '80%' : '60%',
+                            alignSelf: 'center',
+                        }}>
+                    </Image>
                 </View>
+                {!isLoading && (
+                    <TouchableOpacity
+                        style={[styles.updateContainer, { backgroundColor: buttonColor }]}
+                        onPress={handleUpdateStreaming}
+                        onPressIn={handlePressIn}
+                        onPressOut={handlePressOut}
+                    >
+                        <Text style={[styles.updateText, { verticalAlign: 'middle' }]}>{timeAgo}</Text>
+                        <View style={styles.imageContainer2}>
+                            <Image
+                                source={require('../../assets/update.png')}
+                                resizeMode="contain"
+                                style={styles.updateImage} />
+                        </View>
+                    </TouchableOpacity>
+                )}
             </TouchableOpacity>
-        </TouchableOpacity>
+
+            {isLoading && (
+                <View style={styles.progressOverlay}>
+                    <Animated.View style={[styles.progressBar, { width: widthInterpolate }]} />
+                </View>
+            )}
+        </View>
     );
 };
 
@@ -129,6 +166,13 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 5,
         borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    touchableContent: {
+        width: '100%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -164,7 +208,21 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         alignSelf: 'flex_start',
-    }
+    },
+    progressOverlay: {
+        position: 'absolute', // Se superpone sobre el contenido
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo semitransparente oscuro
+        justifyContent: 'flex-start', // La barra empieza desde la izquierda
+        alignItems: 'flex-start',
+    },
+    progressBar: {
+        height: '100%', // Ocupa toda la altura
+        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Color de la barra de progreso
+    },
 });
 
 export default CardMultimedia;
