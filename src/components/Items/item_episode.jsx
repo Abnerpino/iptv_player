@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome6';
 import StarRating from '../StarRating';
 
 const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
@@ -17,9 +18,12 @@ const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
             }}
         >
             {imagen ? (
-                <Image source={{ uri: imagen }} style={styles.image} resizeMode='cover' />
+                <Image source={{ uri: imagen }} style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]} resizeMode='cover' />
             ) : <View style={styles.notImage} />}
             <View style={styles.details}>
+                {episode.visto && (
+                    <Icon name="eye" size={20} color="white" style={styles.eyeIcon} />
+                )}
                 <Text style={styles.title}>{episode.title}</Text>
                 <StarRating rating={episode.rating ? Number(episode.rating) : 0} size={16} />
                 <Text style={styles.duration}>{episode.duration_secs ? `${Math.floor(Number(episode.duration_secs) / 60)}m` : '0m'}</Text>
@@ -57,6 +61,13 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingLeft: 12,
         justifyContent: 'space-around'
+    },
+    eyeIcon: {
+        position: 'absolute',
+        right: 0,
+        backgroundColor: 'rgba(255,255,255,0.4)',
+        borderRadius: 10,
+        padding: 2
     },
     title: {
         color: '#fff',
