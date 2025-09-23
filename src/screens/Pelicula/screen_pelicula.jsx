@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useDispatch, useSelector } from 'react-redux';
-import { getItemById, updateItem } from '../../services/realm/streaming';
+import { getItemById, updateItem, saveOrUpdateItems, deleteItem } from '../../services/realm/streaming';
 import { changeContentProperties, changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
@@ -32,7 +32,8 @@ const Pelicula = ({ navigation, route }) => {
         // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
         if (pelicula?.visto === true) return;
 
-        updateItem('vod', 'stream_id', pelicula.stream_id, { visto: true });
+        updateItem('vod', 'stream_id', pelicula.stream_id, { visto: true }); // Actualiza el item en el schema principal
+        saveOrUpdateItems('auxVod', { num: pelicula.num, stream_id: pelicula.stream_id, favorito: pelicula.favorito, visto: true }); // Actualiza el item en el schema auxiliar
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
@@ -52,7 +53,11 @@ const Pelicula = ({ navigation, route }) => {
 
         setFavorite(newFavoriteStatus);
 
-        updateItem('vod', 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus });
+        updateItem('vod', 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema principal
+        saveOrUpdateItems('auxVod', { num: pelicula.num, stream_id: pelicula.stream_id, favorito: newFavoriteStatus, visto: pelicula.visto }); // Actualiza el item en el schema auxiliar
+        if (newFavoriteStatus === false) {
+            deleteItem('auxVod', pelicula.stream_id); // Elimina el item del schema auxiliar
+        }
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
@@ -135,7 +140,7 @@ const Pelicula = ({ navigation, route }) => {
                         <TouchableOpacity
                             style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}
                             onPress={() => {
-                                handleMarkAsViewed;
+                                handleMarkAsViewed();
                                 navigation.navigate('Reproductor', { link, name });
                             }}
                         >
