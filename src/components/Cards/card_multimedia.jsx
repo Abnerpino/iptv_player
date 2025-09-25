@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
 
-const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoading }) => {
+const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading }, ref) => {
     const { getStreamingByType } = useXtream();
     const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
@@ -76,43 +76,50 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
         navigation.navigate('Seccion', { tipo });
     };
 
-    const handleUpdateStreaming = async () => {
-        setIsLoading(true); // Muestra la barra de progreso
-        progressAnim.setValue(0); // Reinicia la animación a 0%
-        onStartLoading?.();
+    const handleUpdateStreaming = async (flag) => {
+        setIsLoading(true);
+        progressAnim.setValue(0);
+        if (flag) onStartLoading?.();
 
-        // Inicia una animación que llega al 50% en 1 segundo, que simula el progreso mientras se espera la respuesta
+        // Inicia la primera animación
         Animated.timing(progressAnim, {
             toValue: 0.5,
             duration: 1000,
             useNativeDriver: false,
         }).start();
 
+        // Espera a que la descarga de datos termine
         await getStreamingByType(tipo);
 
-        // Una vez terminado, anima el 50% restante en medio segundo.
-        Animated.timing(progressAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: false,
-        }).start(() => {
-            // Cuando la animación del 100% termina, oculta la barra.
-            setIsLoading(false);
+        // Envuelve la animación final en una Promesa explícita para garantizar la espera
+        await new Promise(resolve => {
+            Animated.timing(progressAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: false,
+            }).start(result => {
+                if (result.finished) {
+                    resolve(); // Avisa que la animación terminó
+                }
+            });
         });
 
-        onFinishLoading?.();
-        // Al terminar, obtenemos la fecha y hora actual como un timestamp numérico
+        // Se ejecutan las tareas finales despues de la animación
+        setIsLoading(false);
+        if (flag) onFinishLoading?.();
         const now = new Date().getTime();
-
         try {
-            // Guarda el timestamp en AsyncStorage
             await AsyncStorage.setItem(`@last_update_time_${tipo}`, now.toString());
-            // Actualiza el estado para que el contador se reinicie inmediatamente
             setLastUpdateTime(now);
         } catch (e) {
             console.error("Error al guardar el tiempo de actualización", e);
         }
     };
+
+    // screen_menu ahora podrá llamar a `ref.current.triggerUpdateEffects()`
+    useImperativeHandle(ref, () => ({
+        triggerUpdateEffects: () => handleUpdateStreaming(false)
+    }));
 
     // Interpola el valor animado para que se traduzca en un ancho (de '0%' a '100%')
     const widthInterpolate = progressAnim.interpolate({
@@ -137,7 +144,7 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
                 {!isLoading && (
                     <TouchableOpacity
                         style={[styles.updateContainer, { backgroundColor: buttonColor }]}
-                        onPress={handleUpdateStreaming}
+                        onPress={() => handleUpdateStreaming(true)}
                         onPressIn={handlePressIn}
                         onPressOut={handlePressOut}
                     >
@@ -159,7 +166,7 @@ const CardMultimedia = ({ navigation, tipo, fondo, onStartLoading, onFinishLoadi
             )}
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {
