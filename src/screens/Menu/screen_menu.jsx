@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -16,9 +17,9 @@ import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
     //const { live, vod, series } = useSelector(state => state.streaming);
-    const live = useMemo(() => getItems('live'));
-    const vod = useMemo(() => getItems('vod'));
-    const series = useMemo(() => getItems('series'));
+    const liveCardRef = useRef(null);
+    const vodCardRef = useRef(null);
+    const seriesCardRef = useRef(null);
     const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
     const notificaciones = useSelector(state => state.notifications.list);
     const dispatch = useDispatch();
@@ -32,6 +33,17 @@ const Menu = ({ navigation }) => {
     const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
 
+    const updateLastUpdateTime = async () => {
+        const now = new Date().getTime();
+
+        try {
+            await AsyncStorage.setItem('@last_update_time_iptv', now.toString());
+            console.log('Tiempo actualizado');
+        } catch (e) {
+            console.error("Error al actualizar el tiempo de actualización", e);
+        }
+    };
+
     useEffect(() => {
         if (notificaciones.length === 0) {
             const msg = [
@@ -43,27 +55,32 @@ const Menu = ({ navigation }) => {
             dispatch(setListNotifications(msg));
         }
 
-        const descargarContenido = async () => {
-            /*const live = useMemo(() => [...getItems('live')], []);
-            const vod = useMemo(() => [...getItems('vod')], []);
-            const series = useMemo(() => [...getItems('series')], []);*/
+        const checkAndUpdateContent = async () => {
+            try {
+                const savedTime = await AsyncStorage.getItem('@last_update_time_iptv');
+                const lastUpdate = savedTime ? parseInt(savedTime, 10) : null;
+                const now = new Date().getTime();
+                const secondsSinceUpdate = Math.floor((now - lastUpdate) / 1000);
+                console.log(`Segundos desde la última actualización: ${secondsSinceUpdate.toFixed(2)}`);
 
-            if (live.length > 0 && vod.length > 0 && series.length > 0) {
-                console.log("Contenido existente");
-            } else {
-                try {
-                    console.log("Actualizando contenido");
-                    handleStartLoading?.(); // Inicia el modal de carga
-                    await getFullStreaming();
-                    handleFinishLoading?.(); // Termina el modal de carga
-                } catch (error) {
-                    console.log('Ocurrió un error al obtener el contenido: ', error);
-                    handleFinishLoading?.();
+                if (secondsSinceUpdate < 120) {
+                    console.log("Aún no pasan 2 minutos, no se descarga nada.");
+                    return;
                 }
+
+                handleStartLoading?.();
+                await liveCardRef.current?.triggerUpdateEffects();
+                await vodCardRef.current?.triggerUpdateEffects();
+                await seriesCardRef.current?.triggerUpdateEffects();
+                await updateLastUpdateTime();
+                handleFinishLoading?.();
+            } catch (error) {
+                console.log('Ocurrió un error en el proceso de actualización: ', error);
+                handleFinishLoading?.();
             }
         };
 
-        descargarContenido();
+        checkAndUpdateContent();
     }, []); // Se ejecuta solo cuando se monta el componente
 
     useEffect(() => {
@@ -136,9 +153,9 @@ const Menu = ({ navigation }) => {
     const formattedDate = currentDate.toLocaleString('es-MX', optionsDate).split(',');
 
     const tiposMultimedia = [
-        { tipo: 'live', fondo: '#3D41E9' },
-        { tipo: 'vod', fondo: '#DD3652' },
-        { tipo: 'series', fondo: '#9743B5' }
+        { referencia: liveCardRef, tipo: 'live', fondo: '#3D41E9' },
+        { referencia: vodCardRef, tipo: 'vod', fondo: '#DD3652' },
+        { referencia: seriesCardRef, tipo: 'series', fondo: '#9743B5' }
     ];
 
     return (
@@ -192,6 +209,7 @@ const Menu = ({ navigation }) => {
                         <CardMultimedia
                             key={idx}
                             navigation={navigation}
+                            ref={multimedia.referencia}
                             tipo={multimedia.tipo}
                             fondo={multimedia.fondo}
                             onStartLoading={handleStartLoading}
