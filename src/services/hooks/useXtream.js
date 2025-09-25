@@ -47,14 +47,14 @@ export const useXtream = () => {
                 const canales = await getLiveStream();
                 contenido = canales;
                 dispatch(setCatsLive(categorias)); //Guarda las categorias de LIVE en el almacenamiento global
-                saveItems('live', canales);
+                await saveItems('live', canales);
                 console.log('LIVE actualizado');
                 break;
             case 'vod':
                 const peliculas = await getVodStream();
                 contenido = peliculas;
                 dispatch(setCatsVod(categorias)); //Guarda las categorias de VOD en el almacenamiento global
-                saveItems('vod', peliculas);
+                await saveItems('vod', peliculas);
                 updateItemPropsInSchema('auxVod', 'vod');
                 console.log('VOD actualizado');
                 break;
@@ -62,7 +62,7 @@ export const useXtream = () => {
                 const series = await getSeries();
                 contenido = series;
                 dispatch(setCatsSeries(categorias)); //Guarda las categorias de SERIES en el almacenamiento global
-                saveItems('series', series);
+                await saveItems('series', series);
                 updateItemPropsInSchema('auxSeries', 'series');
                 console.log('SERIES actualizado');
                 break;
@@ -108,6 +108,7 @@ export const useXtream = () => {
             return categorias;
         } catch (error) {
             console.log('Error al obtener las categorias: ', error);
+            return [];
         }
     };
 
