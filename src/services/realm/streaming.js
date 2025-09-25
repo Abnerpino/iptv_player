@@ -3,23 +3,28 @@ import { getRealm } from './index';
 const realm = getRealm();
 
 export const saveItems = (type, data) => {
-  let idContenido = -1;
-  const model = getModelName(type);
-  realm.write(() => {
-    // Limpia primero para evitar duplicados
-    const old = realm.objects(model);
-    realm.delete(old);
-
+  return new Promise((resolve, reject) => {
     try {
-      data.forEach(item => {
-        const id = type === 'series' ? item.series_id : item.stream_id;
-        if (id !== idContenido) {
-          realm.create(model, item);
-          idContenido = id;
-        }
+      let idContenido = -1;
+      const model = getModelName(type);
+      realm.write(() => {
+        // Limpia primero para evitar duplicados
+        const old = realm.objects(model);
+        realm.delete(old);
+
+        data.forEach(item => {
+          const id = type === 'series' ? item.series_id : item.stream_id;
+          if (id !== idContenido) {
+            realm.create(model, item);
+            idContenido = id;
+          }
+        });
+
       });
+      resolve();
     } catch (error) {
-      console.log(error);
+      console.error(`Error al guardar en Realm (${type}):`, error);
+      reject(error);
     }
   });
 };
