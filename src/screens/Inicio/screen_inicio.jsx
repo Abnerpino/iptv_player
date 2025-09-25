@@ -3,6 +3,7 @@ import { Animated, ImageBackground } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNRestart from 'react-native-restart';
 import { useDispatch, useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
 import { setAndroid, setDeviceID, setDeviceModel, setExpirationDate, setHost, setIsActive, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
@@ -14,7 +15,7 @@ const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
     const dispatch = useDispatch();
     const { id, deviceId, isActive } = useSelector(state => state.client);
-    
+
     // Valor de animación de opacidad, comienza en 0 (transparente)
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -35,6 +36,24 @@ const Inicio = ({ navigation }) => {
             isDelayDone = true;         // marca que el tiempo ya pasó
             resolve();
         }, 1500));
+
+        const saveLastUpdateTime = async () => {
+            try {
+                const savedTime = await AsyncStorage.getItem('@last_update_time_iptv');
+                if (savedTime !== null) {
+                    console.log('Tiempo existente');
+                } else {
+                    const now = new Date().getTime();
+                    const newTime = now - 120000; // Se restan 2 minutos al tiempo actual para forzar la actualización la primera vez
+                    await AsyncStorage.setItem('@last_update_time_iptv', newTime.toString());
+                    console.log('Tiempo guardado');
+                }
+            } catch (e) {
+                console.error("Error al guardar el tiempo de actualización", e);
+            }
+        };
+
+        saveLastUpdateTime();
 
         // Ejecuta la petición asincrónica
         const request = async () => {
@@ -110,7 +129,7 @@ const Inicio = ({ navigation }) => {
                 console.log('Necesita reactivación');
                 //Agregar pantalla para reactivación
             }
-             else if (typeof data === 'object' && Object.keys(data).length === 0) {
+            else if (typeof data === 'object' && Object.keys(data).length === 0) {
                 navigation.replace('Menu');       // si es un objeto y está vacío, ir a Menu
             } else {
                 console.error('Tipo de respuesta desconocido');
