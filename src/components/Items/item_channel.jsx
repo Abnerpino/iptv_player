@@ -2,9 +2,19 @@ import React, { useState } from 'react';
 import { View, Text, TouchableHighlight, StyleSheet, } from 'react-native';
 import FastImage from 'react-native-fast-image';
 
-const ItemChannel = ({ canal }) => {
+const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
+    const backgroundColor = canal.num === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
+
+    const handleSelectionChannel = () => {
+        seleccionar(canal);
+    };
+
     return (
-        <TouchableHighlight style={styles.container} underlayColor={"#006172"}>
+        <TouchableHighlight
+            style={[styles.container, { backgroundColor }]}
+            onPress={handleSelectionChannel}
+            underlayColor={canal.num !== seleccionado ? "#D5700F" : "#006172"}
+        >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.textoNum}>{canal.num}</Text>
                 <View style={styles.imageContainer}>
@@ -32,7 +42,7 @@ const styles = StyleSheet.create({
         width: '15%',
         color: '#FFF',
         fontSize: 14,
-        textAlign: 'right', 
+        textAlign: 'right',
         fontWeight: 'bold',
         paddingRight: 5,
     },
