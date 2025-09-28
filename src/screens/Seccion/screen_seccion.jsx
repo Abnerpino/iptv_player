@@ -206,6 +206,8 @@ const Seccion = ({ navigation, route }) => {
                                         navigation={navigation}
                                         tipo={type}
                                         item={item}
+                                        categorias={type === 'live' ? categories : []}
+                                        contenido={type === 'live' ? contentToShow : []}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                     />
