@@ -5,6 +5,7 @@ import Menu from "./screens/Menu";
 import About from "./screens/About";
 import SpeedTest from "./screens/SpeedTest";
 import Seccion from "./screens/Seccion";
+import Canal from "./screens/Canal";
 import Pelicula from "./screens/Pelicula";
 import Serie from "./screens/Serie";
 import Reproductor from "./screens/Reproductor";
@@ -30,6 +31,7 @@ const App = () => {
             <Stack.Screen name="About" component={About} />
             <Stack.Screen name="SpeedTest" component={SpeedTest} />
             <Stack.Screen name="Seccion" component={Seccion} />
+            <Stack.Screen name="Canal" component={Canal} />
             <Stack.Screen name="Pelicula" component={Pelicula} />
             <Stack.Screen name="Serie" component={Serie} />
             <Stack.Screen name="Reproductor" component={Reproductor}/>
