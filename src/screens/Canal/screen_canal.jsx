@@ -12,6 +12,8 @@ const Canal = ({ navigation, route }) => {
     const contenido = route.params.content;
 
     const [currentIndex, setCurrentIndex] = useState(0); //Estado para manejar el indice de la categoria actual
+    const [selectedNum, setSelectedNum] = useState(canal.num); //Estado para el manejo del número del canal seleccionada
+    const [selectedName, setSelectedName] = useState(canal.name); //Estado para el manejo del nombre del canal seleccionado
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
@@ -26,6 +28,14 @@ const Canal = ({ navigation, route }) => {
         const newIndex = (currentIndex + 1) % categorias.length;
         setCurrentIndex(newIndex);
     };
+
+    // Función para actualiza el número y nombre del canal seleccionado
+    function seleccionarCanal(channel) {
+        if (channel.num !== selectedNum) {
+            setSelectedNum(channel.num);
+            setSelectedName(channel.name);
+        }
+    }
 
     return (
         <ImageBackground
@@ -74,6 +84,8 @@ const Canal = ({ navigation, route }) => {
                             renderItem={({ item }) => (
                                 <ItemChannel
                                     canal={item}
+                                    seleccionado={selectedNum}
+                                    seleccionar={seleccionarCanal}
                                 />
                             )}
                             keyExtractor={item => item.num}
@@ -90,7 +102,7 @@ const Canal = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
                         <View style={{ width: '100%', height: '10%', alignItems: 'center', justifyContent: 'center', }}>
-                            <Text style={styles.nameText}>{canal.name}</Text>
+                            <Text style={styles.nameText}>{selectedName}</Text>
                         </View>
                         <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }} >
 
