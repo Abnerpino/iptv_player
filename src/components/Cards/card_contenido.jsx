@@ -8,14 +8,15 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, onStartLoading, onFinishLoading }) => {
+const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartLoading, onFinishLoading }) => {
     const { getEpisodes } = useXtream();
     const [error, setError] = useState(false);
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
 
     const handleNavigateToScreen = useCallback(async () => {
         if (tipo === 'live') {
-            navigation.navigate('Reproductor', { link: item.link, name: item.name, tipo });
+            //navigation.navigate('Reproductor', { link: item.link, name: item.name, tipo });
+            navigation.navigate('Canal', { selectedContent: item, categories: categorias, content: contenido });
         }
         else if (tipo === 'vod') {
             try {
