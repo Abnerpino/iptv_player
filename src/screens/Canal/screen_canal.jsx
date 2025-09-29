@@ -61,7 +61,7 @@ const Canal = ({ navigation, route }) => {
                             <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
                                 <Icon2 name="arrow-left" size={26} color="white" />
                             </TouchableOpacity>
-                            <View style={[styles.textContainer, { alignItems: categorias[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }]}>
+                            <View style={{ flex: 1, alignItems: categorias[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
                                 <TextTicker
                                     style={styles.categoryText}
                                     duration={10000}
@@ -101,8 +101,17 @@ const Canal = ({ navigation, route }) => {
                                 <Icon name='search' size={20} color="#FFF" />
                             </TouchableOpacity>
                         </View>
-                        <View style={{ width: '100%', height: '10%', alignItems: 'center', justifyContent: 'center', }}>
-                            <Text style={styles.nameText}>{selectedName}</Text>
+                        <View style={styles.textContainer}>
+                            <TextTicker
+                                style={styles.nameText}
+                                duration={10000}
+                                loop
+                                bounce={false}
+                                repeatSpacer={100}
+                                marqueeDelay={250}
+                            >
+                                {selectedName}
+                            </TextTicker>
                         </View>
                         <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }} >
 
@@ -173,7 +182,10 @@ const styles = StyleSheet.create({
         resizeMode: 'contain'
     },
     textContainer: {
-        flex: 1,
+        height: '10%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 5,
         //backgroundColor: 'red'
     },
     categoryText: {
