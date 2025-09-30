@@ -6,7 +6,7 @@ import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import Video from 'react-native-video';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ItemChannel from '../../components/Items/item_channel';
-import ReproductorLive from '../../components/ReproductorLive';
+import Reproductor from '../../components/Reproductor';
 
 const Canal = ({ navigation, route }) => {
     const canal = route.params.selectedContent;
@@ -95,7 +95,6 @@ const Canal = ({ navigation, route }) => {
                                     <Icon2 name="arrow-right" size={26} color="white" />
                                 </TouchableOpacity>
                             </View>
-
                             <FlatList
                                 data={contenido}
                                 numColumns={1}
@@ -135,17 +134,15 @@ const Canal = ({ navigation, route }) => {
                                 </View>
                             </View>
                         )}
-                        <ReproductorLive
+                        <Reproductor
                             tipo={'live'}
                             fullScreen={isFullScreen}
                             setFullScreen={(value) => setIsFullScreen(value)}
-                            canal={selectedChannel}
-                            canales={[]}
-                            temporada={[]}
+                            contenido={selectedChannel}
+                            data={[]}
                         />
                     </View>
                 </View>
-
             </View>
         </ImageBackground>
     );
