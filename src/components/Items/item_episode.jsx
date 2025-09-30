@@ -3,19 +3,13 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import StarRating from '../StarRating';
 
-const ItemEpisode = ({ navigation, episode, onSelectEpisode }) => {
-    const link = episode.link;
+const ItemEpisode = ({ episode, onSelectEpisode }) => {
     const imagen = episode.movie_image;
 
     return (
         <TouchableOpacity
             style={styles.container}
-            onPress={() => {
-                onSelectEpisode(episode);
-                if (navigation) {
-                    navigation.navigate('Reproductor', { link })
-                }
-            }}
+            onPress={() => onSelectEpisode(episode)}
         >
             {imagen ? (
                 <Image source={{ uri: imagen }} style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]} resizeMode='cover' />

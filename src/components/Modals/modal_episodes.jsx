@@ -20,7 +20,6 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
                             keyExtractor={(item) => item.id} //No es necesario hacer la conversión porque ya es string
                             renderItem={({ item }) => (
                                 <ItemEpisode
-                                    navigation={null}
                                     episode={item}
                                     onSelectEpisode={(episodio) => {
                                         onSelectEpisode(episodio);
