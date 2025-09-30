@@ -6,10 +6,10 @@ import { getItemById, updateItem, saveOrUpdateItems, deleteItem } from '../../se
 import { changeContentProperties, changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
+import Reproductor from '../../components/Reproductor';
 
 const Pelicula = ({ navigation, route }) => {
     const pelicula = route.params.selectedContent;
-    const name = pelicula.name;
     const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;
@@ -18,15 +18,14 @@ const Pelicula = ({ navigation, route }) => {
     const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
     const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
-    const link = pelicula.link;
     const { catsVod, vod } = useSelector(state => state.streaming);
 
     const dispatch = useDispatch();
-    //const movie = vod.find(peli => peli.stream_id === pelicula.stream_id);
     const vistos = catsVod.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(pelicula?.favorito ?? false);
     const favoritos = catsVod.find(categoria => categoria.category_id === '0.3');
     const [error, setError] = useState(false);
+    const [showReproductor, setShowReproductor] = useState(false);
 
     const handleMarkAsViewed = () => {
         // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
@@ -93,89 +92,100 @@ const Pelicula = ({ navigation, route }) => {
     );
 
     return (
-        <ImageBackground
-            source={background ? { uri: `https://image.tmdb.org/t/p/original${background}` } : require('../../assets/fondo.jpg')} //Imagen de fondo
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-            <View style={[styles.container, { backgroundColor: background ? 'rgba(16,16,16,0.9)' : 'rgba(16,16,16,0.5)' }]}>
-                {/* Vista principal en columna */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
-                    {/* Fila con textos */}
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
-                        <Icon name="arrow-circle-left" size={26} color="white" />
-                    </TouchableOpacity>
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{name}</Text>
-                    </View>
-                </View>
-
-                {/* ScrollView para contenido desplazable */}
-                <ScrollView>
-                    {/* Vista en fila dentro del ScrollView */}
-                    <View style={styles.row}>
-                        <Image
-                            source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
-                            style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5, backgroundColor: '#201F29' }}
-                            onError={() => setError(true)}
-                            resizeMode='contain'
-                        />
-                        <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
-                            <View style={styles.column}>
-                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
-                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
-                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Duración:</Text>
-                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
-                                <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
-                            </View>
-                            <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
-                                <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
-                                <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
-                                <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime ? runtime : 0)}</Text>
-                                <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
-                                <StarRating rating={rating ? rating : 0} size={20} />
+        <>
+            {!showReproductor ? (
+                <ImageBackground
+                    source={background ? { uri: `https://image.tmdb.org/t/p/original${background}` } : require('../../assets/fondo.jpg')} //Imagen de fondo
+                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+                >
+                    <View style={[styles.container, { backgroundColor: background ? 'rgba(16,16,16,0.9)' : 'rgba(16,16,16,0.5)' }]}>
+                        {/* Vista principal en columna */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
+                            {/* Fila con textos */}
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
+                                <Icon name="arrow-circle-left" size={26} color="white" />
+                            </TouchableOpacity>
+                            <View style={{ flex: 1, justifyContent: 'center' }}>
+                                <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{pelicula.name}</Text>
                             </View>
                         </View>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
-                        <TouchableOpacity
-                            style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}
-                            onPress={() => {
-                                handleMarkAsViewed();
-                                navigation.navigate('Reproductor', { link, name });
-                            }}
-                        >
-                            <Icon name="play-circle-o" size={22} color="white" />
-                            <Text style={styles.textButton}>Play</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
-                            <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
-                            <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={{ paddingVertical: 10 }}>
-                        <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{overview ? overview : 'Sinopsis no disponible'}</Text>
-                    </View>
-                    {/* Vista en columna con texto y FlatList */}
-                    {Array.isArray(cast) && cast.length > 0 ? (
-                        <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
-                            <FlatList
-                                data={cast}
-                                horizontal
-                                renderItem={({ item }) => (
-                                    <CardActor
-                                        imagen={item.imagen}
-                                        nombre={item.nombre}
+
+                        {/* ScrollView para contenido desplazable */}
+                        <ScrollView>
+                            {/* Vista en fila dentro del ScrollView */}
+                            <View style={styles.row}>
+                                <Image
+                                    source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
+                                    style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5, backgroundColor: '#201F29' }}
+                                    onError={() => setError(true)}
+                                    resizeMode='contain'
+                                />
+                                <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
+                                    <View style={styles.column}>
+                                        <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
+                                        <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
+                                        <Text style={[styles.text, { fontWeight: 'bold' }]}>Duración:</Text>
+                                        <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
+                                        <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
+                                    </View>
+                                    <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
+                                        <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
+                                        <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
+                                        <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime ? runtime : 0)}</Text>
+                                        <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
+                                        <StarRating rating={rating ? rating : 0} size={20} />
+                                    </View>
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
+                                <TouchableOpacity
+                                    style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}
+                                    onPress={() => {
+                                        handleMarkAsViewed();
+                                        setShowReproductor(true);
+                                    }}
+                                >
+                                    <Icon name="play-circle-o" size={22} color="white" />
+                                    <Text style={styles.textButton}>Play</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
+                                    <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
+                                    <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{ paddingVertical: 10 }}>
+                                <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{overview ? overview : 'Sinopsis no disponible'}</Text>
+                            </View>
+                            {/* Vista en columna con texto y FlatList */}
+                            {Array.isArray(cast) && cast.length > 0 ? (
+                                <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
+                                    <FlatList
+                                        data={cast}
+                                        horizontal
+                                        renderItem={({ item }) => (
+                                            <CardActor
+                                                imagen={item.imagen}
+                                                nombre={item.nombre}
+                                            />
+                                        )}
+                                        keyExtractor={(item, index) => index.toString()}
+                                        ItemSeparatorComponent={ItemSeparator}
                                     />
-                                )}
-                                keyExtractor={(item, index) => index.toString()}
-                                ItemSeparatorComponent={ItemSeparator}
-                            />
-                        </View>
-                    ) : null}
+                                </View>
+                            ) : null}
 
-                </ScrollView>
-            </View>
-        </ImageBackground>
+                        </ScrollView>
+                    </View>
+                </ImageBackground>
+            ) : (
+                <Reproductor
+                    tipo={'vod'}
+                    fullScreen={true}
+                    contenido={pelicula}
+                    setMostrar={(value) => setShowReproductor(value)}
+                />
+            )}
+        </>
     );
 };
 
