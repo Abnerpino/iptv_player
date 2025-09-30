@@ -121,7 +121,7 @@ export const useXtream = () => {
             const response = await fetch(newLink);
             const stream = await response.json();
 
-            stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids }) => {
+            stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids, direct_source }) => {
                 //const canal = live?.find(channel => channel.stream_id === stream_id);
 
                 newLive.push({
@@ -131,7 +131,7 @@ export const useXtream = () => {
                     stream_icon,
                     category_id,
                     category_ids: category_ids.map(category => category.toString()),
-                    link: `${host}/live/${user}/${password}/${stream_id}.ts`,
+                    link: direct_source ? direct_source : `${host}/live/${user}/${password}/${stream_id}.ts`,
                     favorito: false,//canal?.favorito ?? false,
                     visto: false//canal?.visto ?? false,
                 });
