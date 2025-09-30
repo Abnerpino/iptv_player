@@ -8,7 +8,6 @@ import Seccion from "./screens/Seccion";
 import Canal from "./screens/Canal";
 import Pelicula from "./screens/Pelicula";
 import Serie from "./screens/Serie";
-import Reproductor from "./screens/Reproductor";
 import { StatusBar } from "react-native";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -34,7 +33,6 @@ const App = () => {
             <Stack.Screen name="Canal" component={Canal} />
             <Stack.Screen name="Pelicula" component={Pelicula} />
             <Stack.Screen name="Serie" component={Serie} />
-            <Stack.Screen name="Reproductor" component={Reproductor}/>
           </Stack.Navigator>
         </NavigationContainer>
       </PersistGate>
