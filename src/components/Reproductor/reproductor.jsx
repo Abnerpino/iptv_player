@@ -1,19 +1,19 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler } from 'react-native';
 import Video from 'react-native-video';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Orientation from 'react-native-orientation-locker';
-import ModalEpisodes from '../../components/Modals/modal_episodes';
+import ModalEpisodes from '../Modals/modal_episodes';
 
-const ReproductorLive = ({ tipo, fullScreen, setFullScreen, canal, canales, episodios, temporada }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, temporada, setVisto }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
 
-    const [url, setUrl] = useState(canal.link);
-    const [nombre, setNombre] = useState(canal.name);
+    const [url, setUrl] = useState(contenido.link);
+    const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [duration, setDuration] = useState(0);
@@ -30,10 +30,23 @@ const ReproductorLive = ({ tipo, fullScreen, setFullScreen, canal, canales, epis
 
     useEffect(() => {
         if (tipo === 'live') {
-            setUrl(canal.link);
-            setNombre(canal.name);
+            setUrl(contenido.link);
+            setNombre(contenido.name);
         }
-    }, [canal]);
+    }, [contenido]);
+
+    useEffect(() => {
+        if (!fullScreen) return;
+
+        const backAction = () => {
+            handleBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, [fullScreen]);
 
     const showTemporarilyControls = () => {
         setShowControls(true);
@@ -51,7 +64,14 @@ const ReproductorLive = ({ tipo, fullScreen, setFullScreen, canal, canales, epis
     };
 
     const togglePlayPause = () => setPaused(prev => !prev);
-    const handleBack = () => setFullScreen(false);
+
+    const handleBack = () => {
+        if (tipo === 'live') {
+            setFullScreen(false);
+        } else {
+            setMostrar(false);
+        }
+    };
 
     const handleProgress = ({ currentTime }) => setCurrentTime(currentTime);
     const handleLoad = ({ duration }) => setDuration(duration);
@@ -78,9 +98,9 @@ const ReproductorLive = ({ tipo, fullScreen, setFullScreen, canal, canales, epis
     const renderFloatingList = () => {
         if (!showControls) return null;
 
-        const data = tipo === 'live' ? canales : tipo === 'series' ? episodios : [];
+        //const data = tipo === 'live' ? canales : tipo === 'series' ? episodios : [];
 
-        if (data.length === 0) return null;
+        if (data && data.length === 0) return null;
 
         return (
             <View style={styles.lista}>
@@ -187,10 +207,15 @@ const ReproductorLive = ({ tipo, fullScreen, setFullScreen, canal, canales, epis
                     openModal={modalVisible}
                     handleCloseModal={handleCloseModal}
                     temporada={temporada}
-                    episodes={episodios}
-                    onSelectEpisode={(episodio) => cambiarCanal(episodio.link, episodio.title)}
+                    episodes={data}
+                    onSelectEpisode={(episodio) => {
+                        cambiarCanal(episodio.link, episodio.title);
+                        if (tipo === 'series') {
+                            setVisto(episodio);
+                        }
+                    }}
                 />
-                {renderFloatingList()}
+                {/*renderFloatingList()*/}
             </View>
         </TouchableWithoutFeedback>
     );
@@ -279,4 +304,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ReproductorLive;
+export default Reproductor;
