@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import Video from 'react-native-video';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateItem, saveOrUpdateItems } from '../../services/realm/streaming';
+import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
@@ -12,10 +15,32 @@ const Canal = ({ navigation, route }) => {
     const canal = route.params.selectedContent;
     const categorias = route.params.categories;
     const contenido = route.params.content;
+    const { catsLive } = useSelector(state => state.streaming);
 
+    const dispatch = useDispatch();
+    const vistos = catsLive.find(categoria => categoria.category_id === '0.2');
+    const [favorite, setFavorite] = useState(selectedChannel?.favorito ?? false);
+    const favoritos = catsLive.find(categoria => categoria.category_id === '0.3');
     const [currentIndex, setCurrentIndex] = useState(0); //Estado para manejar el indice de la categoria actual
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
+
+    useEffect(() => {
+        // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
+        if (selectedChannel?.visto === true) return;
+
+        updateItem('live', 'stream_id', selectedChannel.stream_id, { visto: true }); // Actualiza el item en el schema principal
+        saveOrUpdateItems('auxLive', { num: selectedChannel.num, stream_id: selectedChannel.stream_id, favorito: selectedChannel.favorito, visto: true }); // Actualiza el item en el schema auxiliar
+
+        const currentTotal = vistos.total;
+        let newTotal = currentTotal + 1;
+
+        dispatch(changeCategoryProperties({
+            type: 'live',
+            categoryId: '0.2',
+            changes: { total: newTotal }
+        }));
+    }, [selectedChannel]);
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
