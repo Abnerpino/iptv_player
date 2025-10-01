@@ -48,6 +48,7 @@ export const useXtream = () => {
                 contenido = canales;
                 dispatch(setCatsLive(categorias)); //Guarda las categorias de LIVE en el almacenamiento global
                 await saveItems('live', canales);
+                updateItemPropsInSchema('auxLive', 'live');
                 console.log('LIVE actualizado');
                 break;
             case 'vod':
