@@ -19,8 +19,6 @@ const Canal = ({ navigation, route }) => {
 
     const dispatch = useDispatch();
     const vistos = catsLive.find(categoria => categoria.category_id === '0.2');
-    const [favorite, setFavorite] = useState(selectedChannel?.favorito ?? false);
-    const favoritos = catsLive.find(categoria => categoria.category_id === '0.3');
     const [currentIndex, setCurrentIndex] = useState(0); //Estado para manejar el indice de la categoria actual
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
@@ -127,7 +125,7 @@ const Canal = ({ navigation, route }) => {
                                     <ItemChannel
                                         canal={item}
                                         seleccionado={selectedChannel.num}
-                                        seleccionar={seleccionarCanal}
+                                        seleccionar={(canal) => seleccionarCanal(canal)}
                                     />
                                 )}
                                 keyExtractor={item => item.num}
