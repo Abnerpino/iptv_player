@@ -1,17 +1,34 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useSelector, useDispatch } from 'react-redux';
 import { useXtream } from '../../services/hooks/useXtream';
-import { updateItem } from '../../services/realm/streaming';
+import { updateItem, saveOrUpdateItems, deleteItem } from '../../services/realm/streaming';
+import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
 const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartLoading, onFinishLoading }) => {
+    const dispatch = useDispatch();
     const { getEpisodes } = useXtream();
     const [error, setError] = useState(false);
+    const { catsLive, catsVod, catsSeries } = useSelector(state => state.streaming);
+
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
+    const auxTipo = tipo === 'live' ? 'auxLive' : tipo === 'vod' ? 'auxVod' : 'auxSeries';
+    const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
+
+    // Obtiene las categorías correctas según el tipo
+    const categories = useMemo(() => {
+        if (tipo === 'live') return catsLive;
+        if (tipo === 'vod') return catsVod;
+        return catsSeries;
+    }, [tipo, catsLive, catsVod, catsSeries]);
+
+    const favoritos = categories.find(categoria => categoria.category_id === '0.3');
+    const [favorite, setFavorite] = useState(item?.favorito ?? false);
 
     const handleNavigateToScreen = useCallback(async () => {
         if (tipo === 'live') {
@@ -85,10 +102,36 @@ const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartL
         }
     }, [navigation, tipo, item, onStartLoading, onFinishLoading, getEpisodes]);
 
+    const handleToggleFavorite = useCallback(async () => {
+        const newFavoriteStatus = !favorite;
+
+        // Verifica si el canal ya está en Favoritos (para evitar agregar de nuevo)
+        if (item?.favorito === newFavoriteStatus) return;
+
+        Vibration.vibrate();
+        setFavorite(newFavoriteStatus);
+
+        updateItem(tipo, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema principal
+        saveOrUpdateItems(auxTipo, { num: item.num, [item_id]: item[item_id], favorito: newFavoriteStatus, visto: item.visto }); // Actualiza el item en el schema auxiliar
+        if (newFavoriteStatus === false) {
+            deleteItem(auxTipo, item[item_id]); // Elimina el item del schema auxiliar
+        }
+
+        const currentTotal = favoritos.total;
+        let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+
+        dispatch(changeCategoryProperties({
+            type: tipo,
+            categoryId: '0.3',
+            changes: { total: newTotal }
+        }));
+    }, [tipo]);
+
     return (
         <TouchableOpacity
             style={[styles.container, { height: tipo === 'live' ? 100 : 160 }]}
             onPress={handleNavigateToScreen}
+            onLongPress={handleToggleFavorite}
         >
             <FastImage
                 style={styles.image}
