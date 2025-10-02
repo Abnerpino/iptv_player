@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -31,7 +32,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     useEffect(() => {
         if (tipo === 'live') {
             setUrl(contenido.link);
-            setNombre(contenido.name);
+            setNombre(`${contenido.num} - ${contenido.name}`);
         }
     }, [contenido]);
 
@@ -189,12 +190,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
                         {/* Bottom */}
                         {tipo === 'live' ? (
-                            <View style={{
-                                height: 2,
-                                backgroundColor: '#888',
-                                marginVertical: 10,
-                                width: '100%',
-                            }} />
+                            <View style={styles.bottomControlsLive}>
+                                <FastImage
+                                    style={styles.imagen}
+                                    source={{ uri: contenido.stream_icon }}
+                                    resizeMode="contain"
+                                />
+                                <View style={styles.barra} />
+                            </View>
                         ) : (
                             <View style={styles.bottomControls}>
                                 <Text style={styles.time}>{formatTime(currentTime)}</Text>
@@ -270,7 +273,7 @@ const styles = StyleSheet.create({
         flex: 1,
         color: '#fff',
         fontSize: 16,
-        marginLeft: 10,
+        marginLeft: 20,
     },
     rightIcons: {
         flexDirection: 'row',
@@ -287,6 +290,22 @@ const styles = StyleSheet.create({
     bottomControls: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    bottomControlsLive: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    imagen: {
+        width: 40,
+        height: 40,
+    },
+    barra: {
+        height: 3,
+        backgroundColor: '#888',
+        marginVertical: 10,
+        borderRadius: 2,
+        width: '94%',
     },
     time: {
         color: '#fff',
