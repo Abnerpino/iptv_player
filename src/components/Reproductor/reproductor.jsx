@@ -78,10 +78,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const seekTo = (time) => playerRef.current?.seek(time);
 
     const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        const formattedMins = mins < 10 ? '0' + mins : mins;
+        const formattedSecs = secs < 10 ? '0' + secs : secs;
+
+        if (hours > 0) {
+            const formattedHours = hours < 10 ? '0' + hours : hours;
+            return `${formattedHours}:${formattedMins}:${formattedSecs}`;
+        } else {
+            return `${formattedMins}:${formattedSecs}`;
+        }
     };
+
 
     const cambiarCanal = (newUrl, newName) => {
         setUrl(newUrl);
