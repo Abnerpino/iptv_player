@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useDispatch, useSelector } from 'react-redux';
-import { getItemById, updateItem, saveOrUpdateItems, deleteItem, marckEpisodeAsWatched } from '../../services/realm/streaming';
-import { changeContentProperties, changeCategoryProperties, setEpisodeAsViewed } from '../../services/redux/slices/streamingSlice';
+import { updateItem, marckEpisodeAsWatched } from '../../services/realm/streaming';
+import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
@@ -44,12 +44,11 @@ const Serie = ({ navigation, route }) => {
         if (episodio?.visto === true) return;
 
         marckEpisodeAsWatched(serie.series_id, selectedSeason.numero, episodio.id); // Marca el episodio como 'Visto'
-        saveOrUpdateItems('auxSeries', { num: serie.num, series_id: serie.series_id, temporadas: serie.temporadas, favorito: serie.favorito, visto: true }); // Actualiza el item en el schema auxiliar
 
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
 
-        updateItem('series', 'series_id', serie.series_id, { visto: true }); // Actualiza el item en el schema principal
+        updateItem('series', 'series_id', serie.series_id, { visto: true }); // Actualiza el item en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
@@ -69,11 +68,7 @@ const Serie = ({ navigation, route }) => {
 
         setFavorite(newFavoriteStatus);
 
-        updateItem('series', 'series_id', serie.series_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema principal
-        saveOrUpdateItems('auxSeries', { num: serie.num, series_id: serie.series_id, temporada: serie.temporada, favorito: newFavoriteStatus, visto: serie.visto }); // Actualiza el item en el schema auxiliar
-        if (newFavoriteStatus === false) {
-            deleteItem('auxSeries', serie.series_id); // Elimina el item del schema auxiliar
-        }
+        updateItem('series', 'series_id', serie.series_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);

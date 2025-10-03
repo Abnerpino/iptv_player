@@ -4,7 +4,7 @@ import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
 import { useXtream } from '../../services/hooks/useXtream';
-import { updateItem, saveOrUpdateItems, deleteItem } from '../../services/realm/streaming';
+import { updateItem } from '../../services/realm/streaming';
 import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import TMDBController from "../../services/controllers/tmdbController";
 
@@ -111,11 +111,7 @@ const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartL
         Vibration.vibrate();
         setFavorite(newFavoriteStatus);
 
-        updateItem(tipo, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema principal
-        saveOrUpdateItems(auxTipo, { num: item.num, [item_id]: item[item_id], favorito: newFavoriteStatus, visto: item.visto }); // Actualiza el item en el schema auxiliar
-        if (newFavoriteStatus === false) {
-            deleteItem(auxTipo, item[item_id]); // Elimina el item del schema auxiliar
-        }
+        updateItem(tipo, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);

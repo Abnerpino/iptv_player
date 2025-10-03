@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import Video from 'react-native-video';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateItem, saveOrUpdateItems } from '../../services/realm/streaming';
+import { updateItem } from '../../services/realm/streaming';
 import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ItemChannel from '../../components/Items/item_channel';
@@ -28,7 +28,6 @@ const Canal = ({ navigation, route }) => {
         if (selectedChannel?.visto === true) return;
 
         updateItem('live', 'stream_id', selectedChannel.stream_id, { visto: true }); // Actualiza el item en el schema principal
-        saveOrUpdateItems('auxLive', { num: selectedChannel.num, stream_id: selectedChannel.stream_id, favorito: selectedChannel.favorito, visto: true }); // Actualiza el item en el schema auxiliar
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;

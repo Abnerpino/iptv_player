@@ -3,7 +3,7 @@ import { View, Text, TouchableHighlight, StyleSheet, Vibration } from 'react-nat
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateItem, saveOrUpdateItems, deleteItem } from '../../services/realm/streaming';
+import { updateItem } from '../../services/realm/streaming';
 import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 
 const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
@@ -23,11 +23,7 @@ const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
         Vibration.vibrate();
         setFavorite(newFavoriteStatus);
 
-        updateItem('live', 'stream_id', canal.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema principal
-        saveOrUpdateItems('auxLive', { num: canal.num, stream_id: canal.stream_id, favorito: newFavoriteStatus, visto: canal.visto }); // Actualiza el item en el schema auxiliar
-        if (newFavoriteStatus === false) {
-            deleteItem('auxLive', canal.stream_id); // Elimina el item del schema auxiliar
-        }
+        updateItem('live', 'stream_id', canal.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
