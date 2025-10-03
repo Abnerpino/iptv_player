@@ -14,17 +14,6 @@ export const CanalSchema = {
     },
 };
 
-export const CanalAuxSchema = {
-    name: 'CanalAux',
-    primaryKey: 'stream_id',
-    properties: {
-        num: 'string',
-        stream_id: 'string',
-        favorito: 'bool',
-        visto: 'bool',
-    },
-};
-
 export const PeliculaSchema = {
     name: 'Pelicula',
     primaryKey: 'stream_id',
@@ -57,37 +46,8 @@ export const PeliculaSchema = {
     },
 };
 
-export const PeliculaAuxSchema = {
-    name: 'PeliculaAux',
-    primaryKey: 'stream_id',
-    properties: {
-        num: 'string',
-        stream_id: 'string',
-        favorito: 'bool',
-        visto: 'bool',
-    },
-};
-
 export const EpisodioSchema = {
     name: 'Episodio',
-    embedded: true,
-    properties: {
-        id: 'string',
-        episode_num: 'string',
-        title: 'string',
-        plot: 'string?',
-        duration_secs: 'string',
-        movie_image: 'string?',
-        rating: 'string',
-        season: 'string',
-        id_serie: 'string',
-        link: 'string',
-        visto: 'bool',
-    },
-};
-
-export const EpisodioAuxSchema = {
-    name: 'EpisodioAux',
     embedded: true,
     properties: {
         id: 'string',
@@ -110,15 +70,6 @@ export const TemporadaSchema = {
     properties: {
         numero: 'string',
         episodios: { type: 'list', objectType: 'Episodio' },
-    },
-};
-
-export const TemporadaAuxSchema = {
-    name: 'TemporadaAux',
-    embedded: true,
-    properties: {
-        numero: 'string',
-        episodios: { type: 'list', objectType: 'EpisodioAux' },
     },
 };
 
@@ -151,17 +102,5 @@ export const SerieSchema = {
         favorito: 'bool',
         visto: 'bool',
         saga: 'bool',
-    },
-};
-
-export const SerieAuxSchema = {
-    name: 'SerieAux',
-    primaryKey: 'series_id',
-    properties: {
-        num: 'string',
-        series_id: 'string',
-        temporadas: { type: 'list', objectType: 'TemporadaAux' },
-        favorito: 'bool',
-        visto: 'bool',
     },
 };
