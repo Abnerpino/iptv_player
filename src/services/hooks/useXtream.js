@@ -1,8 +1,8 @@
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setCatsLive, setCatsVod, setCatsSeries, setLive, setVod, setSeries, changeCategoryProperties } from '../redux/slices/streamingSlice';
+import { setCatsLive, setCatsVod, setCatsSeries, changeCategoryProperties } from '../redux/slices/streamingSlice';
 import { getRealm } from '../realm/index';
-import { saveItems, updateItemPropsInSchema, getItems } from '../realm/streaming';
+import { upsertItems } from '../realm/streaming';
 
 export const useXtream = () => {
     const dispatch = useDispatch();
@@ -47,24 +47,21 @@ export const useXtream = () => {
                 const canales = await getLiveStream();
                 contenido = canales;
                 dispatch(setCatsLive(categorias)); //Guarda las categorias de LIVE en el almacenamiento global
-                await saveItems('live', canales);
-                updateItemPropsInSchema('auxLive', 'live');
+                await upsertItems('live', canales); //Guarda o Actualiza los canales en Realm
                 console.log('LIVE actualizado');
                 break;
             case 'vod':
                 const peliculas = await getVodStream();
                 contenido = peliculas;
                 dispatch(setCatsVod(categorias)); //Guarda las categorias de VOD en el almacenamiento global
-                await saveItems('vod', peliculas);
-                updateItemPropsInSchema('auxVod', 'vod');
+                await upsertItems('vod', peliculas); //Guarda o Actualiza las peliculas en Realm
                 console.log('VOD actualizado');
                 break;
             case 'series':
                 const series = await getSeries();
                 contenido = series;
                 dispatch(setCatsSeries(categorias)); //Guarda las categorias de SERIES en el almacenamiento global
-                await saveItems('series', series);
-                updateItemPropsInSchema('auxSeries', 'series');
+                await upsertItems('series', series); //Guarda o Actualiza las series en Realm
                 console.log('SERIES actualizado');
                 break;
         }
