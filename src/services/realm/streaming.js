@@ -2,7 +2,45 @@ import { getRealm } from './index';
 
 const realm = getRealm();
 
-export const saveItems = (type, data) => {
+// Método para guardar/actualizar items en una colección
+export const upsertItems = (type, newItems) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const model = getModelName(type); //Obtiene el modelo dependiendo el tipo
+      realm.write(() => {
+        const oldItems = realm.objects(model); //Obtiene todos los items guardados (antiguos)
+        const idField = type === 'series' ? 'series_id' : 'stream_id';
+        const newItemsIds = newItems.map(item => item[idField]); //Define la lista de ids que se van a mantener
+        const missingItems = oldItems.filtered(`NOT (${idField} IN $0)`, newItemsIds); //Filtra los items que no están en la nueva lista
+        realm.delete(missingItems); //Elimina los items faltantes
+        newItems.forEach(item => {
+          const oldItem = realm.objectForPrimaryKey(model, item[idField]); //Busca si el ítem actual ya existe en la base de datos
+          if (oldItem) {
+            // Si existe, crea un nuevo objeto para guardar
+            const dataToSave = {
+              ...item, // Copia todas las propiedades del nuevo ítem
+              visto: oldItem.visto, // Pero sobrescribe 'Visto' con el valor antiguo
+              favorito: oldItem.favorito, // Y también 'Favorito' con el valor antiguo
+            };
+            // Si es una serie que tiene temporadas guardadas y ya está marcada como 'Visto', hace una copia profunda
+            if (type === 'series' && oldItem.temporadas && oldItem.visto) {
+              // .toJSON() convierte la lista de Realm y todos sus objetos embebidos en un array de objetos de JavaScript puro
+              dataToSave.temporadas = oldItem.temporadas.toJSON();
+            }
+            realm.create(model, dataToSave, 'modified');
+          } else {
+            realm.create(model, item, 'modified'); // Si no existe, simplemente crea el nuevo ítem como venía
+          }
+        });
+      });
+      resolve();
+    } catch (error) {
+      console.log(`Error al insertar/actualizar en Realm (${type}:`, error);
+    }
+  });
+};
+
+/*export const saveItems = (type, data) => {
   return new Promise((resolve, reject) => {
     try {
       let idContenido = -1;
@@ -27,10 +65,10 @@ export const saveItems = (type, data) => {
       reject(error);
     }
   });
-};
+};*/
 
 // Método para guardar o actualizar las propiedades 'Favorito', 'Visto' y 'Temporada' (cuando es Serie) en los items de los schemas auxiliares
-export const saveOrUpdateItems = (type, item) => {
+/*export const saveOrUpdateItems = (type, item) => {
   const model = getModelName(type);
   realm.write(() => {
     try {
@@ -41,19 +79,20 @@ export const saveOrUpdateItems = (type, item) => {
       console.log(error);
     }
   });
-};
+};*/
 
+// Método para obtener todo los items de una colección, ordenados por la propiedad 'num
 export const getItems = (type) => {
   const model = getModelName(type);
   return realm.objects(model).sorted('num');
 };
 
-export const getItemById = (type, id) => {
+/*export const getItemById = (type, id) => {
   const model = getModelName(type);
   return realm.objectForPrimaryKey(model, id);
-};
+};*/
 
-// Método para actualizar las propiedades de los schemas principales
+// Método para actualizar las propiedades de un item
 export const updateItem = (type, idKey, idValue, changes) => {
   const model = getModelName(type);
   realm.write(() => {
@@ -67,7 +106,7 @@ export const updateItem = (type, idKey, idValue, changes) => {
 };
 
 // Método para actualizar las propiedades de los items de un schema principal usando las propiedades de esos items en su schema auxiliar
-export const updateItemPropsInSchema = (typeAux, type) => {
+/*export const updateItemPropsInSchema = (typeAux, type) => {
   const items = getItems(typeAux);  // Obtiene los items del schema auxiliar
 
   for (const item of items) {
@@ -77,10 +116,10 @@ export const updateItemPropsInSchema = (typeAux, type) => {
       updateItem(type, 'stream_id', item.stream_id, { favorito: item.favorito, visto: item.visto });  // Actualiza las propiedades del item en su schema principal
     }
   }
-};
+};*/
 
 // Método para eliminar items de los schemas auxiliares
-export const deleteItem = (type, idValue) => {
+/*export const deleteItem = (type, idValue) => {
   const model = getModelName(type);
 
   realm.write(() => {
@@ -99,8 +138,9 @@ export const deleteItem = (type, idValue) => {
       console.error('Error al eliminar el ítem:', error);
     }
   });
-};
+};*/
 
+// Método para marcar un episodio como 'Visto'
 export const marckEpisodeAsWatched = (serieId, numSeason, episodioId) => {
   const serie = realm.objectForPrimaryKey('Serie', serieId);
   if (!serie) {
@@ -125,8 +165,5 @@ export const marckEpisodeAsWatched = (serieId, numSeason, episodioId) => {
 export const getModelName = (type) => {
   if (type === 'live') return 'Canal';
   if (type === 'vod') return 'Pelicula';
-  if (type === 'series') return 'Serie'
-  if (type === 'auxLive') return 'CanalAux';
-  if (type === 'auxVod') return 'PeliculaAux';
-  return 'SerieAux';
+  return 'Serie';
 };
