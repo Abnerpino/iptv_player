@@ -14,6 +14,17 @@ export const CanalSchema = {
     },
 };
 
+export const CatsLiveSchema = {
+    name: 'CatsLive',
+    primaryKey: 'category_id',
+    properties: {
+        category_id: 'string',
+        category_name: 'string',
+        total: 'int',
+        canales: { type: 'list', objectType: 'Canal' }
+    },
+};
+
 export const PeliculaSchema = {
     name: 'Pelicula',
     primaryKey: 'stream_id',
@@ -43,6 +54,17 @@ export const PeliculaSchema = {
         link: 'string',
         favorito: 'bool',
         visto: 'bool',
+    },
+};
+
+export const CatsVodSchema = {
+    name: 'CatsVod',
+    primaryKey: 'category_id',
+    properties: {
+        category_id: 'string',
+        category_name: 'string',
+        total: 'int',
+        peliculas: { type: 'list', objectType: 'Pelicula' }
     },
 };
 
@@ -85,7 +107,7 @@ export const SerieSchema = {
         cover: 'string?',
         plot: 'string?',
         genre: 'string?',
-        release_date: 'string?',//
+        release_date: 'string?',
         rating: 'string?',
         backdrop_path: 'string?',
         category_id: 'string',
@@ -102,5 +124,16 @@ export const SerieSchema = {
         favorito: 'bool',
         visto: 'bool',
         saga: 'bool',
+    },
+};
+
+export const CatsSerieSchema = {
+    name: 'CatsSerie',
+    primaryKey: 'category_id',
+    properties: {
+        category_id: 'string',
+        category_name: 'string',
+        total: 'int',
+        series: { type: 'list', objectType: 'Serie' }
     },
 };
