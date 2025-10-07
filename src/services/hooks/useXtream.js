@@ -1,20 +1,17 @@
-import { useDispatch, useSelector } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setCatsLive, setCatsVod, setCatsSeries, changeCategoryProperties } from '../redux/slices/streamingSlice';
-import { getRealm } from '../realm/index';
-import { upsertItems } from '../realm/streaming';
+import { useSelector } from 'react-redux';
+import { useRealm } from '@realm/react';
+import { useStreaming } from './useStreaming';
 
 export const useXtream = () => {
-    const dispatch = useDispatch();
-    const realm = getRealm();
+    const realm = useRealm();
+    const { syncStreamingData } = useStreaming();
     const { user, password, host } = useSelector(state => state.client);
-    //const { live, vod, series } = useSelector(state => state.streaming);
     const url = `${host}/player_api.php?username=${user}&password=${password}`;
     const tipos = ['live', 'vod', 'series'];
     const initialCats = [
-        { category_id: '0.1', category_name: 'TODO', total: 0 },
-        { category_id: '0.2', category_name: 'RECIENTEMENTE VISTO', total: 0 },
-        { category_id: '0.3', category_name: 'FAVORITOS', total: 0 }
+        { category_id: '0.1', category_name: 'TODO', total: 0, contenido: [] },
+        { category_id: '0.2', category_name: 'RECIENTEMENTE VISTO', total: 0, contenido: [] },
+        { category_id: '0.3', category_name: 'FAVORITOS', total: 0, contenido: [] }
     ];
 
     const getInfoAccount = async () => {
@@ -46,53 +43,27 @@ export const useXtream = () => {
             case 'live':
                 const canales = await getLiveStream();
                 contenido = canales;
-                dispatch(setCatsLive(categorias)); //Guarda las categorias de LIVE en el almacenamiento global
-                await upsertItems('live', canales); //Guarda o Actualiza los canales en Realm
+                await syncStreamingData('live', categorias, canales);
                 console.log('LIVE actualizado');
                 break;
             case 'vod':
                 const peliculas = await getVodStream();
                 contenido = peliculas;
-                dispatch(setCatsVod(categorias)); //Guarda las categorias de VOD en el almacenamiento global
-                await upsertItems('vod', peliculas); //Guarda o Actualiza las peliculas en Realm
+                await syncStreamingData('vod', categorias, peliculas);
                 console.log('VOD actualizado');
                 break;
             case 'series':
                 const series = await getSeries();
                 contenido = series;
-                dispatch(setCatsSeries(categorias)); //Guarda las categorias de SERIES en el almacenamiento global
-                await upsertItems('series', series); //Guarda o Actualiza las series en Realm
+                await syncStreamingData('series', categorias, series);
                 console.log('SERIES actualizado');
                 break;
         }
-
-        categorias.forEach(categoria => {
-            switch (categoria.category_id) {
-                case '0.1':
-                    dispatch(changeCategoryProperties({
-                        type: type,
-                        categoryId: '0.1',
-                        changes: { total: contenido.length }
-                    }));
-                    break;
-                case '0.2':
-                    break;
-                case '0.3':
-                    break;
-                default:
-                    const filtradro = contenido.filter(content => content.category_id === categoria.category_id);
-                    dispatch(changeCategoryProperties({
-                        type: type,
-                        categoryId: categoria.category_id,
-                        changes: { total: filtradro.length }
-                    }));
-                    break;
-            }
-        });
     };
 
     const getCategoriesByType = async (type) => {
         const newLink = `${url}&action=get_${type}_categories`;
+        const contentField = type === 'live' ? 'canales' : (type === 'vod' ? 'peliculas' : 'series');
 
         try {
             const response = await fetch(newLink);
@@ -101,7 +72,8 @@ export const useXtream = () => {
             const categorias = categories.map(({ category_id, category_name }) => ({
                 category_id,
                 category_name,
-                total: 0
+                total: 0,
+                [contentField]: []
             }));
             return categorias;
         } catch (error) {

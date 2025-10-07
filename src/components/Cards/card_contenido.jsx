@@ -2,38 +2,29 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useSelector, useDispatch } from 'react-redux';
 import { useXtream } from '../../services/hooks/useXtream';
-import { updateItem } from '../../services/realm/streaming';
-import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
+import { useStreaming } from '../../services/hooks/useStreaming';
+import { useQuery } from '@realm/react';
 import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartLoading, onFinishLoading }) => {
-    const dispatch = useDispatch();
+const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading }) => {
     const { getEpisodes } = useXtream();
+    const { getModelName, updateProps } = useStreaming();
     const [error, setError] = useState(false);
-    const { catsLive, catsVod, catsSeries } = useSelector(state => state.streaming);
-
-    const imagen = tipo === 'series' ? item.cover : item.stream_icon;
-    const auxTipo = tipo === 'live' ? 'auxLive' : tipo === 'vod' ? 'auxVod' : 'auxSeries';
-    const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
 
     // Obtiene las categorías correctas según el tipo
-    const categories = useMemo(() => {
-        if (tipo === 'live') return catsLive;
-        if (tipo === 'vod') return catsVod;
-        return catsSeries;
-    }, [tipo, catsLive, catsVod, catsSeries]);
-
+    const categoryModel = getModelName(tipo, true);
+    const categories = useQuery(categoryModel);
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
-    const [favorite, setFavorite] = useState(item?.favorito ?? false);
+
+    const imagen = tipo === 'series' ? item.cover : item.stream_icon;
+    const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
 
     const handleNavigateToScreen = useCallback(async () => {
         if (tipo === 'live') {
-            //navigation.navigate('Reproductor', { link: item.link, name: item.name, tipo });
-            navigation.navigate('Canal', { selectedContent: item, categories: categorias, content: contenido });
+            navigation.navigate('Canal', { selectedContent: item, idCategory });
         }
         else if (tipo === 'vod') {
             try {
@@ -41,8 +32,9 @@ const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartL
                 if (!item.tmdb_id) {
                     const info = await tmdbController.getDataMovie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
-                        updateItem(
-                            'vod',
+                        updateProps(
+                            tipo,
+                            false,
                             'stream_id',
                             item.stream_id,
                             {
@@ -73,8 +65,9 @@ const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartL
                 if (!item.saga && !item.tmdb_id) {
                     const info = await tmdbController.getDataSerie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
-                        updateItem(
-                            'series',
+                        updateProps(
+                            tipo,
+                            false,
                             'series_id',
                             item.series_id,
                             {
@@ -103,25 +96,16 @@ const CardContenido = ({ navigation, tipo, item, categorias, contenido, onStartL
     }, [navigation, tipo, item, onStartLoading, onFinishLoading, getEpisodes]);
 
     const handleToggleFavorite = useCallback(async () => {
-        const newFavoriteStatus = !favorite;
-
-        // Verifica si el canal ya está en Favoritos (para evitar agregar de nuevo)
-        if (item?.favorito === newFavoriteStatus) return;
-
         Vibration.vibrate();
-        setFavorite(newFavoriteStatus);
+        const newFavoriteStatus = !item.favorito;
 
-        updateItem(tipo, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema
+        updateProps(tipo, false, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        dispatch(changeCategoryProperties({
-            type: tipo,
-            categoryId: '0.3',
-            changes: { total: newTotal }
-        }));
-    }, [tipo]);
+        updateProps(tipo, true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+    }, [tipo, item]);
 
     return (
         <TouchableOpacity

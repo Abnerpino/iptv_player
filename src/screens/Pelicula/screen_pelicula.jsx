@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateItem } from '../../services/realm/streaming';
-import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
+import { useQuery } from '@realm/react';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
 import Reproductor from '../../components/Reproductor';
@@ -18,12 +17,13 @@ const Pelicula = ({ navigation, route }) => {
     const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
     const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
-    const { catsVod, vod } = useSelector(state => state.streaming);
 
-    const dispatch = useDispatch();
-    const vistos = catsVod.find(categoria => categoria.category_id === '0.2');
+    const { getModelName, updateProps } = useStreaming();
+    const categoryModel = getModelName('vod', true);
+    const categories = useQuery(categoryModel);
+    const vistos = categories.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(pelicula?.favorito ?? false);
-    const favoritos = catsVod.find(categoria => categoria.category_id === '0.3');
+    const favoritos = categories.find(categoria => categoria.category_id === '0.3');
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
 
@@ -31,36 +31,25 @@ const Pelicula = ({ navigation, route }) => {
         // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
         if (pelicula?.visto === true) return;
 
-        updateItem('vod', 'stream_id', pelicula.stream_id, { visto: true }); // Actualiza el item en el schema
+        updateProps('vod', false, 'stream_id', pelicula.stream_id, { visto: true }); // Actualiza la pelicula en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        dispatch(changeCategoryProperties({
-            type: 'vod',
-            categoryId: '0.2',
-            changes: { total: newTotal }
-        }));
+        updateProps('vod', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     };
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
 
-        // Verificamos si ya está en Favoritos (para evitar agregar de nuevo)
-        if (pelicula?.favorito === newFavoriteStatus) return;
-
         setFavorite(newFavoriteStatus);
 
-        updateItem('vod', 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
+        updateProps('vod', false, 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus }); // Actualiza la pelicula en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        dispatch(changeCategoryProperties({
-            type: 'vod',
-            categoryId: '0.3',
-            changes: { total: newTotal }
-        }));
+        updateProps('vod', true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     const getDate = (date) => {

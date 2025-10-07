@@ -8,7 +8,6 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
-import { getItems } from '../../services/realm/streaming';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
@@ -16,7 +15,6 @@ import ModalExit from '../../components/Modals/modal_exit';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
-    //const { live, vod, series } = useSelector(state => state.streaming);
     const liveCardRef = useRef(null);
     const vodCardRef = useRef(null);
     const seriesCardRef = useRef(null);

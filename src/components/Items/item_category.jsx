@@ -1,10 +1,10 @@
 import { View, Text, TouchableHighlight } from "react-native";
 
-const ItemCategory = ({ categoria, seleccionado, seleccionar }) => {
+const ItemCategory = ({ categoria, propContent, seleccionado, seleccionar }) => {
     const backgroundColor = categoria.category_id === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
 
     const handleSelectionCategory = () => {
-        seleccionar(categoria.category_id);
+        seleccionar(categoria);
     };
 
     return (

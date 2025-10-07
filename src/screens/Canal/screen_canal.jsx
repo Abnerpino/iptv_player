@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import Video from 'react-native-video';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateItem } from '../../services/realm/streaming';
-import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
+import { useQuery } from '@realm/react';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
 
 const Canal = ({ navigation, route }) => {
     const canal = route.params.selectedContent;
-    const categorias = route.params.categories;
-    const contenido = route.params.content;
-    const { catsLive } = useSelector(state => state.streaming);
+    const id_categoria = route.params.idCategory;
 
-    const dispatch = useDispatch();
-    const vistos = catsLive.find(categoria => categoria.category_id === '0.2');
-    const [currentIndex, setCurrentIndex] = useState(0); //Estado para manejar el indice de la categoria actual
+    const { getModelName, updateProps, getWatchedItems, getFavoriteItems } = useStreaming();
+    const categoryModel = getModelName('live', true);
+    const categories = useQuery(categoryModel);
+    const initialIndex = categories.findIndex(categoria => categoria.category_id === id_categoria);
+    const vistos = categories.find(categoria => categoria.category_id === '0.2');
+    const [currentIndex, setCurrentIndex] = useState(initialIndex); //Estado para manejar el indice de la categoria actual
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
 
@@ -27,29 +27,40 @@ const Canal = ({ navigation, route }) => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
         if (selectedChannel?.visto === true) return;
 
-        updateItem('live', 'stream_id', selectedChannel.stream_id, { visto: true }); // Actualiza el item en el schema principal
+        updateProps('live', false, 'stream_id', selectedChannel.stream_id, { visto: true }); // Actualiza el canal en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        dispatch(changeCategoryProperties({
-            type: 'live',
-            categoryId: '0.2',
-            changes: { total: newTotal }
-        }));
+        updateProps('live', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     }, [selectedChannel]);
+
+    const contentToShow = useMemo(() => {
+        const category = categories[currentIndex];
+        let contenido = category.canales;
+
+        if (category.category_id === '0.2') {
+            contenido = getWatchedItems('live'); //Filtra el contenido 'Recientemente Visto'
+        }
+
+        if (category.category_id === '0.3') {
+            contenido = getFavoriteItems('live'); //Filtra el contenido 'Favorito'
+        }
+
+        return contenido; // Retorna una colección de Realm ya filtrada y optimizada
+    }, [categories, currentIndex])
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
         // Fórmula para retroceder y dar la vuelta al llegar al principio
-        const newIndex = (currentIndex - 1 + categorias.length) % categorias.length;
+        const newIndex = (currentIndex - 1 + categories.length) % categories.length;
         setCurrentIndex(newIndex);
     };
 
     // Función para ir a la siguiente categoría
     const handleNext = () => {
         // Fórmula para avanzar y dar la vuelta al llegar al final
-        const newIndex = (currentIndex + 1) % categorias.length;
+        const newIndex = (currentIndex + 1) % categories.length;
         setCurrentIndex(newIndex);
     };
 
@@ -101,7 +112,7 @@ const Canal = ({ navigation, route }) => {
                                 <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
                                     <Icon2 name="arrow-left" size={26} color="white" />
                                 </TouchableOpacity>
-                                <View style={{ flex: 1, alignItems: categorias[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
+                                <View style={{ flex: 1, alignItems: categories[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
                                     <TextTicker
                                         style={styles.categoryText}
                                         duration={10000}
@@ -110,7 +121,7 @@ const Canal = ({ navigation, route }) => {
                                         repeatSpacer={100}
                                         marqueeDelay={250}
                                     >
-                                        {categorias[currentIndex].category_name}
+                                        {categories[currentIndex].category_name}
                                     </TextTicker>
                                 </View>
                                 <TouchableOpacity onPress={handleNext} style={{ paddingHorizontal: 5 }} >
@@ -118,7 +129,7 @@ const Canal = ({ navigation, route }) => {
                                 </TouchableOpacity>
                             </View>
                             <FlatList
-                                data={contenido}
+                                data={contentToShow}
                                 numColumns={1}
                                 renderItem={({ item }) => (
                                     <ItemChannel

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateItem, marckEpisodeAsWatched } from '../../services/realm/streaming';
-import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
+import { useQuery } from '@realm/react';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
@@ -22,11 +21,12 @@ const Serie = ({ navigation, route }) => {
     const cast = serie.cast ? JSON.parse(serie.cast) : [];
     const seasons = serie?.temporadas ?? [];
 
-    const { catsSeries } = useSelector(state => state.streaming);
-    const dispatch = useDispatch();
-    const vistos = catsSeries.find(categoria => categoria.category_id === '0.2');
+    const { getModelName, updateProps, marckEpisodeAsWatched } = useStreaming();
+    const categoryModel = getModelName('series', true);
+    const categories = useQuery(categoryModel);
+    const vistos = categories.find(categoria => categoria.category_id === '0.2');
     const [favorite, setFavorite] = useState(serie?.favorito ?? false); //Estado para manejar cuando un contenido se marca/desmarca como favorito
-    const favoritos = catsSeries.find(categoria => categoria.category_id === '0.3');
+    const favoritos = categories.find(categoria => categoria.category_id === '0.3');
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
@@ -48,36 +48,25 @@ const Serie = ({ navigation, route }) => {
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
 
-        updateItem('series', 'series_id', serie.series_id, { visto: true }); // Actualiza el item en el schema
+        updateProps('series', false, 'series_id', serie.series_id, { visto: true }); // Actualiza la serie en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        dispatch(changeCategoryProperties({
-            type: 'series',
-            categoryId: '0.2',
-            changes: { total: newTotal }
-        }));
+        updateProps('series', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     };
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
 
-        // Verificamos si ya está en favoritos (para evitar agregar de nuevo)
-        if (serie?.favorito === newFavoriteStatus) return;
-
         setFavorite(newFavoriteStatus);
 
-        updateItem('series', 'series_id', serie.series_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
+        updateProps('series', false, 'series_id', serie.series_id, { favorito: newFavoriteStatus }); // Actualiza la serie en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        dispatch(changeCategoryProperties({
-            type: 'series',
-            categoryId: '0.3',
-            changes: { total: newTotal }
-        }));
+        updateProps('series', true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     const getDate = (date) => {

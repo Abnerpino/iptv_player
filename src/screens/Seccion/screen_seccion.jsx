@@ -1,91 +1,58 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useSelector, useDispatch } from 'react-redux';
-import { getItems } from '../../services/realm/streaming';
+import { useQuery } from '@realm/react';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import BarraBusqueda from '../../components/BarraBusqueda';
 import ModalLoading from '../../components/Modals/modal_loading';
-import { changeCategoryProperties } from '../../services/redux/slices/streamingSlice';
 
 const Seccion = ({ navigation, route }) => {
-    const dispatch = useDispatch();
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
-    const { catsLive, catsVod, catsSeries } = useSelector(state => state.streaming);
+    const [category, setCategory] = useState(null); //Estado para manejar la categoria seleccionada
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
     const [mostrarBusqueda, setMostrarBusqueda] = useState(false); //Estado para manejar cuando mostrar la barra de busqueda
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const flatListRef = useRef(null);   //Referencia al FlatList del contenido
 
-    // Obtiene las categorías correctas según el tipo
-    const categories = useMemo(() => {
-        if (type === 'live') return catsLive;
-        if (type === 'vod') return catsVod;
-        return catsSeries;
-    }, [type, catsLive, catsVod, catsSeries]);
-
-    const [category, setCategory] = useState(categories[3].category_name); //Estado para manejar el nombre de la categoria seleccionada
-    const [selectedId, setSelectedId] = useState(categories[3].category_id); //Estado para el manejo del ID de la categoria seleccionada
+    const { getModelName, getWatchedItems, getFavoriteItems } = useStreaming();
+    const categoryModel = getModelName(type, true);
+    const categories = useQuery(categoryModel);
 
     const handleStartLoading = useCallback(() => setLoading(true), []); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = useCallback(() => setLoading(false), []); //Cambia el valor a falso para que se cierre el modal de carga
 
-    // Este useMemo construye la consulta de Realm dinámicamente
-    const contentToShow = useMemo(() => {
-        // 1. Obtenemos la colección base de Realm (sin filtrar)
-        let baseQuery = getItems(type);
+    const contentField = type === 'live' ? 'canales' : (type === 'vod' ? 'peliculas' : 'series');
 
-        // 2. Aplicamos el filtro de categoría
-        switch (category) {
-            case 'RECIENTEMENTE VISTO':
-                baseQuery = baseQuery.filtered('visto == true');
-                break;
-            case 'FAVORITOS':
-                baseQuery = baseQuery.filtered('favorito == true');
-                break;
-            case 'TODO':
-                // No se aplica ningún filtro de categoría
-                break;
-            default:
-                // Filtra por el ID de la categoría seleccionada
-                baseQuery = baseQuery.filtered('category_ids == $0', selectedId);
-                break;
-        }
-
-        // 3. Aplicamos el filtro de búsqueda si existe
-        if (searchCont.trim() !== '') {
-            baseQuery = baseQuery.filtered('name CONTAINS[c] $0', searchCont);
-        }
-
-        // 4. El resultado es una colección de Realm ya filtrada y optimizada
-        return baseQuery;
-    }, [type, category, selectedId, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
-
-    //useEffect para actualizar los totales en Redux
+    // Efecto para establecer la categoría inicial solo hasta cuando las categorías se han cargado
     useEffect(() => {
-        // Obtenemos la colección base sin filtros
-        const allContent = getItems(type);
+        if (!category && categories.length > 3) {
+            setCategory(categories[3]);
+        }
+    }, [type, categories]);
 
-        // Usamos .filtered().length para un conteo súper rápido
-        const totalVistos = allContent.filtered('visto == true').length;
-        const totalFavoritos = allContent.filtered('favorito == true').length;
+    // Memo para guardar y mantener actualizado el contenido de las categorías
+    const contentToShow = useMemo(() => {
+        if (!category) return [];
 
-        // Despachamos los totales a Redux
-        dispatch(changeCategoryProperties({
-            type: type,
-            categoryId: '0.2', // ID para 'Recientemente Visto'
-            changes: { total: totalVistos }
-        }));
+        let contenido = category[contentField]; //Obtiene el contenido de Realm de acuerdo al tipo
 
-        dispatch(changeCategoryProperties({
-            type: type,
-            categoryId: '0.3', // ID para 'Favoritos'
-            changes: { total: totalFavoritos }
-        }));
+        if (category.category_id === '0.2') {
+            contenido = getWatchedItems(type); //Filtra el contenido 'Recientemente Visto'
+        }
 
-    }, [type, dispatch]); // Se ejecuta solo cuando cambia el tipo de contenido
+        if (category.category_id === '0.3') {
+            contenido = getFavoriteItems(type); //Filtra el contenido 'Favorito'
+        }
+
+        if (searchCont.trim() !== '') {
+            contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); //Filtra por el término de búqueda si es que existe
+        }
+        
+        return contenido; // Retorna una colección de Realm ya filtrada y optimizada
+    }, [type, category, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
 
     useEffect(() => {
         // Si la lista tiene contenido, la mandamos al inicio.
@@ -95,7 +62,7 @@ const Seccion = ({ navigation, route }) => {
                 animated: false,
             });
         }
-    }, [selectedId]);
+    }, [category]);
 
     //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
@@ -105,11 +72,9 @@ const Seccion = ({ navigation, route }) => {
     }, [searchCat, categories]);
 
     //Muestra el contenido de la categoria seleccionada
-    function seleccionarCategoria(idCategoria) {
-        if (idCategoria !== selectedId) {
-            setSelectedId(idCategoria);
-            const categoria = categories.find(item => item.category_id === idCategoria);
-            setCategory(categoria.category_name);
+    function seleccionarCategoria(selectCategory) {
+        if (selectCategory.category_id !== category.category_id) {
+            setCategory(selectCategory);
         }
     }
 
@@ -150,7 +115,8 @@ const Seccion = ({ navigation, route }) => {
                                 renderItem={({ item }) => (
                                     <ItemCategory
                                         categoria={item}
-                                        seleccionado={selectedId}
+                                        propContent={contentField}
+                                        seleccionado={category?.category_id}
                                         seleccionar={seleccionarCategoria}
                                     />
                                 )}
@@ -170,7 +136,7 @@ const Seccion = ({ navigation, route }) => {
                                 {mostrarBusqueda ? (
                                     <BarraBusqueda message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
                                 ) : (
-                                    <Text style={styles.sectionTitle}>{category}</Text>
+                                    <Text style={styles.sectionTitle}>{category?.category_name}</Text>
                                 )}
                             </View>
                             <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 10, marginRight: 5 }}>
@@ -178,13 +144,13 @@ const Seccion = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {(category === 'FAVORITOS' && contentToShow.length === 0) ? (
+                        {(category?.category_name === 'FAVORITOS' && contentToShow.length === 0) ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                 <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                     {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
                                 </Text>
                             </View>
-                        ) : (category === 'RECIENTEMENTE VISTO' && contentToShow.length === 0) ? (
+                        ) : (category?.category_name === 'RECIENTEMENTE VISTO' && contentToShow.length === 0) ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                 <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                     {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}
@@ -206,8 +172,7 @@ const Seccion = ({ navigation, route }) => {
                                         navigation={navigation}
                                         tipo={type}
                                         item={item}
-                                        categorias={type === 'live' ? categories : []}
-                                        contenido={type === 'live' ? contentToShow : []}
+                                        idCategory={category.category_id}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                     />
