@@ -102,16 +102,14 @@ const Canal = ({ navigation, route }) => {
                 <View style={styles.container}>
                     {!isFullScreen && (
                         <View style={styles.listaContainer}>
-                            <View style={styles.logoContainer}>
+                            <View style={{ flexDirection: 'row' }}>
                                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.flechaIcono}>
                                     <Icon name="arrow-circle-left" size={26} color="white" />
                                 </TouchableOpacity>
-                                <View style={{ flex: 1 }}>
-                                    <Image
-                                        source={require('../../assets/imagotipo_live.png')}
-                                        style={styles.imagotipo}
-                                    />
-                                </View>
+                                <Image
+                                    source={require('../../assets/imagotipo_live.png')}
+                                    style={styles.imagotipo}
+                                />
                             </View>
                             <View style={styles.categoriaContanier}>
                                 <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
@@ -221,10 +219,6 @@ const styles = StyleSheet.create({
         right: 0,
         zIndex: 10, // Se asegura de que esté por encima de todo
     },
-    logoContainer: {
-        flexDirection: 'row',
-        height: '12.5%',
-    },
     barraContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -240,13 +234,13 @@ const styles = StyleSheet.create({
         paddingVertical: 12.5
     },
     categoriaContanier: {
-        height: '10%',
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: 10,
     },
     imagotipo: {
         height: '100%',
-        width: '100%',
+        width: '76%',
         resizeMode: 'contain'
     },
     textContainer: {

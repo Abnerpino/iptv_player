@@ -105,16 +105,14 @@ const Seccion = ({ navigation, route }) => {
             <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0.5)' }}>
                 <View style={styles.container}>
                     <View style={styles.menuContainer}>
-                        <View style={{ flexDirection: 'row', height: '12.5%' }}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5 }}>
+                        <View style={{ flexDirection: 'row' }}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}>
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
-                            <View style={{ flex: 1 }}>
-                                <Image
-                                    source={require('../../assets/imagotipo.png')}
-                                    style={{ height: '100%', width: '100%', resizeMode: 'contain' }}
-                                />
-                            </View>
+                            <Image
+                                source={require('../../assets/imagotipo.png')}
+                                style={{ height: '100%', width: '76%', resizeMode: 'contain', }}
+                            />
                         </View>
                         <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
 
