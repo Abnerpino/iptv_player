@@ -54,6 +54,7 @@ export const PeliculaSchema = {
         link: 'string',
         favorito: 'bool',
         visto: 'bool',
+        playback_time: 'string',
     },
 };
 
@@ -83,6 +84,7 @@ export const EpisodioSchema = {
         id_serie: 'string',
         link: 'string',
         visto: 'bool',
+        playback_time: 'string',
     },
 };
 
