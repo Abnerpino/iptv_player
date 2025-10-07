@@ -83,12 +83,12 @@ const Seccion = ({ navigation, route }) => {
     const handleUnmarkItems = () => {
         if (category.category_id === '0.2') { // Si la categoría es 'Recientemente Vistos'
             unmarkItemsAsWatched(type); // Marca como No Vistos (false) los items que ya han sido Vistos (true)
-            updateProps(type, true, 'category_id', category.category_id, { total: 0 }); // Actualiza el total de la categoría Vistos a 0
+            updateProps(type, true, category.category_id, { total: 0 }); // Actualiza el total de la categoría Vistos a 0
         }
 
         if (category.category_id === '0.3') { // Si la categoría es 'Favoritos'
             unmarkItemsAsFavorite(type); // Desmarca como Favoritos (false) los items que ya han sido marcados como Favoritos (true)
-            updateProps(type, true, 'category_id', category.category_id, { total: 0 }); // Actualiza el total de la categoría Favoritos a 0
+            updateProps(type, true, category.category_id, { total: 0 }); // Actualiza el total de la categoría Favoritos a 0
         }
     };
 

@@ -27,12 +27,12 @@ const Canal = ({ navigation, route }) => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
         if (selectedChannel?.visto === true) return;
 
-        updateProps('live', false, 'stream_id', selectedChannel.stream_id, { visto: true }); // Actualiza el canal en el schema
+        updateProps('live', false, selectedChannel.stream_id, { visto: true }); // Actualiza el canal en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        updateProps('live', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
+        updateProps('live', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     }, [selectedChannel]);
 
     const contentToShow = useMemo(() => {

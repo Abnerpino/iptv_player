@@ -31,12 +31,12 @@ const Pelicula = ({ navigation, route }) => {
         // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
         if (pelicula?.visto === true) return;
 
-        updateProps('vod', false, 'stream_id', pelicula.stream_id, { visto: true }); // Actualiza la pelicula en el schema
+        updateProps('vod', false, pelicula.stream_id, { visto: true }); // Actualiza la pelicula en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        updateProps('vod', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
+        updateProps('vod', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     };
 
     const handleToggleFavorite = () => {
@@ -44,12 +44,12 @@ const Pelicula = ({ navigation, route }) => {
 
         setFavorite(newFavoriteStatus);
 
-        updateProps('vod', false, 'stream_id', pelicula.stream_id, { favorito: newFavoriteStatus }); // Actualiza la pelicula en el schema
+        updateProps('vod', false, pelicula.stream_id, { favorito: newFavoriteStatus }); // Actualiza la pelicula en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        updateProps('vod', true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+        updateProps('vod', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     const getDate = (date) => {

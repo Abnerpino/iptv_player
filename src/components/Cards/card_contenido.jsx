@@ -35,7 +35,6 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                         updateProps(
                             tipo,
                             false,
-                            'stream_id',
                             item.stream_id,
                             {
                                 tmdb_id: info.tmdb_id.toString(),
@@ -68,7 +67,6 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                         updateProps(
                             tipo,
                             false,
-                            'series_id',
                             item.series_id,
                             {
                                 tmdb_id: info.tmdb_id.toString(),
@@ -99,12 +97,12 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
         Vibration.vibrate();
         const newFavoriteStatus = !item.favorito;
 
-        updateProps(tipo, false, item_id, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema
+        updateProps(tipo, false, item[item_id], { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        updateProps(tipo, true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+        updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item]);
 
     return (

@@ -48,12 +48,12 @@ const Serie = ({ navigation, route }) => {
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
 
-        updateProps('series', false, 'series_id', serie.series_id, { visto: true }); // Actualiza la serie en el schema
+        updateProps('series', false, serie.series_id, { visto: true }); // Actualiza la serie en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
 
-        updateProps('series', true, 'category_id', vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
+        updateProps('series', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     };
 
     const handleToggleFavorite = () => {
@@ -61,12 +61,12 @@ const Serie = ({ navigation, route }) => {
 
         setFavorite(newFavoriteStatus);
 
-        updateProps('series', false, 'series_id', serie.series_id, { favorito: newFavoriteStatus }); // Actualiza la serie en el schema
+        updateProps('series', false, serie.series_id, { favorito: newFavoriteStatus }); // Actualiza la serie en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        updateProps('series', true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+        updateProps('series', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     const getDate = (date) => {

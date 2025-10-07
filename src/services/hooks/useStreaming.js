@@ -93,7 +93,7 @@ export const useStreaming = () => {
     };
 
     // Método para actualizar las propiedades de un item o categoría
-    const updateProps = (type, flag, idKey, idValue, changes) => {
+    const updateProps = (type, flag, idValue, changes) => {
         const model = getModelName(type, flag);
         realm.write(() => {
             const item = realm.objectForPrimaryKey(model, idValue);

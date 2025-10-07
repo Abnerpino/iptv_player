@@ -20,12 +20,12 @@ const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
         const newFavoriteStatus = !favorite;
         setFavorite(newFavoriteStatus);
 
-        updateProps('live', false, 'stream_id', canal.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
+        updateProps('live', false, canal.stream_id, { favorito: newFavoriteStatus }); // Actualiza el item en el schema
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
-        updateProps('live', true, 'category_id', favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+        updateProps('live', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     return (
