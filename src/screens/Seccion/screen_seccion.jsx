@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
@@ -17,7 +18,7 @@ const Seccion = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const flatListRef = useRef(null);   //Referencia al FlatList del contenido
 
-    const { getModelName, getWatchedItems, getFavoriteItems } = useStreaming();
+    const { getModelName, getWatchedItems, getFavoriteItems, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
     const categoryModel = getModelName(type, true);
     const categories = useQuery(categoryModel);
 
@@ -50,7 +51,7 @@ const Seccion = ({ navigation, route }) => {
         if (searchCont.trim() !== '') {
             contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); //Filtra por el término de búqueda si es que existe
         }
-        
+
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
     }, [type, category, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
 
@@ -77,6 +78,19 @@ const Seccion = ({ navigation, route }) => {
             setCategory(selectCategory);
         }
     }
+
+    // Quita items de las categorias 'Recientemente Vistos' y 'Favoritos' marcando con 'false' las propiedades 'visto' y 'favorito',
+    const handleUnmarkItems = () => {
+        if (category.category_id === '0.2') { // Si la categoría es 'Recientemente Vistos'
+            unmarkItemsAsWatched(type); // Marca como No Vistos (false) los items que ya han sido Vistos (true)
+            updateProps(type, true, 'category_id', category.category_id, { total: 0 }); // Actualiza el total de la categoría Vistos a 0
+        }
+
+        if (category.category_id === '0.3') { // Si la categoría es 'Favoritos'
+            unmarkItemsAsFavorite(type); // Desmarca como Favoritos (false) los items que ya han sido marcados como Favoritos (true)
+            updateProps(type, true, 'category_id', category.category_id, { total: 0 }); // Actualiza el total de la categoría Favoritos a 0
+        }
+    };
 
     return (
         <ImageBackground
@@ -115,7 +129,6 @@ const Seccion = ({ navigation, route }) => {
                                 renderItem={({ item }) => (
                                     <ItemCategory
                                         categoria={item}
-                                        propContent={contentField}
                                         seleccionado={category?.category_id}
                                         seleccionar={seleccionarCategoria}
                                     />
@@ -131,26 +144,35 @@ const Seccion = ({ navigation, route }) => {
 
                     </View>
                     <View style={styles.peliculasContainer}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10 }}>
-                            <View style={{ flex: 1, alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
+                            <View style={{ flex: 1, alignItems: 'center', }}>
                                 {mostrarBusqueda ? (
                                     <BarraBusqueda message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
                                 ) : (
                                     <Text style={styles.sectionTitle}>{category?.category_name}</Text>
                                 )}
                             </View>
-                            <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 10, marginRight: 5 }}>
-                                <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={20} color="#FFF" />
+                            <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 20, }}>
+                                <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={26} color="#FFF" />
                             </TouchableOpacity>
+                            {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
+                                <TouchableOpacity
+                                    style={{ marginLeft: 20, opacity: category?.total > 0 ? 1 : 0.5 }}
+                                    onPress={handleUnmarkItems}
+                                    disabled={category?.total > 0 ? false : true}
+                                >
+                                    <Icon2 name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'} size={26} color="#FFF" />
+                                </TouchableOpacity>
+                            )}
                         </View>
 
-                        {(category?.category_name === 'FAVORITOS' && contentToShow.length === 0) ? (
+                        {(category?.category_id === '0.3' && contentToShow.length === 0) ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                 <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                     {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
                                 </Text>
                             </View>
-                        ) : (category?.category_name === 'RECIENTEMENTE VISTO' && contentToShow.length === 0) ? (
+                        ) : (category?.category_id === '0.2' && contentToShow.length === 0) ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                 <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                     {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}
