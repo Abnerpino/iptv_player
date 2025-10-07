@@ -121,7 +121,7 @@ export const useXtream = () => {
         try {
             const response = await fetch(newLink);
             const stream = await response.json();
-            stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, container_extension }) => {
+            stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, direct_source, container_extension }) => {
                 //const pelicula = vod?.find(movie => movie.stream_id === stream_id);
 
                 newVod.push({
@@ -147,7 +147,7 @@ export const useXtream = () => {
                     genres: '',
                     vote_average: '',
                     cast: '',
-                    link: `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
+                    link: direct_source ? direct_source : `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
                     favorito: false,//pelicula?.favorito ?? false,
                     visto: false//pelicula?.visto ?? false
                 });
@@ -245,7 +245,7 @@ export const useXtream = () => {
                 rating: ep.info?.rating?.toString() ?? '0',
                 season: ep.season?.toString() ?? '0',
                 id_serie: idSerie,
-                link: `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
+                link: ep.direct_source ? ep.direct_source : `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
                 visto: false,
             }));
 
