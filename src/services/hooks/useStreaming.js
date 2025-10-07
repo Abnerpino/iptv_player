@@ -127,6 +127,26 @@ export const useStreaming = () => {
         });
     };
 
+    const unmarkItemsAsWatched = (type) => {
+        const items = getWatchedItems(type);
+        realm.write(() => {
+            items.forEach(item => {
+                item.visto = false; // Desmarca como Visto el item
+
+                if (type === 'series') {
+                    item.temporadas = []; // Borra las temporadas y sus respectivos episodios
+                }
+            });
+        });
+    };
+
+    const unmarkItemsAsFavorite = (type) => {
+        const items = getFavoriteItems(type);
+        realm.write(() => {
+            items.forEach(item => item.favorito = false); // Desmarca como Favorito el item
+        });
+    };
+
     const getModelName = (type, forCategory = false) => {
         if (forCategory) {
             if (type === 'live') return 'CatsLive';
@@ -144,6 +164,8 @@ export const useStreaming = () => {
         getFavoriteItems,
         updateProps,
         marckEpisodeAsWatched,
+        unmarkItemsAsWatched,
+        unmarkItemsAsFavorite,
         getModelName,
     };
 };
