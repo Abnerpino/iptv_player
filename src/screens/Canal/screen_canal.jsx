@@ -22,6 +22,7 @@ const Canal = ({ navigation, route }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex); //Estado para manejar el indice de la categoria actual
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
+    const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
 
     useEffect(() => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
@@ -47,8 +48,12 @@ const Canal = ({ navigation, route }) => {
             contenido = getFavoriteItems('live'); //Filtra el contenido 'Favorito'
         }
 
+        if (searchCont.trim() !== '') {
+            contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); //Filtra por el término de búqueda si es que existe
+        }
+
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
-    }, [categories, currentIndex])
+    }, [categories, currentIndex, searchCont])
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
@@ -128,18 +133,26 @@ const Canal = ({ navigation, route }) => {
                                     <Icon2 name="arrow-right" size={26} color="white" />
                                 </TouchableOpacity>
                             </View>
-                            <FlatList
-                                data={contentToShow}
-                                numColumns={1}
-                                renderItem={({ item }) => (
-                                    <ItemChannel
-                                        canal={item}
-                                        seleccionado={selectedChannel.num}
-                                        seleccionar={(canal) => seleccionarCanal(canal)}
-                                    />
-                                )}
-                                keyExtractor={item => item.num}
-                            />
+                            {contentToShow.length === 0 ? (
+                                <View style={{ padding: 10 }}>
+                                    <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                        No se ha encontrado el canal
+                                    </Text>
+                                </View>
+                            ) : (
+                                <FlatList
+                                    data={contentToShow}
+                                    numColumns={1}
+                                    renderItem={({ item }) => (
+                                        <ItemChannel
+                                            canal={item}
+                                            seleccionado={selectedChannel.num}
+                                            seleccionar={(canal) => seleccionarCanal(canal)}
+                                        />
+                                    )}
+                                    keyExtractor={item => item.num}
+                                />
+                            )}
                         </View>
                     )}
                     <View style={isFullScreen ? styles.fullScreenContainer : styles.reproductorContainer}>
@@ -147,11 +160,9 @@ const Canal = ({ navigation, route }) => {
                             <View>
                                 <View style={styles.barraContainer}>
                                     <View style={styles.busquedaContainer}>
-                                        <BarraBusqueda message='Buscar canal' searchText={''} />
+                                        <BarraBusqueda message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
                                     </View>
-                                    <TouchableOpacity style={styles.searchBarIcono}>
-                                        <Icon name='search' size={20} color="#FFF" />
-                                    </TouchableOpacity>
+                                    <Icon name='search' size={26} color="#FFF" style={{ marginLeft: 10 }} />
                                 </View>
                                 <View style={styles.textContainer}>
                                     <TextTicker
@@ -232,10 +243,6 @@ const styles = StyleSheet.create({
         height: '10%',
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    searchBarIcono: {
-        marginLeft: 10,
-        marginRight: 5
     },
     imagotipo: {
         height: '100%',
