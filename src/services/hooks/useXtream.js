@@ -149,7 +149,8 @@ export const useXtream = () => {
                     cast: '',
                     link: direct_source ? direct_source : `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
                     favorito: false,//pelicula?.favorito ?? false,
-                    visto: false//pelicula?.visto ?? false
+                    visto: false,//pelicula?.visto ?? false
+                    playback_time: '0'
                 });
 
             });
@@ -247,6 +248,7 @@ export const useXtream = () => {
                 id_serie: idSerie,
                 link: ep.direct_source ? ep.direct_source : `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
                 visto: false,
+                playback_time: '0'
             }));
 
             try {
