@@ -17,10 +17,13 @@ export const useStreaming = () => {
                 const oldItem = realm.objectForPrimaryKey(model, item[idField]);
                 let dataToSave = { ...item };
 
-                // Preserva estado de las propiedades 'Visto', 'Favorito' y 'Temporadas'
+                // Preserva estado de las propiedades 'visto', 'favorito', 'playback_time' y 'temporadas'
                 if (oldItem) {
                     dataToSave.visto = oldItem.visto;
                     dataToSave.favorito = oldItem.favorito;
+                    if (type === 'vod') {
+                        dataToSave.playback_time = oldItem.playback_time;
+                    }
                     if (type === 'series' && oldItem.temporadas && oldItem.visto) {
                         dataToSave.temporadas = oldItem.temporadas.toJSON();
                     }
@@ -105,8 +108,8 @@ export const useStreaming = () => {
         });
     };
 
-    // Método para marcar un episodio como 'Visto'
-    const marckEpisodeAsWatched = (serieId, numSeason, episodioId) => {
+    // Método para actualizar las propiedades de un episodio,  como 'visto' y 'plaback_time'
+    const updateEpisodeProps = (serieId, numSeason, episodioId, prop, value) => {
         const serie = realm.objectForPrimaryKey('Serie', serieId);
         if (!serie) {
             console.log('No se encontró la serie');
@@ -122,7 +125,7 @@ export const useStreaming = () => {
         realm.write(() => {
             const episodio = temporada.episodios.find(e => e.id === episodioId);
             if (episodio) {
-                episodio.visto = true;
+                episodio[prop] = value;
             }
         });
     };
@@ -163,7 +166,7 @@ export const useStreaming = () => {
         getWatchedItems,
         getFavoriteItems,
         updateProps,
-        marckEpisodeAsWatched,
+        updateEpisodeProps,
         unmarkItemsAsWatched,
         unmarkItemsAsFavorite,
         getModelName,
