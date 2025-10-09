@@ -21,7 +21,7 @@ const Serie = ({ navigation, route }) => {
     const cast = serie.cast ? JSON.parse(serie.cast) : [];
     const seasons = serie?.temporadas ?? [];
 
-    const { getModelName, updateProps, marckEpisodeAsWatched } = useStreaming();
+    const { getModelName, updateProps, updateEpisodeProps } = useStreaming();
     const categoryModel = getModelName('series', true);
     const categories = useQuery(categoryModel);
     const vistos = categories.find(categoria => categoria.category_id === '0.2');
@@ -32,8 +32,6 @@ const Serie = ({ navigation, route }) => {
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);//serie.episodes[1]); //Estado para manejar la información de la temporada seleccionada
     const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
-    const [link, setLink] = useState(selectedEpisode.link);//serie.episodes[1][0].link); //Estado para manejar la url de stream del episodio seleccionado
-    const [name, setName] = useState(selectedEpisode.title);
     const [episodios, setEpisodios] = useState(selectedSeason.episodios);
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
@@ -43,7 +41,7 @@ const Serie = ({ navigation, route }) => {
         // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
         if (episodio?.visto === true) return;
 
-        marckEpisodeAsWatched(serie.series_id, selectedSeason.numero, episodio.id); // Marca el episodio como 'Visto'
+        updateEpisodeProps(serie.series_id, selectedSeason.numero, episodio.id, 'visto', true); // Marca el episodio como 'Visto'
 
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
@@ -226,8 +224,6 @@ const Serie = ({ navigation, route }) => {
                                                     episode={item}
                                                     onSelectEpisode={(episodio) => {
                                                         setSelectedEpisode(episodio);
-                                                        setLink(item.link);
-                                                        setName(item.title);
                                                         handleMarkAsViewed(episodio);
                                                         setShowReproductor(true);
                                                     }}
@@ -264,10 +260,8 @@ const Serie = ({ navigation, route }) => {
                             seasons={seasons}//.map((season) => season.temporada)} //Envia un nuevo arreglo solo con el valor de las temporadas
                             onSelectSeason={(season) => {
                                 setSelectedSeason(season);
-                                setSelectedEpisode(season.episodios[0]);
-                                setLink(season.episodios[0].link);
-                                setName(season.episodios[0].title);
                                 setEpisodios(season.episodios);
+                                setSelectedEpisode(season.episodios[0]);
                             }}
                         />
                     </View>
@@ -277,9 +271,15 @@ const Serie = ({ navigation, route }) => {
                     tipo={'series'}
                     fullScreen={true}
                     setMostrar={(value) => setShowReproductor(value)}
-                    contenido={{ link, name }}
+                    contenido={{
+                        series_id: serie.series_id,
+                        temporada: selectedSeason.numero,
+                        episode_id: selectedEpisode.id,
+                        link: selectedEpisode.link,
+                        name: selectedEpisode.title,
+                        playback_time: selectedEpisode.playback_time
+                    }}
                     data={episodios}
-                    temporada={selectedSeason.numero}
                     setVisto={(episodio) => handleMarkAsViewed(episodio)}
                 />
             )}
