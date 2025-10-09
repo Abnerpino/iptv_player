@@ -7,19 +7,32 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Orientation from 'react-native-orientation-locker';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, temporada, setVisto }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, setVisto }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
-
+    const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
+    const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
+    const { updateProps, updateEpisodeProps } = useStreaming();
+    const [idEpisode, setIdEpisode] = useState(contenido.episode_id);
     const [url, setUrl] = useState(contenido.link);
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [savedTime, setSavedTime] = useState(contenido?.playback_time ?? 0);
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de episodios
+
+    // useEffect para guardar el tiempo de reproducción al salir del reproductor
+    useEffect(() => {
+        // La función de limpieza se ejecuta solo cuando el componente se desmonta
+        return () => {
+            savePlaybackTime(latestTime.current);
+        };
+    }, []);
 
     useEffect(() => {
         Orientation.lockToLandscape();
@@ -31,6 +44,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
     useEffect(() => {
         if (tipo === 'live') {
+            setIdEpisode(contenido.episode_id);
             setUrl(contenido.link);
             setNombre(`${contenido.num} - ${contenido.name}`);
         }
@@ -48,6 +62,16 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
         return () => backHandler.remove();
     }, [fullScreen]);
+
+    const savePlaybackTime = (timeToSave) => {
+        if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0 && duration > 0) {
+            if (tipo === 'vod') {
+                updateProps(tipo, false, contenido.stream_id, { playback_time: currentTime.toString() });
+            } else { // 'series', para un episodio
+                updateEpisodeProps(contenido.series_id, contenido.temporada, idEpisode, 'playback_time', currentTime.toString());
+            }
+        }
+    };
 
     const showTemporarilyControls = () => {
         setShowControls(true);
@@ -74,8 +98,52 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
     };
 
-    const handleProgress = ({ currentTime }) => setCurrentTime(currentTime);
-    const handleLoad = ({ duration }) => setDuration(duration);
+    const handleProgress = ({ currentTime }) => {
+        setCurrentTime(currentTime);
+        latestTime.current = currentTime;
+
+        const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
+
+        // Comprueba si ha pasado suficiente tiempo desde el último guardado
+        if (currentTime - lastSaveTime.current > SAVE_INTERVAL) {
+            savePlaybackTime(currentTime);
+            lastSaveTime.current = currentTime; // Actualiza el último tiempo de guardado
+        }
+    };
+
+    const handleLoad = ({ duration }) => {
+        setDuration(duration);
+        const startTime = parseFloat(savedTime); // Convierte el string de Realm a número
+        const VISTO_THRESHOLD = 5; // Umbral de 5 segundos para considerar un video como "reproducido completamente".
+
+        // Si la duración es válida y la diferencia es menor que el umbral, reinicia el video
+        if (duration > 0 && (duration - startTime) < VISTO_THRESHOLD) {
+            startTime = 0;
+        }
+
+        if (startTime > 0 && playerRef.current) {
+            // Solo para VOD y Series, intenta reanudar la reproducción
+            if (tipo === 'vod' || tipo === 'series') {
+                playerRef.current.seek(startTime); // Salta al tiempo guardado
+            }
+        }
+
+        // Sincroniza el estado de React y el contador de guardado
+        setCurrentTime(startTime);
+        lastSaveTime.current = startTime; // Sincroniza el último tiempo guardado
+    };
+
+    const handleEnd = () => {
+        if (tipo === 'vod' || tipo === 'series') {
+            // Guarda explícitamente la duración total como el tiempo de reproducción
+            savePlaybackTime(duration);
+            // Pausa y reinicia el reproductor en la UI
+            setPaused(true);
+            setCurrentTime(0);
+            playerRef.current?.seek(0);
+        }
+    };
+
     const seekTo = (time) => playerRef.current?.seek(time);
 
     const formatTime = (seconds) => {
@@ -94,11 +162,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
     };
 
-
-    const cambiarCanal = (newUrl, newName) => {
-        setUrl(newUrl);
-        setNombre(newName);
-        setCurrentTime(0);
+    const cambiarCanal = (episodio) => {
+        setIdEpisode(episodio.id);
+        setUrl(episodio.link);
+        setNombre(episodio.title);
+        setSavedTime(parseFloat(episodio.playback_time));
         setPaused(false);
     };
 
@@ -120,7 +188,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                     {data.map((item, i) => (
                         <TouchableOpacity
                             key={i}
-                            onPress={() => cambiarCanal(item.link, item.title)}
+                            onPress={() => cambiarCanal(item)}
                             style={styles.itemWrapper}
                         >
                             <Text style={styles.itemText}>{item.title}</Text>
@@ -148,8 +216,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                     style={styles.videoPlayer}
                     resizeMode="contain"
                     paused={paused}
-                    onProgress={handleProgress}
                     onLoad={handleLoad}
+                    onProgress={handleProgress}
+                    onEnd={handleEnd}
                     controls={false}
                 />
 
@@ -220,10 +289,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                 <ModalEpisodes
                     openModal={modalVisible}
                     handleCloseModal={handleCloseModal}
-                    temporada={temporada}
+                    temporada={contenido.temporada}
                     episodes={data}
                     onSelectEpisode={(episodio) => {
-                        cambiarCanal(episodio.link, episodio.title);
+                        cambiarCanal(episodio);
                         if (tipo === 'series') {
                             setVisto(episodio);
                         }
