@@ -108,7 +108,23 @@ export const useStreaming = () => {
         });
     };
 
-    // Método para actualizar las propiedades de un episodio,  como 'visto' y 'plaback_time'
+    // Método para actualizar las propiedades de una temporada
+    const updateSeasonProps = (serieId, numSeason, prop, value) => {
+        const serie = realm.objectForPrimaryKey('Serie', serieId);
+        if (!serie) {
+            console.log('No se encontró la serie');
+            return;
+        } else console.log('Serie encontrada');
+
+        realm.write(() => {
+            const temporada = serie.temporadas.find(t => t.numero === numSeason);
+            if (temporada) {
+                temporada[prop] = value;
+            }
+        });
+    };
+
+    // Método para actualizar las propiedades de un episodio
     const updateEpisodeProps = (serieId, numSeason, episodioId, prop, value) => {
         const serie = realm.objectForPrimaryKey('Serie', serieId);
         if (!serie) {
@@ -166,6 +182,7 @@ export const useStreaming = () => {
         getWatchedItems,
         getFavoriteItems,
         updateProps,
+        updateSeasonProps,
         updateEpisodeProps,
         unmarkItemsAsWatched,
         unmarkItemsAsFavorite,
