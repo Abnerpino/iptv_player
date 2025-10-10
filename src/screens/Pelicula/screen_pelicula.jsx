@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, 
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import ProgressBar from '../../components/ProgressBar/progress_bar';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
 import Reproductor from '../../components/Reproductor';
@@ -13,7 +14,8 @@ const Pelicula = ({ navigation, route }) => {
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;
     const genres = pelicula.genre !== "" ? pelicula.genre : pelicula.genres !== "" ? pelicula.genres : null;
-    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : Number(pelicula.runtime);
+    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : pelicula.runtime !== "" ? Number(pelicula.runtime) : 0;
+    const playbackTime = parseFloat(pelicula.playback_time);
     const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
     const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
@@ -27,8 +29,14 @@ const Pelicula = ({ navigation, route }) => {
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
 
-    const handleMarkAsViewed = () => {
-        // Verificamos si ya está en Vistos (para evitar agregar de nuevo)
+    const isComplete = (runtime - playbackTime) < 5 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+
+    // Efecto para marcar como vista una pelicula
+    useEffect(() => {
+        // Verifica si ya se reprodujo al menos un fotograma de la pelicula
+        if (playbackTime === 0) return;
+
+        // Verifica si ya está en Vistos (para evitar agregar de nuevo)
         if (pelicula?.visto === true) return;
 
         updateProps('vod', false, pelicula.stream_id, { visto: true }); // Actualiza la pelicula en el schema
@@ -37,7 +45,7 @@ const Pelicula = ({ navigation, route }) => {
         let newTotal = currentTotal + 1;
 
         updateProps('vod', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
-    };
+    }, [playbackTime]);
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
@@ -115,7 +123,7 @@ const Pelicula = ({ navigation, route }) => {
                                     <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
                                         <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
                                         <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
-                                        <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime ? runtime : 0)}</Text>
+                                        <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime)}</Text>
                                         <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
                                         <StarRating rating={rating ? rating : 0} size={20} />
                                     </View>
@@ -123,16 +131,18 @@ const Pelicula = ({ navigation, route }) => {
                             </View>
                             <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
                                 <TouchableOpacity
-                                    style={[styles.button, { flexDirection: 'row', justifyContent: 'center' }]}
-                                    onPress={() => {
-                                        handleMarkAsViewed();
-                                        setShowReproductor(true);
-                                    }}
+                                    style={styles.button}
+                                    onPress={() => setShowReproductor(true)}
                                 >
-                                    <Icon name="play-circle-o" size={22} color="white" />
-                                    <Text style={styles.textButton}>Play</Text>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 5, }}>
+                                        <Icon name="play-circle-o" size={22} color="white" />
+                                        <Text style={styles.textButton}>{playbackTime === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}</Text>
+                                    </View>
+                                    {playbackTime > 0 && (
+                                        <ProgressBar isVod={true} duration={runtime} playback={playbackTime} />
+                                    )}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', justifyContent: 'center', marginLeft: 20 }]}>
+                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, marginLeft: 20 }]}>
                                     <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
                                     <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                                 </TouchableOpacity>
@@ -194,11 +204,8 @@ const styles = StyleSheet.create({
     },
     button: {
         width: '25%',
-        flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 5,
-        paddingVertical: 10,
-        paddingHorizontal: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
     textButton: {
