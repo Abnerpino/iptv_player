@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
@@ -20,8 +20,10 @@ const Serie = ({ navigation, route }) => {
     const rating = serie.rating !== "" ? Number(serie.rating) : Number(serie.vote_average);
     const cast = serie.cast ? JSON.parse(serie.cast) : [];
     const seasons = serie?.temporadas ?? [];
+    const season_idx = serie?.last_ep_played[0] ?? 0; // Indice de la temporada del último episodio reproducido
+    const episode_idx = serie?.last_ep_played[1] ?? 0; // Indice del último episodio reproducido
 
-    const { getModelName, updateProps, updateEpisodeProps } = useStreaming();
+    const { getModelName, updateProps, updateSeasonProps, updateEpisodeProps } = useStreaming();
     const categoryModel = getModelName('series', true);
     const categories = useQuery(categoryModel);
     const vistos = categories.find(categoria => categoria.category_id === '0.2');
@@ -30,29 +32,40 @@ const Serie = ({ navigation, route }) => {
 
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
-    const [selectedSeason, setSelectedSeason] = useState(seasons[0]);//serie.episodes[1]); //Estado para manejar la información de la temporada seleccionada
+    const [selectedSeason, setSelectedSeason] = useState(seasons[season_idx]); //Estado para manejar la información de la temporada seleccionada
     const [episodios, setEpisodios] = useState(selectedSeason.episodios);
-    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
+    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[episode_idx]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
     const [playbackTime, setPlaybackTime] = useState(parseFloat(selectedEpisode.playback_time))
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
+    const hasUpdatedIndex = useRef(false);
 
     useEffect(() => {
-        console.log(selectedEpisode.title + ', ' + playbackTime);
         // Verifica si ya se reprodujo al menos un fotograma de la pelicula
         if (playbackTime === 0) return;
 
+        if (!hasUpdatedIndex.current) {
+            const newIdxSeason = seasons.findIndex(season => season.numero === selectedSeason.numero);
+            const newIdxEpisode = episodios.findIndex(episodio => episodio.id === selectedEpisode.id);
+
+            // Verifica que no se vuelvan a guardar los mismos indices que ya existen al momento de abrir una serie
+            if (season_idx === newIdxSeason && episode_idx === newIdxEpisode) return;
+
+            updateProps('series', false, serie.series_id, { last_ep_played: [newIdxSeason, newIdxEpisode] }); // Actualiza en el schema los indices de la temporada y episodio último reproducido
+            updateSeasonProps(serie.series_id, selectedSeason.numero, 'idx_last_ep_played', newIdxEpisode); // Actualiza el indice del último episodio reproducido de la temporada
+            hasUpdatedIndex.current = true;
+        }
+
         // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
         if (selectedEpisode?.visto === true) return;
-        console.log('visto');
 
         updateEpisodeProps(serie.series_id, selectedSeason.numero, selectedEpisode.id, 'visto', true); // Marca el episodio como 'Visto'
 
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
 
-        updateProps('series', false, serie.series_id, { visto: true }); // Actualiza la serie en el schema
+        updateProps('series', false, serie.series_id, { visto: true }); // Actualiza la serie como vista en el schema
 
         const currentTotal = vistos.total;
         let newTotal = currentTotal + 1;
@@ -93,9 +106,10 @@ const Serie = ({ navigation, route }) => {
     }
 
     const handleChangeEpisode = (episodio) => {
-        // Actualiza el estado en el padre. Esto provocará que el reproductor se reinicie.
+        // Actualiza el estado en el padre, esto provocará que el reproductor se reinicie
         setSelectedEpisode(episodio);
         setPlaybackTime(parseFloat(episodio.playback_time));
+        hasUpdatedIndex.current = false;
     };
 
     const handleProgressUpdate = (time, episodeId) => {
@@ -279,8 +293,9 @@ const Serie = ({ navigation, route }) => {
                             onSelectSeason={(season) => {
                                 setSelectedSeason(season);
                                 setEpisodios(season.episodios);
-                                setSelectedEpisode(season.episodios[0]);
-                                setPlaybackTime(parseFloat(season.episodios[0].playback_time));
+                                setSelectedEpisode(season.episodios[season.idx_last_ep_played]);
+                                setPlaybackTime(parseFloat(season.episodios[season.idx_last_ep_played].playback_time));
+                                hasUpdatedIndex.current = false;
                             }}
                         />
                     </View>
