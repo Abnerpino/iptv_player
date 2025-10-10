@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome6';
+import ProgressBar from '../ProgressBar/progress_bar';
 import StarRating from '../StarRating';
 
 const ItemEpisode = ({ episode, onSelectEpisode }) => {
+    const duracion = episode.duration_secs !== "" ? Number(episode.duration_secs) : 0;
+    const reproducido = parseFloat(episode.playback_time);
     const imagen = episode.movie_image;
 
     return (
@@ -11,9 +14,14 @@ const ItemEpisode = ({ episode, onSelectEpisode }) => {
             style={styles.container}
             onPress={() => onSelectEpisode(episode)}
         >
-            {imagen ? (
-                <Image source={{ uri: imagen }} style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]} resizeMode='cover' />
-            ) : <View style={styles.notImage} />}
+            <View style={{ flex: 0.25, }}>
+                {imagen ? (
+                    <Image source={{ uri: imagen }} style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]} resizeMode='cover' />
+                ) : <View style={styles.notImage} />}
+                {reproducido > 0 && (
+                    <ProgressBar isVod={false} duration={duracion} playback={reproducido} />
+                )}
+            </View>
             <View style={styles.details}>
                 {episode.visto && (
                     <Icon name="eye" size={20} color="white" style={styles.eyeIcon} />
@@ -30,7 +38,8 @@ const ItemEpisode = ({ episode, onSelectEpisode }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        width: '100%',
+        flex: 1,
+        //width: '100%',
         borderRadius: 5,
         borderColor: '#888',
         borderWidth: 1,
@@ -40,21 +49,23 @@ const styles = StyleSheet.create({
         alignItems: 'stretch'
     },
     image: {
-        width: '20%',
+        width: '100%',
+        height: '100%',
         borderRadius: 6,
         borderColor: '#fff',
-        borderWidth: 0.1
+        borderWidth: 0.1,
     },
     notImage: {
-        width: '20%',
+        width: '100%',
+        height: '100%',
         borderRadius: 2,
         borderColor: '#fff',
-        borderWidth: 0.1
+        borderWidth: 0.1,
     },
     details: {
-        flex: 1,
+        flex: 0.75,
         paddingLeft: 12,
-        justifyContent: 'space-around'
+        justifyContent: 'space-around',
     },
     eyeIcon: {
         position: 'absolute',
