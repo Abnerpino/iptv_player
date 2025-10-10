@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
@@ -31,17 +31,23 @@ const Serie = ({ navigation, route }) => {
     const [modalVisibleO, setModalVisibleO] = useState(false); //Estado para manejar el modal de la trama
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);//serie.episodes[1]); //Estado para manejar la información de la temporada seleccionada
-    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
     const [episodios, setEpisodios] = useState(selectedSeason.episodios);
+    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[0]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
+    const [playbackTime, setPlaybackTime] = useState(parseFloat(selectedEpisode.playback_time))
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
 
-    const handleMarkAsViewed = (episodio) => {
-        // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
-        if (episodio?.visto === true) return;
+    useEffect(() => {
+        console.log(selectedEpisode.title + ', ' + playbackTime);
+        // Verifica si ya se reprodujo al menos un fotograma de la pelicula
+        if (playbackTime === 0) return;
 
-        updateEpisodeProps(serie.series_id, selectedSeason.numero, episodio.id, 'visto', true); // Marca el episodio como 'Visto'
+        // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
+        if (selectedEpisode?.visto === true) return;
+        console.log('visto');
+
+        updateEpisodeProps(serie.series_id, selectedSeason.numero, selectedEpisode.id, 'visto', true); // Marca el episodio como 'Visto'
 
         // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
         if (serie?.visto === true) return;
@@ -52,7 +58,7 @@ const Serie = ({ navigation, route }) => {
         let newTotal = currentTotal + 1;
 
         updateProps('series', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
-    };
+    }, [playbackTime, selectedEpisode]);
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
@@ -85,6 +91,19 @@ const Serie = ({ navigation, route }) => {
     function handleCloseModalS() {
         setModalVisibleS(false);
     }
+
+    const handleChangeEpisode = (episodio) => {
+        // Actualiza el estado en el padre. Esto provocará que el reproductor se reinicie.
+        setSelectedEpisode(episodio);
+        setPlaybackTime(parseFloat(episodio.playback_time));
+    };
+
+    const handleProgressUpdate = (time, episodeId) => {
+        // Solo actualiza el estado si el tiempo recibido pertenece al episodio que está actualmente seleccionado
+        if (episodeId === selectedEpisode.id) {
+            setPlaybackTime(time);
+        }
+    };
 
     const ItemSeparator = () => (
         <View style={{ width: 10 }} /> // Espacio entre elementos
@@ -151,7 +170,7 @@ const Serie = ({ navigation, route }) => {
                                 <TouchableOpacity
                                     style={[styles.button, { marginRight: 20 }]}
                                     onPress={() => {
-                                        handleMarkAsViewed(selectedEpisode);
+                                        //handleMarkAsViewed(selectedEpisode);
                                         setShowReproductor(true);
                                     }}
                                 >
@@ -223,8 +242,7 @@ const Serie = ({ navigation, route }) => {
                                                 <ItemEpisode
                                                     episode={item}
                                                     onSelectEpisode={(episodio) => {
-                                                        setSelectedEpisode(episodio);
-                                                        handleMarkAsViewed(episodio);
+                                                        handleChangeEpisode(episodio);
                                                         setShowReproductor(true);
                                                     }}
                                                 />
@@ -262,12 +280,14 @@ const Serie = ({ navigation, route }) => {
                                 setSelectedSeason(season);
                                 setEpisodios(season.episodios);
                                 setSelectedEpisode(season.episodios[0]);
+                                setPlaybackTime(parseFloat(season.episodios[0].playback_time));
                             }}
                         />
                     </View>
                 </ImageBackground>
             ) : (
                 <Reproductor
+                    key={selectedEpisode.id}
                     tipo={'series'}
                     fullScreen={true}
                     setMostrar={(value) => setShowReproductor(value)}
@@ -280,7 +300,9 @@ const Serie = ({ navigation, route }) => {
                         playback_time: selectedEpisode.playback_time
                     }}
                     data={episodios}
-                    setVisto={(episodio) => handleMarkAsViewed(episodio)}
+                    onEpisodeChange={handleChangeEpisode}
+                    setVisto={handleChangeEpisode}
+                    onProgressUpdate={handleProgressUpdate}
                 />
             )}
         </>
