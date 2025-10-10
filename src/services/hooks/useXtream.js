@@ -200,6 +200,7 @@ export const useXtream = () => {
                     favorito: false,//serie?.favorito ?? false,
                     visto: false,//serie?.visto ?? false,
                     saga: regex.test(name) ? true : false,
+                    last_ep_played: [0, 0]
                 });
             });
 
@@ -255,6 +256,7 @@ export const useXtream = () => {
                 realm.write(() => {
                     serie.temporadas.push({
                         numero: seasonKey,
+                        idx_last_ep_played: 0,
                         episodios: episodesInSeason
                     });
                 });
