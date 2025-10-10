@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -24,7 +24,7 @@ const Canal = ({ navigation, route }) => {
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
 
-    useEffect(() => {
+    const handleToggleWatched = () => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
         if (selectedChannel?.visto === true) return;
 
@@ -34,7 +34,7 @@ const Canal = ({ navigation, route }) => {
         let newTotal = currentTotal + 1;
 
         updateProps('live', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
-    }, [selectedChannel]);
+    };
 
     const contentToShow = useMemo(() => {
         const category = categories[currentIndex];
@@ -182,6 +182,7 @@ const Canal = ({ navigation, route }) => {
                             setFullScreen={(value) => setIsFullScreen(value)}
                             contenido={selectedChannel}
                             data={[]}
+                            markAsWatched={handleToggleWatched}
                         />
                     </View>
                 </View>
