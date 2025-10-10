@@ -10,20 +10,20 @@ import Orientation from 'react-native-orientation-locker';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, setVisto }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, setVisto, onProgressUpdate, onEpisodeChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
     const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
+    const hasSavedInitialTime = useRef(false); // Referencia para guardar el tiempo del primer fotograma reproducido
+    const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
+    const liveVistoTimer = useRef(null); // Referencia para guardar el tiempo de reproducción minimo (100 ms) para considerar un canal como visto
     const { updateProps, updateEpisodeProps } = useStreaming();
-    const [idEpisode, setIdEpisode] = useState(contenido.episode_id);
-    const [url, setUrl] = useState(contenido.link);
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
-    const [savedTime, setSavedTime] = useState(contenido?.playback_time ?? 0);
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de episodios
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
@@ -31,6 +31,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         // La función de limpieza se ejecuta solo cuando el componente se desmonta
         return () => {
             savePlaybackTime(latestTime.current);
+            clearTimeout(liveVistoTimer.current);
         };
     }, []);
 
@@ -44,9 +45,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
     useEffect(() => {
         if (tipo === 'live') {
-            setIdEpisode(contenido.episode_id);
-            setUrl(contenido.link);
-            setNombre(`${contenido.num} - ${contenido.name}`);
+            cambiarCanal(contenido);
         }
     }, [contenido]);
 
@@ -65,10 +64,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
     const savePlaybackTime = (timeToSave) => {
         if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0 && duration > 0) {
+            const time = hasSavedInitialTime.current ? currentTime.toString() : timeToSave.toString();
             if (tipo === 'vod') {
-                updateProps(tipo, false, contenido.stream_id, { playback_time: currentTime.toString() });
+                updateProps(tipo, false, contenido.stream_id, { playback_time: time });
             } else { // 'series', para un episodio
-                updateEpisodeProps(contenido.series_id, contenido.temporada, idEpisode, 'playback_time', currentTime.toString());
+                updateEpisodeProps(contenido.series_id, contenido.temporada, contenido.episode_id, 'playback_time', time);
             }
         }
     };
@@ -102,6 +102,16 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         setCurrentTime(currentTime);
         latestTime.current = currentTime;
 
+        if (onProgressUpdate) { //
+            onProgressUpdate(currentTime, contenido.episode_id);
+        }
+
+        // Si no ha guardado la primera vez y el video ha empezado a avanzar...
+        if (!hasSavedInitialTime.current && currentTime > 0) {
+            savePlaybackTime(currentTime);
+            hasSavedInitialTime.current = true; // Activa la bandera para no volver a entrar aquí
+        }
+
         const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
 
         // Comprueba si ha pasado suficiente tiempo desde el último guardado
@@ -113,7 +123,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
     const handleLoad = ({ duration }) => {
         setDuration(duration);
-        const startTime = parseFloat(savedTime); // Convierte el string de Realm a número
+
+        if (tipo === 'live') {
+            // Limpia cualquier temporizador anterior por si acaso
+            clearTimeout(liveVistoTimer.current);
+
+            // Inicia el temporizador de 100 milisegundos
+            liveVistoTimer.current = setTimeout(() => {
+                if (!hasMarkedLiveAsVisto.current) {
+                    markAsWatched(); // Llama a la función del padre para marcarlo en Realm
+                    hasMarkedLiveAsVisto.current = true; // Activa la bandera para no volver a entrar aquí
+                }
+            }, 100);
+        }
+
+        let startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
         const VISTO_THRESHOLD = 5; // Umbral de 5 segundos para considerar un video como "reproducido completamente".
 
         // Si la duración es válida y la diferencia es menor que el umbral, reinicia el video
@@ -162,12 +186,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
     };
 
-    const cambiarCanal = (episodio) => {
-        setIdEpisode(episodio.id);
-        setUrl(episodio.link);
-        setNombre(episodio.title);
-        setSavedTime(parseFloat(episodio.playback_time));
-        setPaused(false);
+    const cambiarCanal = (canal) => {
+        setNombre(`${canal.num} - ${canal.name}`);
+        clearTimeout(liveVistoTimer.current);
+        // Reinicia las bandera
+        hasSavedInitialTime.current = false;
+        hasMarkedLiveAsVisto.current = false;
     };
 
     //Función para controlar el cierre del modal de episodios
@@ -212,7 +236,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
             <View style={styles.container}>
                 <Video
                     ref={playerRef}
-                    source={{ uri: url }}
+                    source={{ uri: contenido.link }}
                     style={styles.videoPlayer}
                     resizeMode="contain"
                     paused={paused}
@@ -292,10 +316,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                     temporada={contenido.temporada}
                     episodes={data}
                     onSelectEpisode={(episodio) => {
-                        cambiarCanal(episodio);
-                        if (tipo === 'series') {
-                            setVisto(episodio);
-                        }
+                        onEpisodeChange(episodio);
+                        setVisto(episodio);
                     }}
                 />
                 {/*renderFloatingList()*/}
