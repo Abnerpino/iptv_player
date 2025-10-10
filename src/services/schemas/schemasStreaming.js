@@ -93,6 +93,7 @@ export const TemporadaSchema = {
     embedded: true,
     properties: {
         numero: 'string',
+        idx_last_ep_played: 'int',
         episodios: { type: 'list', objectType: 'Episodio' },
     },
 };
@@ -126,6 +127,7 @@ export const SerieSchema = {
         favorito: 'bool',
         visto: 'bool',
         saga: 'bool',
+        last_ep_played: 'int[]',
     },
 };
 
