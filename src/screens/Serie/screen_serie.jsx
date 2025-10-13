@@ -35,35 +35,54 @@ const Serie = ({ navigation, route }) => {
     const [selectedSeason, setSelectedSeason] = useState(seasons[season_idx]); //Estado para manejar la información de la temporada seleccionada
     const [episodios, setEpisodios] = useState(selectedSeason.episodios);
     const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[episode_idx]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
-    const [playbackTime, setPlaybackTime] = useState(parseFloat(selectedEpisode.playback_time))
+    const [playbackInfo, setPlaybackInfo] = useState({
+        time: parseFloat(selectedEpisode.playback_time),
+        episodeId: selectedEpisode.id
+    });
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
     const hasUpdatedIndex = useRef(false);
+    const hasPerformedInitialSave = useRef(false); // Referencia para saber cuando ya se guardó el 'playback_time' del episodio la primera vez que se reproduce
 
     useEffect(() => {
-        // Verifica si ya se reprodujo al menos un fotograma de la pelicula
-        if (playbackTime === 0) return;
+        if (playbackInfo.episodeId !== selectedEpisode.id) return;
 
+        const playbackTime = playbackInfo.time;
+        const storedPlaybackTime = parseFloat(selectedEpisode.playback_time); // Obtiene el tiempo de reproducción que tenía el episodio al ser cargado
+
+        // Verifica que el episodio no haya sido guardado aún, que su 'playback_time' guardado sea 0 y que ya haya comenzado a reproducirse
+        if (!hasPerformedInitialSave.current &&storedPlaybackTime === 0 &&playbackTime > 0) {
+            updateEpisodeProps(serie.series_id, selectedSeason.numero, selectedEpisode.id, 'playback_time', playbackTime.toString()); // Si se cumplen las condiciones, guarda el primer tiempo de reproducción que recibe
+            hasPerformedInitialSave.current = true; // "Levanta la bandera" para no volver a ejecutar este guardado
+        }
+
+        if (playbackTime === 0) return; // No hace nada si el episodio no ha comenzado a reproducirse
+        
         if (!hasUpdatedIndex.current) {
+            const hasProgressed = playbackTime > storedPlaybackTime; // Verifica si realmente hubo un avance en la reproducción
+
+            if (!hasProgressed) return; // Si no ha habido progreso, no hace nada más en este bloque
+
+            // Procede a verificar si los índices deben ser actualizados
             const newIdxSeason = seasons.findIndex(season => season.numero === selectedSeason.numero);
             const newIdxEpisode = episodios.findIndex(episodio => episodio.id === selectedEpisode.id);
 
-            // Verifica que no se vuelvan a guardar los mismos indices que ya existen al momento de abrir una serie
-            if (season_idx === newIdxSeason && episode_idx === newIdxEpisode) return;
+            const isNewEpisode = season_idx !== newIdxSeason || episode_idx !== newIdxEpisode;
 
-            updateProps('series', false, serie.series_id, { last_ep_played: [newIdxSeason, newIdxEpisode] }); // Actualiza en el schema los indices de la temporada y episodio último reproducido
-            updateSeasonProps(serie.series_id, selectedSeason.numero, 'idx_last_ep_played', newIdxEpisode); // Actualiza el indice del último episodio reproducido de la temporada
-            hasUpdatedIndex.current = true;
+            if (isNewEpisode) { // Solo si es un episodio diferente y ha progresado, actualiza los índices
+                updateProps('series', false, serie.series_id, { last_ep_played: [newIdxSeason, newIdxEpisode] }); // Actualiza en el schema los indices de la temporada y episodio último reproducido
+                updateSeasonProps(serie.series_id, selectedSeason.numero, 'idx_last_ep_played', newIdxEpisode); // Actualiza el indice del último episodio reproducido de la temporada
+            }
+
+            hasUpdatedIndex.current = true; // Marca el índice como actualizado para esta sesión de visualización para evitar re-escrituras
         }
 
-        // Verificamos si el episodio ya ha sido visto (para evitar agregarlo de nuevo)
-        if (selectedEpisode?.visto === true) return;
+        if (selectedEpisode?.visto === true) return; // Si el episodio ya está marcado como visto, no hay nada más que hacer
 
         updateEpisodeProps(serie.series_id, selectedSeason.numero, selectedEpisode.id, 'visto', true); // Marca el episodio como 'Visto'
 
-        // Verificamos si la Serie ya está en Vistos (para evitar agregar de nuevo)
-        if (serie?.visto === true) return;
+        if (serie?.visto === true) return; // Si la serie ya está marcada como vista, tampoco continua
 
         updateProps('series', false, serie.series_id, { visto: true }); // Actualiza la serie como vista en el schema
 
@@ -71,7 +90,8 @@ const Serie = ({ navigation, route }) => {
         let newTotal = currentTotal + 1;
 
         updateProps('series', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
-    }, [playbackTime, selectedEpisode]);
+
+    }, [playbackInfo, selectedEpisode]);
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
@@ -108,15 +128,16 @@ const Serie = ({ navigation, route }) => {
     const handleChangeEpisode = (episodio) => {
         // Actualiza el estado en el padre, esto provocará que el reproductor se reinicie
         setSelectedEpisode(episodio);
-        setPlaybackTime(parseFloat(episodio.playback_time));
+        setPlaybackInfo({
+            time: parseFloat(episodio.playback_time),
+            episodeId: episodio.id
+        });
         hasUpdatedIndex.current = false;
+        hasPerformedInitialSave.current = false;
     };
 
     const handleProgressUpdate = (time, episodeId) => {
-        // Solo actualiza el estado si el tiempo recibido pertenece al episodio que está actualmente seleccionado
-        if (episodeId === selectedEpisode.id) {
-            setPlaybackTime(time);
-        }
+        setPlaybackInfo({ time, episodeId });
     };
 
     const ItemSeparator = () => (
