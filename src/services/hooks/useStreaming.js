@@ -26,6 +26,7 @@ export const useStreaming = () => {
                     }
                     if (type === 'series' && oldItem.temporadas && oldItem.visto) {
                         dataToSave.temporadas = oldItem.temporadas.toJSON();
+                        dataToSave.last_ep_played = oldItem.last_ep_played.toJSON();
                     }
                 }
                 realm.create(model, dataToSave, 'modified');
@@ -95,6 +96,13 @@ export const useStreaming = () => {
         return items.filtered('favorito == true');
     };
 
+    // Método para obtener el último episodio reproducido de una serie
+    const getLastPlayedEpisode = (idSerie, idxSeason, idxEpisode) => {
+        const model = getModelName('Serie');
+        const serie = realm.objectForPrimaryKey(model, idSerie);
+        return serie.temporadas[idxSeason].episodios[idxEpisode];
+    };
+
     // Método para actualizar las propiedades de un item o categoría
     const updateProps = (type, flag, idValue, changes) => {
         const model = getModelName(type, flag);
@@ -114,7 +122,7 @@ export const useStreaming = () => {
         if (!serie) {
             console.log('No se encontró la serie');
             return;
-        } else console.log('Serie encontrada');
+        } else console.log('Serie encontrada, updateSeasonProps');
 
         realm.write(() => {
             const temporada = serie.temporadas.find(t => t.numero === numSeason);
@@ -130,7 +138,7 @@ export const useStreaming = () => {
         if (!serie) {
             console.log('No se encontró la serie');
             return;
-        } else console.log('Serie encontrada');
+        } else console.log('Serie encontrada, updateEpisodeProps');
 
         const temporada = serie.temporadas.find(t => t.numero === numSeason);
         if (!temporada) {
@@ -181,6 +189,7 @@ export const useStreaming = () => {
         syncStreamingData,
         getWatchedItems,
         getFavoriteItems,
+        getLastPlayedEpisode,
         updateProps,
         updateSeasonProps,
         updateEpisodeProps,
