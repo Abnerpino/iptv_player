@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
@@ -15,7 +15,6 @@ const Pelicula = ({ navigation, route }) => {
     const originalTitle = pelicula.original_title;
     const genres = pelicula.genre !== "" ? pelicula.genre : pelicula.genres !== "" ? pelicula.genres : null;
     const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : pelicula.runtime !== "" ? Number(pelicula.runtime) : 0;
-    const playbackTime = parseFloat(pelicula.playback_time);
     const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
     const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
@@ -28,11 +27,21 @@ const Pelicula = ({ navigation, route }) => {
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
+    const [playbackTime, setPlaybackTime] = useState(parseFloat(pelicula.playback_time));
+    const hasPerformedInitialSave = useRef(false);  // Referencia para saber cuando ya se guardó el 'playback_time' de la pelicula la primera vez que se reproduce
 
     const isComplete = (runtime - playbackTime) < 5 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {
+        const storedPlaybackTime = parseFloat(pelicula.playback_time); // Obtiene el tiempo de reproducción que tenía la pelicula al ser cargada
+        
+        // Verifica que la pelicula no haya sido guardado aún, que su 'playback_time' guardado sea 0 y que ya haya comenzado a reproducirse
+        if (!hasPerformedInitialSave.current && storedPlaybackTime === 0 && playbackTime > 0) {
+            updateProps('vod', false, pelicula.stream_id, { playback_time: playbackTime.toString() }); // Si se cumplen las condiciones, guarda el primer tiempo de reproducción que recibe
+            hasPerformedInitialSave.current = true; // "Levanta la bandera" para no volver a ejecutar este guardado
+        }
+
         // Verifica si ya se reprodujo al menos un fotograma de la pelicula
         if (playbackTime === 0) return;
 
@@ -77,6 +86,10 @@ const Pelicula = ({ navigation, route }) => {
         } else {
             return '0m';
         }
+    };
+
+    const handleProgressUpdate = (time) => {
+        setPlaybackTime(time);
     };
 
     const ItemSeparator = () => (
@@ -177,6 +190,7 @@ const Pelicula = ({ navigation, route }) => {
                     fullScreen={true}
                     contenido={pelicula}
                     setMostrar={(value) => setShowReproductor(value)}
+                    onProgressUpdate={handleProgressUpdate}
                 />
             )}
         </>
