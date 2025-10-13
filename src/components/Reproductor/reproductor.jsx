@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
@@ -15,7 +15,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const controlTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
     const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
-    const hasSavedInitialTime = useRef(false); // Referencia para guardar el tiempo del primer fotograma reproducido
     const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
     const liveVistoTimer = useRef(null); // Referencia para guardar el tiempo de reproducción minimo (100 ms) para considerar un canal como visto
     const { updateProps, updateEpisodeProps } = useStreaming();
@@ -33,7 +32,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
             savePlaybackTime(latestTime.current);
             clearTimeout(liveVistoTimer.current);
         };
-    }, []);
+    }, [savePlaybackTime]);
 
     useEffect(() => {
         Orientation.lockToLandscape();
@@ -62,16 +61,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         return () => backHandler.remove();
     }, [fullScreen]);
 
-    const savePlaybackTime = (timeToSave) => {
-        if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0 && duration > 0) {
-            const time = hasSavedInitialTime.current ? currentTime.toString() : timeToSave.toString();
+    const savePlaybackTime = useCallback((timeToSave) => {
+        const item_id = tipo === 'series' ? 'episode_id' : 'stream_id';
+
+        if (!contenido || !contenido[item_id] || duration === 0) {
+            return;
+        }
+
+        if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0) {
+            const time = timeToSave.toString();
             if (tipo === 'vod') {
                 updateProps(tipo, false, contenido.stream_id, { playback_time: time });
             } else { // 'series', para un episodio
                 updateEpisodeProps(contenido.series_id, contenido.temporada, contenido.episode_id, 'playback_time', time);
             }
         }
-    };
+    }, [contenido, duration, tipo, updateEpisodeProps, updateProps]);
 
     const showTemporarilyControls = () => {
         setShowControls(true);
@@ -102,14 +107,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         setCurrentTime(currentTime);
         latestTime.current = currentTime;
 
-        if (onProgressUpdate) { //
+        if (tipo === 'series') {
             onProgressUpdate(currentTime, contenido.episode_id);
         }
 
-        // Si no ha guardado la primera vez y el video ha empezado a avanzar...
-        if (!hasSavedInitialTime.current && currentTime > 0) {
-            savePlaybackTime(currentTime);
-            hasSavedInitialTime.current = true; // Activa la bandera para no volver a entrar aquí
+        if (tipo === 'vod') {
+            onProgressUpdate(currentTime);
         }
 
         const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
@@ -189,9 +192,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const cambiarCanal = (canal) => {
         setNombre(`${canal.num} - ${canal.name}`);
         clearTimeout(liveVistoTimer.current);
-        // Reinicia las bandera
-        hasSavedInitialTime.current = false;
-        hasMarkedLiveAsVisto.current = false;
+        hasMarkedLiveAsVisto.current = false; // Reinicia las bandera
     };
 
     //Función para controlar el cierre del modal de episodios
