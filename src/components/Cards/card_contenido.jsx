@@ -5,13 +5,14 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { useQuery } from '@realm/react';
+import ProgressBar from '../ProgressBar/progress_bar';
 import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
 const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading }) => {
     const { getEpisodes } = useXtream();
-    const { getModelName, updateProps } = useStreaming();
+    const { getModelName, getLastPlayedEpisode, updateProps } = useStreaming();
     const [error, setError] = useState(false);
 
     // Obtiene las categorías correctas según el tipo
@@ -21,6 +22,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
 
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
     const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
+    const episodio = (tipo === 'series' && item.visto) ? getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]) : null;
 
     const handleNavigateToScreen = useCallback(async () => {
         if (tipo === 'live') {
@@ -130,6 +132,15 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
             <View style={styles.bottomOverlay}>
                 <Text style={styles.titleText} numberOfLines={2}>{item.name}</Text>
             </View>
+            {idCategory === '0.2' && ((tipo === 'vod' && item.playback_time > 0) || (tipo === 'series' && episodio)) && (
+                <ProgressBar
+                    isVod={tipo === 'vod' ? true : false}
+                    duration={tipo === 'vod'
+                        ? (item.episode_run_time !== "" ? Number(item.episode_run_time) : item.runtime !== "" ? Number(item.runtime) : 0)
+                        : (episodio.duration_secs !== "" ? Number(episodio.duration_secs) : 0)}
+                    playback={tipo === 'vod' ? parseFloat(item.playback_time) : parseFloat(episodio.playback_time)}
+                />
+            )}
         </TouchableOpacity>
     );
 };
