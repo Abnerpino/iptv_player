@@ -21,6 +21,7 @@ const ItemEpisode = ({ episode, onSelectEpisode }) => {
                 {reproducido > 0 && (
                     <ProgressBar isVod={false} duration={duracion} playback={reproducido} />
                 )}
+                <Image source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
             </View>
             <View style={styles.details}>
                 {episode.visto && (
@@ -61,6 +62,14 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         borderColor: '#fff',
         borderWidth: 0.1,
+    },
+    iconPlay: {
+        width: '35%',
+        height: '35%',
+        position: 'absolute',
+        top: '30%',
+        left: '30%',
+        zIndex: 10,
     },
     details: {
         flex: 0.75,
