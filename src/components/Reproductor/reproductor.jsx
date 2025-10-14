@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler, ActivityIndicator } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import Slider from '@react-native-community/slider';
@@ -23,6 +23,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const [showControls, setShowControls] = useState(true);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de episodios
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
@@ -124,7 +125,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
     };
 
+    // Método para manejar el buffer
+    const handleBuffer = ({ isBuffering }) => {
+        setIsLoading(isBuffering);
+    };
+
+    const handleLoadStart = () => {
+        setIsLoading(true);
+    };
+
     const handleLoad = ({ duration }) => {
+        setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
         setDuration(duration);
 
         if (tipo === 'live') {
@@ -241,7 +252,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                     style={styles.videoPlayer}
                     resizeMode="contain"
                     paused={paused}
+                    onLoadStart={handleLoadStart}
                     onLoad={handleLoad}
+                    onBuffer={handleBuffer}
                     onProgress={handleProgress}
                     onEnd={handleEnd}
                     controls={false}
@@ -271,15 +284,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
                         {/* Middle */}
                         <View style={styles.middleControls}>
-                            <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
-                                <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={togglePlayPause}>
-                                <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => seekTo(currentTime + 10)}>
-                                <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
-                            </TouchableOpacity>
+                            {isLoading ? (
+                                <ActivityIndicator size="large" color="#fff" />
+                            ) : (
+                                <>
+                                    <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
+                                        <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={togglePlayPause}>
+                                        <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => seekTo(currentTime + 10)}>
+                                        <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
 
                         {/* Bottom */}
