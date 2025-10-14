@@ -8,6 +8,7 @@ import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
 import ModalSeasons from '../../components/Modals/modal_seasons';
 import ItemEpisode from '../../components/Items/item_episode';
+import ProgressBar from '../../components/ProgressBar/progress_bar';
 import Reproductor from '../../components/Reproductor';
 
 const Serie = ({ navigation, route }) => {
@@ -45,6 +46,9 @@ const Serie = ({ navigation, route }) => {
     const hasUpdatedIndex = useRef(false);
     const hasPerformedInitialSave = useRef(false); // Referencia para saber cuando ya se guardó el 'playback_time' del episodio la primera vez que se reproduce
 
+    const duration = selectedEpisode.duration_secs !== "" ? Number(selectedEpisode.duration_secs) : 0;
+    const isComplete = (duration - parseFloat(selectedEpisode.playback_time)) < 5 && duration > 0 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+
     useEffect(() => {
         if (playbackInfo.episodeId !== selectedEpisode.id) return;
 
@@ -52,13 +56,13 @@ const Serie = ({ navigation, route }) => {
         const storedPlaybackTime = parseFloat(selectedEpisode.playback_time); // Obtiene el tiempo de reproducción que tenía el episodio al ser cargado
 
         // Verifica que el episodio no haya sido guardado aún, que su 'playback_time' guardado sea 0 y que ya haya comenzado a reproducirse
-        if (!hasPerformedInitialSave.current &&storedPlaybackTime === 0 &&playbackTime > 0) {
+        if (!hasPerformedInitialSave.current && storedPlaybackTime === 0 && playbackTime > 0) {
             updateEpisodeProps(serie.series_id, selectedSeason.numero, selectedEpisode.id, 'playback_time', playbackTime.toString()); // Si se cumplen las condiciones, guarda el primer tiempo de reproducción que recibe
             hasPerformedInitialSave.current = true; // "Levanta la bandera" para no volver a ejecutar este guardado
         }
 
         if (playbackTime === 0) return; // No hace nada si el episodio no ha comenzado a reproducirse
-        
+
         if (!hasUpdatedIndex.current) {
             const hasProgressed = playbackTime > storedPlaybackTime; // Verifica si realmente hubo un avance en la reproducción
 
@@ -204,19 +208,23 @@ const Serie = ({ navigation, route }) => {
                             <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 20, paddingBottom: 10 }}>
                                 <TouchableOpacity
                                     style={[styles.button, { marginRight: 20 }]}
-                                    onPress={() => {
-                                        //handleMarkAsViewed(selectedEpisode);
-                                        setShowReproductor(true);
-                                    }}
+                                    onPress={() => setShowReproductor(true)}
                                 >
-                                    <Icon name="play-circle-o" size={22} color="white" />
-                                    <Text style={styles.textButton}>{`Play: T${selectedSeason.numero}-E${selectedEpisode.episode_num}`}</Text>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 5, }}>
+                                        <Icon name="play-circle-o" size={22} color="white" />
+                                        <Text style={styles.textButton}>
+                                            {`${parseFloat(selectedEpisode.playback_time) === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}: T${selectedSeason.numero}-E${selectedEpisode.episode_num}`}
+                                        </Text>
+                                    </View>
+                                    {parseFloat(selectedEpisode.playback_time) > 0 && (
+                                        <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
+                                    )}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, { marginRight: 20 }]}>
+                                <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, marginRight: 20 }]}>
                                     <Icon name="list-alt" size={22} color="white" />
                                     <Text style={styles.textButton}>{`Temporada: ${selectedSeason.numero}`}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={styles.button}>
+                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, }]}>
                                     <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
                                     <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                                 </TouchableOpacity>
@@ -315,7 +323,6 @@ const Serie = ({ navigation, route }) => {
                                 setSelectedSeason(season);
                                 setEpisodios(season.episodios);
                                 setSelectedEpisode(season.episodios[season.idx_last_ep_played]);
-                                setPlaybackTime(parseFloat(season.episodios[season.idx_last_ep_played].playback_time));
                                 hasUpdatedIndex.current = false;
                             }}
                         />
@@ -368,11 +375,8 @@ const styles = StyleSheet.create({
     },
     button: {
         width: '25%',
-        flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 5,
-        paddingVertical: 10,
-        paddingHorizontal: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
     textButton: {
