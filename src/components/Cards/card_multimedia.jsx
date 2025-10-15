@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
 
@@ -141,14 +141,20 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                         }}>
                     </Image>
                 </View>
-                {!isLoading && (
+
+                {isLoading ? (
+                    <View style={styles.updateContainer}>
+                        <ActivityIndicator size="small" color="#fff" />
+                        <Text style={styles.updatingText}>Actualizando</Text>
+                    </View>
+                ) : (
                     <TouchableOpacity
                         style={[styles.updateContainer, { backgroundColor: buttonColor }]}
                         onPress={() => handleUpdateStreaming(true)}
                         onPressIn={handlePressIn}
                         onPressOut={handlePressOut}
                     >
-                        <Text style={[styles.updateText, { verticalAlign: 'middle' }]}>{timeAgo}</Text>
+                        <Text style={styles.updateText}>{timeAgo}</Text>
                         <View style={styles.imageContainer2}>
                             <Image
                                 source={require('../../assets/update.png')}
@@ -193,10 +199,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flex: 0.2,
         justifyContent: 'center',
+        alignItems: 'center',
         width: '100%',
         height: '100%',
         borderBottomRightRadius: 10,
         borderBottomLeftRadius: 10,
+    },
+    updatingText: {
+        color: '#fff',
+        fontSize: 16,
+        paddingVertical: 10,
+        verticalAlign: 'middle',
+        marginLeft: 5,
     },
     updateText: {
         color: '#fff',
@@ -205,6 +219,7 @@ const styles = StyleSheet.create({
         height: '100%',
         width: '70%',
         textAlign: 'left',
+        verticalAlign: 'middle'
     },
     imageContainer2: {
         height: '100%',
