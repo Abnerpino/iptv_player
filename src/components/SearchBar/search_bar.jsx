@@ -1,7 +1,7 @@
 import { View, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-const BarraBusqueda = ({ message, searchText, setSearchText }) => {
+const SearchBar = ({ message, searchText, setSearchText }) => {
     return (
         <View style={styles.searchContainer}>
             <Icon name="search" size={18} color="#888" style={styles.searchIcon} />
@@ -48,4 +48,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BarraBusqueda;
+export default SearchBar;

@@ -6,7 +6,7 @@ import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
-import BarraBusqueda from '../../components/BarraBusqueda';
+import SearchBar from '../../components/SearchBar';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Seccion = ({ navigation, route }) => {
@@ -114,7 +114,7 @@ const Seccion = ({ navigation, route }) => {
                                 style={{ height: '100%', width: '76%', resizeMode: 'contain', }}
                             />
                         </View>
-                        <BarraBusqueda message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
+                        <SearchBar message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
 
                         {filteredCategories.length === 0 ? (
                             <View style={{ padding: 10 }}>
@@ -145,7 +145,7 @@ const Seccion = ({ navigation, route }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
                             <View style={{ flex: 1, alignItems: 'center', }}>
                                 {mostrarBusqueda ? (
-                                    <BarraBusqueda message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
+                                    <SearchBar message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
                                 ) : (
                                     <Text style={styles.sectionTitle}>{category?.category_name}</Text>
                                 )}

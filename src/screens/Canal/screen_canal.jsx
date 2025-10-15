@@ -6,7 +6,7 @@ import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import Video from 'react-native-video';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import BarraBusqueda from '../../components/BarraBusqueda';
+import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
 
@@ -158,7 +158,7 @@ const Canal = ({ navigation, route }) => {
                             <View>
                                 <View style={styles.barraContainer}>
                                     <View style={styles.busquedaContainer}>
-                                        <BarraBusqueda message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
+                                        <SearchBar message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
                                     </View>
                                     <Icon name='search' size={26} color="#FFF" style={{ marginLeft: 10 }} />
                                 </View>
