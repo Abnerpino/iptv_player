@@ -9,6 +9,7 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Orientation from 'react-native-orientation-locker';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
+import SettingsPanel from '../SettingsPanel';
 
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, setVisto, onProgressUpdate, onEpisodeChange, markAsWatched }) => {
     const playerRef = useRef(null);
@@ -24,6 +25,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [showSettings, setShowSettings] = useState(false); // Controla la visibilidad del panel
+    const [videoTracks, setVideoTracks] = useState([]); // Almacena pistas de video
+    const [audioTracks, setAudioTracks] = useState([]); // Almacena pistas de audio
+    const [textTracks, setTextTracks] = useState([]);   // Almacena pistas de subtítulos
+    const [selectedVideoTrack, setSelectedVideoTrack] = useState({ type: 'auto' });
+    const [selectedAudioTrack, setSelectedAudioTrack] = useState({ type: 'auto' });
+    const [selectedTextTrack, setSelectedTextTrack] = useState(); // Inicia deshabilitado
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de episodios
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
@@ -53,6 +61,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         if (!fullScreen) return;
 
         const backAction = () => {
+            if (showSettings) { // Si el panel de ajustes está abierto...
+                setShowSettings(false); // Cierra el panel de ajustes
+                return true;
+            }
+
             handleBack();
             return true;
         };
@@ -60,14 +73,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
 
         return () => backHandler.remove();
-    }, [fullScreen]);
+    }, [fullScreen, showSettings]);
 
     const savePlaybackTime = useCallback((timeToSave) => {
         const item_id = tipo === 'series' ? 'episode_id' : 'stream_id';
 
-        if (!contenido || !contenido[item_id] || duration === 0) {
-            return;
-        }
+        if (!contenido || !contenido[item_id]) return;
 
         if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0) {
             const time = timeToSave.toString();
@@ -77,7 +88,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                 updateEpisodeProps(contenido.series_id, contenido.temporada, contenido.episode_id, 'playback_time', time);
             }
         }
-    }, [contenido, duration, tipo, updateEpisodeProps, updateProps]);
+    }, [contenido, tipo, updateEpisodeProps, updateProps]);
 
     const showTemporarilyControls = () => {
         setShowControls(true);
@@ -105,6 +116,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     };
 
     const handleProgress = ({ currentTime }) => {
+        // Si el panel está abierto, no actualiza el tiempo y ni hace nada más
+        if (showSettings) {
+            return;
+        }
+
         setCurrentTime(currentTime);
         latestTime.current = currentTime;
 
@@ -119,7 +135,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
 
         // Comprueba si ha pasado suficiente tiempo desde el último guardado
-        if (currentTime - lastSaveTime.current > SAVE_INTERVAL) {
+        if (Math.abs(currentTime - lastSaveTime.current) > SAVE_INTERVAL) { // Se usa valor absoluto porque lo importante no es la dirección (atrás o adelante), sino la magintud del salto en el tiempo
             savePlaybackTime(currentTime);
             lastSaveTime.current = currentTime; // Actualiza el último tiempo de guardado
         }
@@ -134,9 +150,31 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         setIsLoading(true);
     };
 
-    const handleLoad = ({ duration }) => {
+    const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
-        setDuration(duration);
+        setDuration(data.duration);
+
+        // Captura las pistas disponibles
+        setVideoTracks(data.videoTracks);
+        setAudioTracks(data.audioTracks);
+        setTextTracks(data.textTracks);
+
+        // Si hay una o más pistas de video, selecciona la primera por defecto
+        if (data.videoTracks.length > 0) {
+            setSelectedVideoTrack({
+                type: 'index',
+                value: 0 //El índice 0 es la primera pista
+            });
+        }
+
+        // Si hay una o más pistas de audio, selecciona la primera por defecto
+        if (data.audioTracks.length > 0) {
+            setSelectedAudioTrack({
+                type: 'index',
+                value: 0 //El índice 0 es la primera pista
+            });
+        }
+
 
         if (tipo === 'live') {
             // Limpia cualquier temporizador anterior por si acaso
@@ -155,7 +193,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         const VISTO_THRESHOLD = 5; // Umbral de 5 segundos para considerar un video como "reproducido completamente".
 
         // Si la duración es válida y la diferencia es menor que el umbral, reinicia el video
-        if (duration > 0 && (duration - startTime) < VISTO_THRESHOLD) {
+        if (data.duration > 0 && (data.duration - startTime) < VISTO_THRESHOLD) {
             startTime = 0;
         }
 
@@ -166,7 +204,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
             }
         }
 
-        // Sincroniza el estado de React y el contador de guardado
         setCurrentTime(startTime);
         lastSaveTime.current = startTime; // Sincroniza el último tiempo guardado
     };
@@ -236,113 +273,139 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     };
 
     return (
-        <TouchableWithoutFeedback
-            style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
-            onPress={() => {
-                if (!fullScreen) {
-                    setFullScreen(true);
-                }
-                toggleControls();
-            }}
-        >
-            <View style={styles.container}>
-                <Video
-                    ref={playerRef}
-                    source={{ uri: contenido.link }}
-                    style={styles.videoPlayer}
-                    resizeMode="contain"
-                    paused={paused}
-                    onLoadStart={handleLoadStart}
-                    onLoad={handleLoad}
-                    onBuffer={handleBuffer}
-                    onProgress={handleProgress}
-                    onEnd={handleEnd}
-                    controls={false}
-                />
+        <View style={styles.container}>
+            <TouchableWithoutFeedback
+                style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
+                onPress={() => {
+                    if (showSettings) {
+                        setShowSettings(false);
+                        return
+                    }
+                    if (!fullScreen) {
+                        setFullScreen(true);
+                    }
+                    toggleControls();
+                }}
+            >
+                <View style={styles.container}>
+                    <Video
+                        ref={playerRef}
+                        source={{ uri: contenido.link }}
+                        style={styles.videoPlayer}
+                        resizeMode="contain"
+                        paused={paused}
+                        onLoadStart={handleLoadStart}
+                        onLoad={handleLoad}
+                        onBuffer={handleBuffer}
+                        onProgress={handleProgress}
+                        onEnd={handleEnd}
+                        controls={false}
+                        selectedVideoTrack={selectedVideoTrack}
+                        selectedAudioTrack={selectedAudioTrack}
+                        selectedTextTrack={selectedTextTrack}
+                    />
 
-                {fullScreen && showControls && (
-                    <View style={styles.overlay}>
-                        {/* Top */}
-                        <View style={styles.topControls}>
-                            <TouchableOpacity onPress={handleBack}>
-                                <Icon name="arrow-circle-left" size={26} color="#fff" />
-                            </TouchableOpacity>
-                            <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
-                            <View style={styles.rightIcons}>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowControls(false);
-                                        setModalVisible(true);
-                                    }}
-                                >
-                                    <Icon2 name="card-multiple-outline" size={26} color="#fff" style={styles.iconMargin} />
+                    {fullScreen && showControls && (
+                        <View style={styles.overlay}>
+                            {/* Top */}
+                            <View style={styles.topControls}>
+                                <TouchableOpacity onPress={handleBack}>
+                                    <Icon name="arrow-circle-left" size={26} color="#fff" />
                                 </TouchableOpacity>
-                                <Icon2 name="cast" size={26} color="#fff" style={styles.iconMargin} />
-                                <Icon2 name="cog-outline" size={26} color="#fff" />
+                                <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
+                                <View style={styles.rightIcons}>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setShowControls(false);
+                                            setModalVisible(true);
+                                        }}
+                                    >
+                                        <Icon2 name="card-multiple-outline" size={26} color="#fff" style={styles.iconMargin} />
+                                    </TouchableOpacity>
+                                    <Icon2 name="cast" size={26} color="#fff" style={styles.iconMargin} />
+                                    <TouchableOpacity onPress={() => {
+                                        setShowControls(false);
+                                        setShowSettings(true);
+                                    }}>
+                                        <Icon2 name="cog-outline" size={26} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
 
-                        {/* Middle */}
-                        <View style={styles.middleControls}>
-                            {isLoading ? (
-                                <ActivityIndicator size="large" color="#fff" />
+                            {/* Middle */}
+                            <View style={styles.middleControls}>
+                                {isLoading ? (
+                                    <ActivityIndicator size="large" color="#fff" />
+                                ) : (
+                                    <>
+                                        <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
+                                            <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={togglePlayPause}>
+                                            <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => seekTo(currentTime + 10)}>
+                                            <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
+                                        </TouchableOpacity>
+                                    </>
+                                )}
+                            </View>
+
+                            {/* Bottom */}
+                            {tipo === 'live' ? (
+                                <View style={styles.bottomControlsLive}>
+                                    <FastImage
+                                        style={styles.imagen}
+                                        source={{ uri: contenido.stream_icon }}
+                                        resizeMode="contain"
+                                    />
+                                    <View style={styles.barra} />
+                                </View>
                             ) : (
-                                <>
-                                    <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
-                                        <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={togglePlayPause}>
-                                        <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => seekTo(currentTime + 10)}>
-                                        <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
-                                    </TouchableOpacity>
-                                </>
+                                <View style={styles.bottomControls}>
+                                    <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                    <Slider
+                                        style={{ flex: 1 }}
+                                        minimumValue={0}
+                                        maximumValue={duration}
+                                        value={currentTime}
+                                        minimumTrackTintColor="#fff"
+                                        maximumTrackTintColor="#888"
+                                        thumbTintColor="#fff"
+                                        onSlidingComplete={seekTo}
+                                    />
+                                    <Text style={styles.time}>{formatTime(duration)}</Text>
+                                </View>
                             )}
                         </View>
-
-                        {/* Bottom */}
-                        {tipo === 'live' ? (
-                            <View style={styles.bottomControlsLive}>
-                                <FastImage
-                                    style={styles.imagen}
-                                    source={{ uri: contenido.stream_icon }}
-                                    resizeMode="contain"
-                                />
-                                <View style={styles.barra} />
-                            </View>
-                        ) : (
-                            <View style={styles.bottomControls}>
-                                <Text style={styles.time}>{formatTime(currentTime)}</Text>
-                                <Slider
-                                    style={{ flex: 1 }}
-                                    minimumValue={0}
-                                    maximumValue={duration}
-                                    value={currentTime}
-                                    minimumTrackTintColor="#fff"
-                                    maximumTrackTintColor="#888"
-                                    thumbTintColor="#fff"
-                                    onSlidingComplete={seekTo}
-                                />
-                                <Text style={styles.time}>{formatTime(duration)}</Text>
-                            </View>
-                        )}
-
-                    </View>
-                )}
-                <ModalEpisodes
-                    openModal={modalVisible}
-                    handleCloseModal={handleCloseModal}
-                    temporada={contenido.temporada}
-                    episodes={data}
-                    onSelectEpisode={(episodio) => {
-                        onEpisodeChange(episodio);
-                        setVisto(episodio);
-                    }}
+                    )}
+                </View>
+            </TouchableWithoutFeedback>
+            {showSettings && (
+                <SettingsPanel
+                    onClose={() => setShowSettings(false)}
+                    videoTracks={videoTracks}
+                    audioTracks={audioTracks}
+                    textTracks={textTracks}
+                    selectedVideoTrack={selectedVideoTrack}
+                    selectedAudioTrack={selectedAudioTrack}
+                    selectedTextTrack={selectedTextTrack}
+                    onSelectVideoTrack={setSelectedVideoTrack}
+                    onSelectAudioTrack={setSelectedAudioTrack}
+                    onSelectTextTrack={setSelectedTextTrack}
                 />
-                {/*renderFloatingList()*/}
-            </View>
-        </TouchableWithoutFeedback>
+            )}
+            <ModalEpisodes
+                openModal={modalVisible}
+                handleCloseModal={handleCloseModal}
+                temporada={contenido.temporada}
+                episodes={data}
+                onSelectEpisode={(episodio) => {
+                    onEpisodeChange(episodio);
+                    setVisto(episodio);
+                }}
+            />
+        </View>
     );
 };
 
@@ -420,7 +483,7 @@ const styles = StyleSheet.create({
     },
     time: {
         color: '#fff',
-        width: 50,
+        width: '7%',
         textAlign: 'center',
         fontSize: 12,
     },
