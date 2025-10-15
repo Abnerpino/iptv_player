@@ -47,7 +47,7 @@ const Serie = ({ navigation, route }) => {
     const hasPerformedInitialSave = useRef(false); // Referencia para saber cuando ya se guardó el 'playback_time' del episodio la primera vez que se reproduce
 
     const duration = selectedEpisode.duration_secs !== "" ? Number(selectedEpisode.duration_secs) : 0;
-    const isComplete = (duration - parseFloat(selectedEpisode.playback_time)) < 5 && duration > 0 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+    const isComplete = (duration > 0 && (parseFloat(selectedEpisode.playback_time) / duration) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
 
     useEffect(() => {
         if (playbackInfo.episodeId !== selectedEpisode.id) return;
@@ -340,7 +340,8 @@ const Serie = ({ navigation, route }) => {
                         episode_id: selectedEpisode.id,
                         link: selectedEpisode.link,
                         name: selectedEpisode.title,
-                        playback_time: selectedEpisode.playback_time
+                        playback_time: selectedEpisode.playback_time,
+                        episode_run_time: Number(selectedEpisode.duration_secs),
                     }}
                     data={episodios}
                     onEpisodeChange={handleChangeEpisode}
