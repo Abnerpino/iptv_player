@@ -105,7 +105,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
     };
 
-    const togglePlayPause = () => setPaused(prev => !prev);
+    const togglePlayPause = () => {
+        setPaused(prev => !prev);
+
+        // Si ya terminó la reproducción pero no se cierra el reproductor, al volver a darle 'Play', se reinicia
+        if (duration > 0 && (currentTime / duration) === 1) {
+            setCurrentTime(0);
+            playerRef.current?.seek(0);
+        }
+    }
 
     const handleBack = () => {
         if (tipo === 'live') {
@@ -190,11 +198,18 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         }
 
         let startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
-        const VISTO_THRESHOLD = 5; // Umbral de 5 segundos para considerar un video como "reproducido completamente".
 
-        // Si la duración es válida y la diferencia es menor que el umbral, reinicia el video
-        if (data.duration > 0 && (data.duration - startTime) < VISTO_THRESHOLD) {
-            startTime = 0;
+        // Si la duración es válida y el porcentaje de reproducción es igual o mayor a 99%, reinicia el video
+        // Usa la duración del objeto 'contenido' porque no siempre es la misma con 'data.duration' y la barra de progreso trabaja con la de 'contenido'
+        if (data.duration > 0 && tipo === 'vod' && Number(contenido.episode_run_time) > 0) {
+            if (startTime / (Number(contenido.episode_run_time)*60) >= 0.99) {
+                startTime = 0;
+            }
+        }
+        if (data.duration > 0 && tipo === 'series' && contenido.episode_run_time > 0) {
+            if (startTime / contenido.episode_run_time >= 0.99) {
+                startTime = 0;
+            }
         }
 
         if (startTime > 0 && playerRef.current) {
@@ -210,12 +225,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
 
     const handleEnd = () => {
         if (tipo === 'vod' || tipo === 'series') {
-            // Guarda explícitamente la duración total como el tiempo de reproducción
-            savePlaybackTime(duration);
-            // Pausa y reinicia el reproductor en la UI
-            setPaused(true);
-            setCurrentTime(0);
-            playerRef.current?.seek(0);
+            savePlaybackTime(duration); // Guarda explícitamente la duración total como el tiempo de reproducción
+            setPaused(true); // Pausa el reproductor en la UI
         }
     };
 
