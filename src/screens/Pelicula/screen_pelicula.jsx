@@ -30,7 +30,7 @@ const Pelicula = ({ navigation, route }) => {
     const [playbackTime, setPlaybackTime] = useState(parseFloat(pelicula.playback_time));
     const hasPerformedInitialSave = useRef(false);  // Referencia para saber cuando ya se guardó el 'playback_time' de la pelicula la primera vez que se reproduce
 
-    const isComplete = (runtime - playbackTime) < 5 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+    const isComplete = (runtime*60 - playbackTime) < 5 ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {
