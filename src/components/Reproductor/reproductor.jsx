@@ -316,6 +316,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                         selectedTextTrack={selectedTextTrack}
                     />
 
+                    {/* Muestra la animación de carga mientras un canal está cargando en pantalla chica */}
+                    {tipo === 'live' && !fullScreen && isLoading && (
+                        <View style={{ flex: 1, justifyContent: 'center', }}>
+                            <ActivityIndicator size={50} color="#fff" />
+                        </View>
+                    )}
+
                     {fullScreen && showControls && (
                         <View style={styles.overlay}>
                             {/* Top */}
@@ -346,7 +353,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                             {/* Middle */}
                             <View style={styles.middleControls}>
                                 {isLoading ? (
-                                    <ActivityIndicator size="large" color="#fff" />
+                                    <ActivityIndicator size={50} color="#fff" />
                                 ) : (
                                     <>
                                         <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
