@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 
-const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
+const ItemChannel = ({ canal, seleccionado, seleccionar, isOnReproductor }) => {
     const { getModelName, updateProps } = useStreaming();
     const categoryModel = getModelName('live', true);
     const categories = useQuery(categoryModel);
@@ -13,6 +13,7 @@ const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
     const [favorite, setFavorite] = useState(canal?.favorito ?? false);
 
     const backgroundColor = canal.num === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
+    const borderBottomColor = isOnReproductor ? '#999' : '#303030'; // Establece el color dependiendo de si el item se muestra dentro o fuera del reproductor
 
     const handleToggleFavorite = () => {
         Vibration.vibrate();
@@ -30,7 +31,7 @@ const ItemChannel = ({ canal, seleccionado, seleccionar }) => {
 
     return (
         <TouchableHighlight
-            style={[styles.container, { backgroundColor }]}
+            style={[styles.container, { backgroundColor, borderBottomColor }]}
             onPress={() => seleccionar(canal)}
             onLongPress={handleToggleFavorite}
             underlayColor={canal.num !== seleccionado ? "#D5700F" : "#006172"}
@@ -60,7 +61,6 @@ const styles = StyleSheet.create({
         height: 50,
         padding: 5,
         borderBottomWidth: 1,
-        borderBottomColor: '#303030',
     },
     textoNum: {
         width: '15%',
@@ -83,7 +83,6 @@ const styles = StyleSheet.create({
     imagen: {
         width: '100%',
         height: '100%',
-        //backgroundColor: '#f00'
     }
 });
 

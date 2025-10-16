@@ -1,7 +1,8 @@
 import { View, Text, TouchableHighlight } from "react-native";
 
-const ItemCategory = ({ categoria, seleccionado, seleccionar }) => {
+const ItemCategory = ({ categoria, seleccionado, seleccionar, isOnReproductor }) => {
     const backgroundColor = categoria.category_id === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
+    const borderBottomColor = isOnReproductor ? '#999' : '#303030'; // Establece el color dependiendo de si el item se muestra dentro o fuera del reproductor
 
     const handleSelectionCategory = () => {
         seleccionar(categoria);
@@ -9,7 +10,7 @@ const ItemCategory = ({ categoria, seleccionado, seleccionar }) => {
 
     return (
         <TouchableHighlight
-            style={[{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#303030', }, { backgroundColor }]}
+            style={{ padding: 10, borderBottomWidth: 1, backgroundColor, borderBottomColor }}
             onPress={handleSelectionCategory}
             underlayColor={(categoria.category_id !== seleccionado) ? "#D5700F" : "#006172"}
         >
