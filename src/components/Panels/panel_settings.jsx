@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Icon2 from 'react-native-vector-icons/Entypo';
-import Icon3 from 'react-native-vector-icons/MaterialIcons';
+import Icon2 from 'react-native-vector-icons/FontAwesome';
+import Icon3 from 'react-native-vector-icons/Entypo';
+import Icon4 from 'react-native-vector-icons/MaterialIcons';
 
 const getTrackLabel = (track, trackType) => {
     if (!track) return 'Desconocido';
@@ -41,7 +42,7 @@ const getTrackLabel = (track, trackType) => {
     return parts.join(', ');
 };
 
-const SettingsPanel = ({ onClose, videoTracks, audioTracks, textTracks, selectedVideoTrack, selectedAudioTrack, selectedTextTrack, onSelectVideoTrack, onSelectAudioTrack, onSelectTextTrack, }) => {
+const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selectedVideoTrack, selectedAudioTrack, selectedTextTrack, onSelectVideoTrack, onSelectAudioTrack, onSelectTextTrack, }) => {
     const TrackOption = ({ track, isSelected, onSelect, trackType }) => (
         <TouchableOpacity style={styles.optionRow} onPress={onSelect}>
             <Icon name={isSelected ? 'radiobox-marked' : 'radiobox-blank'} size={22} color="#fff" />
@@ -53,14 +54,14 @@ const SettingsPanel = ({ onClose, videoTracks, audioTracks, textTracks, selected
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={onClose}>
-                    <Icon name="arrow-left" size={26} color="#fff" />
+                    <Icon2 name="arrow-circle-left" size={26} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Ajustes</Text>
             </View>
             <ScrollView style={styles.scrollView}>
                 {/* Pistas de Video */}
                 <View style={styles.containerTitle}>
-                    <Icon2 name="video" size={26} color="#FFF" />
+                    <Icon3 name="video" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE VIDEO</Text>
                 </View>
                 {videoTracks && videoTracks.length > 0 ? (
@@ -82,7 +83,7 @@ const SettingsPanel = ({ onClose, videoTracks, audioTracks, textTracks, selected
 
                 {/* Pistas de Audio */}
                 <View style={styles.containerTitle}>
-                    <Icon3 name="audiotrack" size={26} color="#FFF" />
+                    <Icon4 name="audiotrack" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE AUDIO</Text>
                 </View>
                 {audioTracks && audioTracks.length > 0 ? (
@@ -108,7 +109,7 @@ const SettingsPanel = ({ onClose, videoTracks, audioTracks, textTracks, selected
 
                 {/* Pistas de Subtítulos */}
                 <View style={styles.containerTitle}>
-                    <Icon3 name="closed-caption" size={26} color="#FFF" />
+                    <Icon4 name="closed-caption" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE SUBTÍTULOS</Text>
                 </View>
                 {textTracks && textTracks.length > 0 ? (
@@ -198,4 +199,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default SettingsPanel;
+export default PanelSettings;
