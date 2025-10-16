@@ -53,7 +53,7 @@ const Canal = ({ navigation, route }) => {
         }
 
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
-    }, [categories, currentIndex, searchCont])
+    }, [categories, currentIndex, searchCont]);
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
@@ -68,6 +68,14 @@ const Canal = ({ navigation, route }) => {
         const newIndex = (currentIndex + 1) % categories.length;
         setCurrentIndex(newIndex);
     };
+
+    // Función para actualizar el indice de la categoría seleccionada desde el panel del reproductor
+    function seleccionarCategoria(category) {
+        const newIndex = categories.findIndex(categoria => categoria.category_id === category.category_id);
+        if (currentIndex !== newIndex) {
+            setCurrentIndex(newIndex);
+        }
+    }
 
     // Función para actualiza el número y nombre del canal seleccionado
     function seleccionarCanal(channel) {
@@ -180,8 +188,10 @@ const Canal = ({ navigation, route }) => {
                             tipo={'live'}
                             fullScreen={isFullScreen}
                             setFullScreen={(value) => setIsFullScreen(value)}
+                            idCategory={categories[currentIndex].category_id}
                             contenido={selectedChannel}
-                            data={[]}
+                            onCategoryChange={seleccionarCategoria}
+                            onContentChange={seleccionarCanal}
                             markAsWatched={handleToggleWatched}
                         />
                     </View>
