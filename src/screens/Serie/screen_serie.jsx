@@ -343,8 +343,8 @@ const Serie = ({ navigation, route }) => {
                         playback_time: selectedEpisode.playback_time,
                         episode_run_time: Number(selectedEpisode.duration_secs),
                     }}
-                    data={episodios}
-                    onEpisodeChange={handleChangeEpisode}
+                    episodios={episodios}
+                    onContentChange={handleChangeEpisode}
                     setVisto={handleChangeEpisode}
                     onProgressUpdate={handleProgressUpdate}
                 />
