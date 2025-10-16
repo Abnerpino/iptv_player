@@ -6,7 +6,7 @@ import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../Items/item_category';
 import ItemChannel from '../Items/item_channel';
 
-const PanelChannels = ({ onClose, idCategorySelected, idChannelSelected, onSelectedCategory, onSelectChannel }) => {
+const PanelChannels = ({ onClose, idCategorySelected, idChannelSelected, onSelectChannel }) => {
     const { getModelName, getWatchedItems, getFavoriteItems } = useStreaming();
     const categoryModel = getModelName('live', true);
     const categories = useQuery(categoryModel);
@@ -43,10 +43,7 @@ const PanelChannels = ({ onClose, idCategorySelected, idChannelSelected, onSelec
                         <ItemCategory
                             categoria={item}
                             seleccionado={category.category_id}
-                            seleccionar={(categoria) => {
-                                setCategory(categoria);
-                                onSelectedCategory(categoria);
-                            }}
+                            seleccionar={(categoria) => setCategory(categoria)}
                             isOnReproductor={true}
                         />
                     )}
@@ -66,7 +63,7 @@ const PanelChannels = ({ onClose, idCategorySelected, idChannelSelected, onSelec
                         <ItemChannel
                             canal={item}
                             seleccionado={idChannelSelected}
-                            seleccionar={(canal) => onSelectChannel(canal)}
+                            seleccionar={(canal) => onSelectChannel(category, canal)}
                             isOnReproductor={true}
                         />
                     )}

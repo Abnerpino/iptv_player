@@ -12,7 +12,7 @@ import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, contenido, episodios, setVisto, onCategoryChange, onProgressUpdate, onContentChange, markAsWatched }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
@@ -167,6 +167,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, 
 
     const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
+
+        if (tipo === 'live') {
+            // Limpia cualquier temporizador anterior por si acaso
+            clearTimeout(liveVistoTimer.current);
+
+            // Inicia el temporizador de 100 milisegundos
+            liveVistoTimer.current = setTimeout(() => {
+                if (!hasMarkedLiveAsVisto.current) {
+                    markAsWatched(); // Llama a la función del padre para marcarlo en Realm
+                    hasMarkedLiveAsVisto.current = true; // Activa la bandera para no volver a entrar aquí
+                }
+            }, 100);
+
+            return; // Sale de la función porque el resto del código es solo para peliculas y episodios
+        }
+
         setDuration(data.duration);
 
         // Captura las pistas disponibles
@@ -188,20 +204,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, 
                 type: 'index',
                 value: 0 //El índice 0 es la primera pista
             });
-        }
-
-
-        if (tipo === 'live') {
-            // Limpia cualquier temporizador anterior por si acaso
-            clearTimeout(liveVistoTimer.current);
-
-            // Inicia el temporizador de 100 milisegundos
-            liveVistoTimer.current = setTimeout(() => {
-                if (!hasMarkedLiveAsVisto.current) {
-                    markAsWatched(); // Llama a la función del padre para marcarlo en Realm
-                    hasMarkedLiveAsVisto.current = true; // Activa la bandera para no volver a entrar aquí
-                }
-            }, 100);
         }
 
         let startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
@@ -259,6 +261,20 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, 
         setNombre(`${canal.num} - ${canal.name}`);
         clearTimeout(liveVistoTimer.current);
         hasMarkedLiveAsVisto.current = false; // Reinicia las bandera
+    };
+
+    // Función para ir al canal anterior
+    const handlePrevious = () => {
+        // Fórmula para retroceder y dar la vuelta al llegar al principio
+        const newIndex = (channelIndex - 1 + categoria.canales.length) % categoria.canales.length;
+        onContentChange(categoria, categoria.canales[newIndex]);
+    };
+
+    // Función para ir al siguiente canal
+    const handleNext = () => {
+        // Fórmula para avanzar y dar la vuelta al llegar al final
+        const newIndex = (channelIndex + 1) % categoria.canales.length;
+        onContentChange(categoria, categoria.canales[newIndex]);
     };
 
     //Función para controlar el cierre del modal de episodios
@@ -345,21 +361,19 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, 
 
                             {/* Middle */}
                             <View style={styles.middleControls}>
+                                <TouchableOpacity onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}>
+                                    <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
+                                </TouchableOpacity>
                                 {isLoading ? (
                                     <ActivityIndicator size={50} color="#fff" />
                                 ) : (
-                                    <>
-                                        <TouchableOpacity onPress={() => seekTo(currentTime - 10)}>
-                                            <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={togglePlayPause}>
-                                            <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => seekTo(currentTime + 10)}>
-                                            <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
-                                        </TouchableOpacity>
-                                    </>
+                                    <TouchableOpacity onPress={togglePlayPause}>
+                                        <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
+                                    </TouchableOpacity>
                                 )}
+                                <TouchableOpacity onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}>
+                                    <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
+                                </TouchableOpacity>
                             </View>
 
                             {/* Bottom */}
@@ -409,11 +423,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, 
             {showChannels && (
                 <PanelChannels
                     onClose={() => setShowChannels(false)}
-                    idCategorySelected={idCategory}
+                    idCategorySelected={categoria.category_id}
                     idChannelSelected={contenido.num}
-                    onSelectedCategory={(categoria) => onCategoryChange(categoria)}
-                    onSelectChannel={(canal) => {
-                        onContentChange(canal);
+                    onSelectChannel={(category, canal) => {
+                        onContentChange(category, canal);
                         setShowChannels(false);
                     }}
                 />

@@ -15,12 +15,15 @@ const Canal = ({ navigation, route }) => {
     const id_categoria = route.params.idCategory;
 
     const { getModelName, updateProps, getWatchedItems, getFavoriteItems } = useStreaming();
-    const categoryModel = getModelName('live', true);
-    const categories = useQuery(categoryModel);
-    const initialIndex = categories.findIndex(categoria => categoria.category_id === id_categoria);
-    const vistos = categories.find(categoria => categoria.category_id === '0.2');
-    const [currentIndex, setCurrentIndex] = useState(initialIndex); //Estado para manejar el indice de la categoria actual
+    const categoryModel = getModelName('live', true); //Obtiene el nombre del modelo para las categorias de 'live'
+    const categories = useQuery(categoryModel); //Obtiene las categorias con base en el modelo
+    const initialCategoryIndex = categories.findIndex(categoria => categoria.category_id === id_categoria); //Almacena el indice de la categoría inicial
+    const vistos = categories.find(categoria => categoria.category_id === '0.2'); //Busca y asigna la categoria 'Recientemente Vistos'
+    const [currentIndex, setCurrentIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria actual
+    const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria del canal seleccionado
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
+    const initialChannelIndex = categories[initialCategoryIndex].canales.findIndex(channel => channel.stream_id === selectedChannel.stream_id); //Almacena el indice del canal inicial
+    const [selectedChannelIndex, setSelectedChannelIndex] = useState(initialChannelIndex); //Estado para manejar el indice del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
 
@@ -72,33 +75,22 @@ const Canal = ({ navigation, route }) => {
     // Función para actualizar el indice de la categoría seleccionada desde el panel del reproductor
     function seleccionarCategoria(category) {
         const newIndex = categories.findIndex(categoria => categoria.category_id === category.category_id);
-        if (currentIndex !== newIndex) {
-            setCurrentIndex(newIndex);
+
+        if (selectedCategoryIndex !== newIndex) {
+            setCurrentIndex(newIndex); // Actualiza el nuevo indice actual
+            setSelectedCategoryIndex(newIndex); // Actualiza el nuevo indice de la categoria del canal seleccionado
         }
     }
 
     // Función para actualiza el número y nombre del canal seleccionado
-    function seleccionarCanal(channel) {
-        if (channel.num !== selectedChannel.num) {
-            setSelectedChannel(channel);
+    function seleccionarCanal(category, channel) {
+        if (channel.num !== selectedChannel.num) { // Si es un canal diferente al que estaba seleccionado
+            const newIndex = category.canales.findIndex(c => c.stream_id === channel.stream_id);
+            setSelectedChannelIndex(newIndex);
+            setSelectedChannel(channel); // Actualiza el nuevo canal seleccionado
+            seleccionarCategoria(category); // Llama a la función para actualizar la categoría seleccionada
         }
     }
-
-    const renderPlayer = () => (
-        <TouchableOpacity
-            style={isFullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
-            onPress={() => setIsFullScreen(!isFullScreen)} // 👈 6. Activa/desactiva la pantalla completa
-        >
-            <Video
-                source={{ uri: selectedChannel.link }} // ⚠️ ¡IMPORTANTE! Reemplaza 'stream_url' con el nombre de la propiedad que contiene la URL del video en tu objeto 'canal'
-                style={styles.videoPlayer}
-                controls={true} // Muestra los controles nativos (play, pausa, etc.)
-                resizeMode="contain"
-                fullscreen={isFullScreen}
-                onEnd={() => setIsFullScreen(false)} // Opcional: sale de pantalla completa al terminar
-            />
-        </TouchableOpacity>
-    );
 
     return (
         <ImageBackground
@@ -153,7 +145,7 @@ const Canal = ({ navigation, route }) => {
                                         <ItemChannel
                                             canal={item}
                                             seleccionado={selectedChannel.num}
-                                            seleccionar={(canal) => seleccionarCanal(canal)}
+                                            seleccionar={(canal) => seleccionarCanal(categories[currentIndex], canal)}
                                         />
                                     )}
                                     keyExtractor={item => item.num}
@@ -188,9 +180,9 @@ const Canal = ({ navigation, route }) => {
                             tipo={'live'}
                             fullScreen={isFullScreen}
                             setFullScreen={(value) => setIsFullScreen(value)}
-                            idCategory={categories[currentIndex].category_id}
+                            categoria={categories[selectedCategoryIndex]}
+                            channelIndex={selectedChannelIndex}
                             contenido={selectedChannel}
-                            onCategoryChange={seleccionarCategoria}
                             onContentChange={seleccionarCanal}
                             markAsWatched={handleToggleWatched}
                         />
