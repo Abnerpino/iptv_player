@@ -9,9 +9,10 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Orientation from 'react-native-orientation-locker';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
-import SettingsPanel from '../SettingsPanel';
+import PanelSettings from '../Panels/panel_settings';
+import PanelChannels from '../Panels/panel_channels';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, data, setVisto, onProgressUpdate, onEpisodeChange, markAsWatched }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, idCategory, contenido, episodios, setVisto, onCategoryChange, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
@@ -25,14 +26,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [showSettings, setShowSettings] = useState(false); // Controla la visibilidad del panel
     const [videoTracks, setVideoTracks] = useState([]); // Almacena pistas de video
     const [audioTracks, setAudioTracks] = useState([]); // Almacena pistas de audio
     const [textTracks, setTextTracks] = useState([]);   // Almacena pistas de subtítulos
     const [selectedVideoTrack, setSelectedVideoTrack] = useState({ type: 'auto' });
     const [selectedAudioTrack, setSelectedAudioTrack] = useState({ type: 'auto' });
     const [selectedTextTrack, setSelectedTextTrack] = useState(); // Inicia deshabilitado
-    const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de episodios
+    const [modalVisible, setModalVisible] = useState(false); // Estado para controlar la visibilidad el modal de episodios
+    const [showSettings, setShowSettings] = useState(false); // Estado para controlar la visibilidad del panel de ajustes
+    const [showChannels, setShowChannels] = useState(false); // Estado para controlar la visibilidad del panel de canales
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
@@ -66,6 +68,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                 return true;
             }
 
+            if (showChannels) { // Si el panel de canales está abierto...
+                setShowChannels(false); // Cierra el panel de canales
+                return true;
+            }
+
             handleBack();
             return true;
         };
@@ -73,7 +80,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
 
         return () => backHandler.remove();
-    }, [fullScreen, showSettings]);
+    }, [fullScreen, showSettings, showChannels]);
 
     const savePlaybackTime = useCallback((timeToSave) => {
         const item_id = tipo === 'series' ? 'episode_id' : 'stream_id';
@@ -124,8 +131,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
     };
 
     const handleProgress = ({ currentTime }) => {
-        // Si el panel está abierto, no actualiza el tiempo y ni hace nada más
-        if (showSettings) {
+        // Si el panel de ajustes o el panel de canales está abierto, no actualiza el tiempo y ni hace nada más
+        if (showSettings || showChannels) {
             return;
         }
 
@@ -202,7 +209,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         // Si la duración es válida y el porcentaje de reproducción es igual o mayor a 99%, reinicia el video
         // Usa la duración del objeto 'contenido' porque no siempre es la misma con 'data.duration' y la barra de progreso trabaja con la de 'contenido'
         if (data.duration > 0 && tipo === 'vod' && Number(contenido.episode_run_time) > 0) {
-            if (startTime / (Number(contenido.episode_run_time)*60) >= 0.99) {
+            if (startTime / (Number(contenido.episode_run_time) * 60) >= 0.99) {
                 startTime = 0;
             }
         }
@@ -259,30 +266,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
         setModalVisible(false);
     }
 
-    const renderFloatingList = () => {
-        if (!showControls) return null;
-
-        //const data = tipo === 'live' ? canales : tipo === 'series' ? episodios : [];
-
-        if (data && data.length === 0) return null;
-
-        return (
-            <View style={styles.lista}>
-                <ScrollView>
-                    {data.map((item, i) => (
-                        <TouchableOpacity
-                            key={i}
-                            onPress={() => cambiarCanal(item)}
-                            style={styles.itemWrapper}
-                        >
-                            <Text style={styles.itemText}>{item.title}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
-        );
-    };
-
     return (
         <View style={styles.container}>
             <TouchableWithoutFeedback
@@ -290,6 +273,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                 onPress={() => {
                     if (showSettings) {
                         setShowSettings(false);
+                        return
+                    }
+                    if (showChannels) {
+                        setShowChannels(false);
                         return
                     }
                     if (!fullScreen) {
@@ -332,14 +319,20 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                                 </TouchableOpacity>
                                 <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                 <View style={styles.rightIcons}>
-                                    <TouchableOpacity
-                                        onPress={() => {
-                                            setShowControls(false);
-                                            setModalVisible(true);
-                                        }}
-                                    >
-                                        <Icon2 name="card-multiple-outline" size={26} color="#fff" style={styles.iconMargin} />
-                                    </TouchableOpacity>
+                                    {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setShowControls(false);
+                                                if (tipo === 'live') {
+                                                    setShowChannels(true);
+                                                } else {
+                                                    setModalVisible(true);
+                                                }
+                                            }}
+                                        >
+                                            <Icon2 name="card-multiple-outline" size={26} color="#fff" style={styles.iconMargin} />
+                                        </TouchableOpacity>
+                                    )}
                                     <Icon2 name="cast" size={26} color="#fff" style={styles.iconMargin} />
                                     <TouchableOpacity onPress={() => {
                                         setShowControls(false);
@@ -400,7 +393,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                 </View>
             </TouchableWithoutFeedback>
             {showSettings && (
-                <SettingsPanel
+                <PanelSettings
                     onClose={() => setShowSettings(false)}
                     videoTracks={videoTracks}
                     audioTracks={audioTracks}
@@ -413,13 +406,25 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, contenido, d
                     onSelectTextTrack={setSelectedTextTrack}
                 />
             )}
+            {showChannels && (
+                <PanelChannels
+                    onClose={() => setShowChannels(false)}
+                    idCategorySelected={idCategory}
+                    idChannelSelected={contenido.num}
+                    onSelectedCategory={(categoria) => onCategoryChange(categoria)}
+                    onSelectChannel={(canal) => {
+                        onContentChange(canal);
+                        setShowChannels(false);
+                    }}
+                />
+            )}
             <ModalEpisodes
                 openModal={modalVisible}
                 handleCloseModal={handleCloseModal}
                 temporada={contenido.temporada}
-                episodes={data}
+                episodes={episodios}
                 onSelectEpisode={(episodio) => {
-                    onEpisodeChange(episodio);
+                    onContentChange(episodio);
                     setVisto(episodio);
                 }}
             />
