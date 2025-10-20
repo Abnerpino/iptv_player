@@ -1,11 +1,12 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, BackHandler, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, BackHandler, ActivityIndicator } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
-import Slider from '@react-native-community/slider';
+import { Slider } from '@miblanchard/react-native-slider';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
+import Icon4 from 'react-native-vector-icons/FontAwesome5';
 import Orientation from 'react-native-orientation-locker';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
@@ -239,7 +240,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
-    const seekTo = (time) => playerRef.current?.seek(time);
+    const seekTo = (time) => playerRef.current?.seek(time[0]);
 
     const formatTime = (seconds) => {
         const hours = Math.floor(seconds / 3600);
@@ -253,7 +254,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             const formattedHours = hours < 10 ? '0' + hours : hours;
             return `${formattedHours}:${formattedMins}:${formattedSecs}`;
         } else {
-            return `${formattedMins}:${formattedSecs}`;
+            if (tipo === 'vod') {
+                auxFormatted = Number(contenido.episode_run_time) >= 60 ? '00:' : '';
+            } else {
+                auxFormatted = Number(contenido.episode_run_time) >= 3600 ? '00:' : '';
+            }
+            return `${auxFormatted}${formattedMins}:${formattedSecs}`;
         }
     };
 
@@ -335,21 +341,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 </TouchableOpacity>
                                 <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                 <View style={styles.rightIcons}>
-                                    {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                setShowControls(false);
-                                                if (tipo === 'live') {
-                                                    setShowChannels(true);
-                                                } else {
-                                                    setModalVisible(true);
-                                                }
-                                            }}
-                                        >
-                                            <Icon2 name="card-multiple-outline" size={26} color="#fff" style={styles.iconMargin} />
-                                        </TouchableOpacity>
-                                    )}
-                                    <Icon2 name="cast" size={26} color="#fff" style={styles.iconMargin} />
+                                    <Icon2 name="cast" size={26} color="#fff" />
+                                    <Icon name="unlock-alt" size={26} color="#fff" />
                                     <TouchableOpacity onPress={() => {
                                         setShowControls(false);
                                         setShowSettings(true);
@@ -362,46 +355,83 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             {/* Middle */}
                             <View style={styles.middleControls}>
                                 <TouchableOpacity onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}>
-                                    <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={40} color="#fff" />
+                                    <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
                                 </TouchableOpacity>
                                 {isLoading ? (
                                     <ActivityIndicator size={50} color="#fff" />
                                 ) : (
                                     <TouchableOpacity onPress={togglePlayPause}>
-                                        <Icon3 name={paused ? 'play-arrow' : 'pause'} size={50} color="#fff" />
+                                        <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}>
-                                    <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={40} color="#fff" />
+                                    <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
                                 </TouchableOpacity>
                             </View>
 
                             {/* Bottom */}
-                            {tipo === 'live' ? (
-                                <View style={styles.bottomControlsLive}>
-                                    <FastImage
-                                        style={styles.imagen}
-                                        source={{ uri: contenido.stream_icon }}
-                                        resizeMode="contain"
-                                    />
-                                    <View style={styles.barra} />
+                            <View>
+                                {tipo === 'live' ? (
+                                    <View style={styles.bottomControlsLive}>
+                                        <FastImage
+                                            style={styles.imagen}
+                                            source={{ uri: contenido.stream_icon }}
+                                            resizeMode="contain"
+                                        />
+                                        <View style={styles.barra} />
+                                    </View>
+                                ) : (
+                                    <View style={styles.bottomControls}>
+                                        <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                        <Slider
+                                            value={currentTime}
+                                            minimumValue={0}
+                                            maximumValue={duration}
+                                            onSlidingComplete={seekTo}
+                                            trackStyle={styles.track}
+                                            thumbStyle={styles.thumb}
+                                            minimumTrackTintColor="#00c0fe"
+                                            maximumTrackTintColor="#888"
+                                            containerStyle={{ flex: 1 }}
+                                        />
+                                        <Text style={styles.time}>{formatTime(duration)}</Text>
+                                    </View>
+                                )}
+                                <View style={styles.bottomIcons}>
+                                    {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
+                                        <TouchableOpacity
+                                            style={{ flexDirection: 'row', }}
+                                            onPress={() => {
+                                                setShowControls(false);
+                                                if (tipo === 'live') {
+                                                    setShowChannels(true);
+                                                } else {
+                                                    setModalVisible(true);
+                                                }
+                                            }}
+                                        >
+                                            <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
+                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                        <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
+                                        <Text style={styles.textIcon}>Relación de aspecto</Text>
+                                    </TouchableOpacity>
+                                    {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
+                                        <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                            <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
+                                            <Text style={styles.textIcon}>Velocidad</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {tipo === 'series' && ( // Solo se muestra para episodios
+                                        <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                            <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
+                                            <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
-                            ) : (
-                                <View style={styles.bottomControls}>
-                                    <Text style={styles.time}>{formatTime(currentTime)}</Text>
-                                    <Slider
-                                        style={{ flex: 1 }}
-                                        minimumValue={0}
-                                        maximumValue={duration}
-                                        value={currentTime}
-                                        minimumTrackTintColor="#fff"
-                                        maximumTrackTintColor="#888"
-                                        thumbTintColor="#fff"
-                                        onSlidingComplete={seekTo}
-                                    />
-                                    <Text style={styles.time}>{formatTime(duration)}</Text>
-                                </View>
-                            )}
+                            </View>
                         </View>
                     )}
                 </View>
@@ -471,7 +501,8 @@ const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'space-between',
-        padding: 16,
+        paddingVertical: 20,
+        paddingHorizontal: 16,
         backgroundColor: 'rgba(0,0,0,0.35)',
     },
     topControls: {
@@ -480,14 +511,26 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     title: {
-        flex: 1,
+        flex: 0.80,
         color: '#fff',
         fontSize: 16,
         marginLeft: 20,
     },
     rightIcons: {
+        flex: 0.20,
         flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    bottomIcons: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly',
         alignItems: 'center',
+        marginTop: 10
+    },
+    textIcon: {
+        color: '#fff',
+        fontSize: 16,
+        textAlignVertical: 'center',
     },
     iconMargin: {
         marginRight: 10
@@ -511,7 +554,7 @@ const styles = StyleSheet.create({
         height: 40,
     },
     barra: {
-        height: 3,
+        height: 4,
         backgroundColor: '#888',
         marginVertical: 10,
         borderRadius: 2,
@@ -522,6 +565,15 @@ const styles = StyleSheet.create({
         width: '7%',
         textAlign: 'center',
         fontSize: 12,
+    },
+    track: {
+        height: 4,
+        borderRadius: 2
+    },
+    thumb: {
+        height: 15,
+        width: 15,
+        backgroundColor: '#fff'
     },
     lista: {
         position: 'absolute',
