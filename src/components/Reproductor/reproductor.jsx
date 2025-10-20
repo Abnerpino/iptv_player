@@ -13,7 +13,7 @@ import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
@@ -36,6 +36,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [modalVisible, setModalVisible] = useState(false); // Estado para controlar la visibilidad el modal de episodios
     const [showSettings, setShowSettings] = useState(false); // Estado para controlar la visibilidad del panel de ajustes
     const [showChannels, setShowChannels] = useState(false); // Estado para controlar la visibilidad del panel de canales
+    const [resizeMode, setResizeMode] = useState({ nombre: 'Fit Parent', modo: 'contain' }); // Estado para manejar el nombre y el modo para ajustar el tamaño del video
+    const [playbackRate, setPlaybackRate] = useState(1.0); // Estado para manejar la velocidad del video
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
@@ -288,6 +290,33 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         setModalVisible(false);
     }
 
+    // Función para cambiar al siguiente episodio
+    const nextEpisode = () => {
+        onContentChange(episodios[idxEpisode + 1]);
+        setVisto(episodios[idxEpisode + 1]);
+    };
+
+    // Función para cambiar la relación de aspecto
+    const cycleAspectRatio = () => {
+        const modes = [
+            { nombre: 'Fit Parent', modo: 'contain' },
+            { nombre: 'Fill Parent', modo: 'cover' },
+            { nombre: 'Match Parent', modo: 'stretch' }
+        ];
+        const currentIndex = modes.findIndex(mode => mode.modo === resizeMode.modo);
+        // Usamos el módulo para volver al inicio de la lista
+        const nextIndex = (currentIndex + 1) % modes.length;
+        setResizeMode(modes[nextIndex]);
+    };
+
+    // Función para cambiar la velocidad de reproducción
+    const cyclePlaybackSpeed = () => {
+        const rates = [1.0, 1.25, 1.5, 2.0, 0.25, 0.5]; // Lista de velocidades
+        const currentIndex = rates.indexOf(playbackRate);
+        const nextIndex = (currentIndex + 1) % rates.length;
+        setPlaybackRate(rates[nextIndex]);
+    };
+
     return (
         <View style={styles.container}>
             <TouchableWithoutFeedback
@@ -312,7 +341,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         ref={playerRef}
                         source={{ uri: contenido.link }}
                         style={styles.videoPlayer}
-                        resizeMode="contain"
+                        resizeMode={resizeMode.modo}
+                        rate={playbackRate}
                         paused={paused}
                         onLoadStart={handleLoadStart}
                         onLoad={handleLoad}
@@ -414,18 +444,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                             <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
                                         </TouchableOpacity>
                                     )}
-                                    <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                    <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
                                         <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
-                                        <Text style={styles.textIcon}>Relación de aspecto</Text>
+                                        <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
                                     </TouchableOpacity>
                                     {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
-                                        <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                        <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
                                             <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
-                                            <Text style={styles.textIcon}>Velocidad</Text>
+                                            <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
                                         </TouchableOpacity>
                                     )}
                                     {tipo === 'series' && ( // Solo se muestra para episodios
-                                        <TouchableOpacity style={{ flexDirection: 'row', }}>
+                                        <TouchableOpacity
+                                            style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
+                                            onPress={nextEpisode}
+                                            disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                        >
                                             <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
                                             <Text style={styles.textIcon}>Siguiente episodio</Text>
                                         </TouchableOpacity>
