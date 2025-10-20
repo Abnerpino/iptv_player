@@ -119,11 +119,17 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                 onError={() => setError(true)}
                 resizeMode={imagen && !error ? "cover" : "contain"}
             />
+            {tipo !== 'live' && idCategory === '0.2' && (
+                <FastImage source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
+            )}
             <View style={[styles.topOverlay, { justifyContent: tipo !== 'live' && item.rating > 0 ? 'space-between' : 'flex-end', }]}>
-                {tipo !== 'live' && item.rating > 0 && (
+                {tipo !== 'live' && (tipo === 'vod' || idCategory !== '0.2') && item.rating > 0 && (
                     <Text style={styles.ratingText}>
                         {item.rating}
                     </Text>
+                )}
+                {tipo === 'series' && idCategory === '0.2' && (
+                    <Text style={styles.infoEpisode}>{`T${item.last_ep_played[0]+1}:E${item.last_ep_played[1]+1}`}</Text>
                 )}
                 {item.favorito && (
                     <Icon name={"heart"} size={20} color={"red"} />
@@ -159,6 +165,14 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 5,
     },
+    iconPlay: {
+        width: '35%',
+        height: '35%',
+        position: 'absolute',
+        top: '30%',
+        left: '30%',
+        zIndex: 10,
+    },
     topOverlay: {
         flexDirection: 'row',
         position: 'absolute',
@@ -172,6 +186,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgb(28, 134, 199)',
         color: '#FFF',
         fontSize: 11,
+        textAlign: 'center',
+        borderRadius: 7.5,
+        paddingVertical: 2.5,
+        paddingHorizontal: 5,
+    },
+    infoEpisode: {
+        backgroundColor: '#999',
+        color: '#00008B',
+        fontSize: 11,
+        fontWeight: 'bold',
         textAlign: 'center',
         borderRadius: 7.5,
         paddingVertical: 2.5,
