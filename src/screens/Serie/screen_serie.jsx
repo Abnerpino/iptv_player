@@ -344,6 +344,7 @@ const Serie = ({ navigation, route }) => {
                         episode_run_time: Number(selectedEpisode.duration_secs),
                     }}
                     episodios={episodios}
+                    idxEpisode={episodios.findIndex(episodio => episodio.id === selectedEpisode.id)}
                     onContentChange={handleChangeEpisode}
                     setVisto={handleChangeEpisode}
                     onProgressUpdate={handleProgressUpdate}
