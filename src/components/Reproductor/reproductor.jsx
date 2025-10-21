@@ -16,6 +16,7 @@ import PanelChannels from '../Panels/panel_channels';
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
+    const lockTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
     const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
     const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
@@ -38,6 +39,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [showChannels, setShowChannels] = useState(false); // Estado para controlar la visibilidad del panel de canales
     const [resizeMode, setResizeMode] = useState({ nombre: 'Fit Parent', modo: 'contain' }); // Estado para manejar el nombre y el modo para ajustar el tamaño del video
     const [playbackRate, setPlaybackRate] = useState(1.0); // Estado para manejar la velocidad del video
+    const [isScreenLock, setIsScreenLock] = useState(false); // Estado para manejar el 'bloqueo de pantalla'
+    const [showIconLock, setShowIconLock] = useState(false); // Estado para manejar la visibilidad de la notificación del 'bloqueo de pantalla'
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
@@ -53,6 +56,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         return () => {
             Orientation.unlockAllOrientations();
             clearTimeout(controlTimeout.current);
+            clearTimeout(lockTimeout.current);
         };
     }, []);
 
@@ -113,6 +117,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         } else {
             showTemporarilyControls();
         }
+    };
+
+    const toggleIconLock = () => {
+        if (showIconLock) {
+            setShowIconLock(false);
+            clearTimeout(lockTimeout.current);
+        } else {
+            showTemporarilyIconLock();
+        }
+    };
+
+    const showTemporarilyIconLock = () => {
+        setShowIconLock(true);
+        if (lockTimeout.current) clearTimeout(lockTimeout.current);
+        lockTimeout.current = setTimeout(() => setShowIconLock(false), 3000);
     };
 
     const togglePlayPause = () => {
@@ -333,6 +352,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     if (!fullScreen) {
                         setFullScreen(true);
                     }
+                    if (isScreenLock) {
+                        toggleIconLock();
+                        return
+                    }
                     toggleControls();
                 }}
             >
@@ -355,14 +378,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         selectedTextTrack={selectedTextTrack}
                     />
 
-                    {/* Muestra la animación de carga mientras un canal está cargando en pantalla chica */}
-                    {tipo === 'live' && !fullScreen && isLoading && (
+                    {/* Muestra la animación de carga, ya sea cuando un canal está cargando en pantalla chica
+                    o cuando cualquier tipo de contenido está cargando mientras la pantalla está bloqueada */}
+                    {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && isLoading && (
                         <View style={{ flex: 1, justifyContent: 'center', }}>
                             <ActivityIndicator size={50} color="#fff" />
                         </View>
                     )}
 
-                    {fullScreen && showControls && (
+                    {fullScreen && showControls && !isScreenLock && ( // Muestra los controles solo si la pantalla está completa y no está bloqueada
                         <View style={styles.overlay}>
                             {/* Top */}
                             <View style={styles.topControls}>
@@ -372,7 +396,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                 <View style={styles.rightIcons}>
                                     <Icon2 name="cast" size={26} color="#fff" />
-                                    <Icon name="unlock-alt" size={26} color="#fff" />
+                                    <TouchableOpacity onPress={() => {
+                                        setIsScreenLock(true);
+                                        toggleIconLock();
+                                    }}
+                                    >
+                                        <Icon name="unlock-alt" size={26} color="#fff" />
+                                    </TouchableOpacity>
                                     <TouchableOpacity onPress={() => {
                                         setShowControls(false);
                                         setShowSettings(true);
@@ -466,6 +496,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     )}
                                 </View>
                             </View>
+                        </View>
+                    )}
+
+                    {isScreenLock && showIconLock && fullScreen && ( // Muestra la notificación de pantalla bloqueda solo si está activada y en panatalla grande
+                        <View style={styles.lockContainer}>
+                            <TouchableOpacity
+                                style={styles.lockIcon}
+                                onPress={() => {
+                                    setShowIconLock(false);
+                                    setIsScreenLock(false);
+                                }}
+                            >
+                                <Icon name="lock" size={35} color="#000" />
+                            </TouchableOpacity>
+                            <Text style={styles.lockText1}>Pantalla Bloqueada</Text>
+                            <Text style={styles.lockText2}>Presione para Desbloquear</Text>
                         </View>
                     )}
                 </View>
@@ -627,6 +673,30 @@ const styles = StyleSheet.create({
     itemText: {
         color: '#fff',
         fontSize: 14,
+    },
+    lockContainer: {
+        alignItems: 'center',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        paddingVertical: 20,
+    },
+    lockIcon: {
+        paddingVertical: 7,
+        paddingHorizontal: 14,
+        borderRadius: 45,
+        backgroundColor: '#FFF'
+    },
+    lockText1: {
+        color: '#FFF',
+        fontSize: 17,
+        fontWeight: 'bold',
+        marginVertical: 5
+    },
+    lockText2: {
+        color: '#FFF',
+        fontSize: 13,
     },
 });
 
