@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground, Vibration } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
@@ -140,6 +140,8 @@ const Menu = ({ navigation }) => {
     };
 
     const showToast = (mensaje) => {
+        Vibration.vibrate();
+
         showMessage({
             message: mensaje,
             type: 'default',
@@ -206,7 +208,7 @@ const Menu = ({ navigation }) => {
                         <TouchableOpacity
                             style={{ marginRight: 15 }}
                             onPress={() => navigation.navigate('About')}
-                            onLongPress={() => showToast('Acerca de')}
+                            onLongPress={() => showToast('Sobre la App')}
                         >
                             <Icon name="info-circle" size={26} color="#FFF" />
                         </TouchableOpacity>
@@ -219,7 +221,7 @@ const Menu = ({ navigation }) => {
                         </TouchableOpacity>
                         <TouchableOpacity
                             onPress={() => setModalEVisible(true)}
-                            onLongPress={() => showToast('Salir')}
+                            onLongPress={() => showToast('Salir de la App')}
                         >
                             <Icon3 name="exit-to-app" size={26} color="white" />
                         </TouchableOpacity>
