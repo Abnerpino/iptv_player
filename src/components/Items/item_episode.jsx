@@ -40,8 +40,6 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         flex: 1,
-        //width: '100%',
-        borderRadius: 5,
         borderColor: '#888',
         borderWidth: 1,
         borderRadius: 8,
