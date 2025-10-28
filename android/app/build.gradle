@@ -116,4 +116,13 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    implementation project(':react-native-google-cast')
+    implementation 'com.google.android.gms:play-services-cast-framework:21.4.0'
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'com.google.android.gms:play-services-cast-framework:21.4.0'
+    }
 }

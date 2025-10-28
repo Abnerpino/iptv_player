@@ -4,3 +4,5 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'iptv_player'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+include ':react-native-google-cast'
+project(':react-native-google-cast').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-google-cast/android')
