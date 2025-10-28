@@ -26,6 +26,7 @@
     "react-native": "0.75.3",
     "react-native-device-info": "^13.0.0",
     "react-native-fast-image": "^8.6.3",
+    "react-native-flash-message": "^0.4.2",
     "react-native-google-cast": "^4.9.1",
     "react-native-orientation-locker": "^1.7.0",
     "react-native-restart": "^0.0.27",
