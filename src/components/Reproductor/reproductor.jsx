@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, BackHandler, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import { Slider } from '@miblanchard/react-native-slider';
@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/FontAwesome5';
+import GoogleCast, { CastButton, useCastState, useRemoteMediaClient, useMediaStatus } from 'react-native-google-cast';
 import Orientation from 'react-native-orientation-locker';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
@@ -16,15 +17,18 @@ import PanelChannels from '../Panels/panel_channels';
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
+    const remoteControlTimeout = useRef(null);
     const lockTimeout = useRef(null);
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
     const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
     const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
     const liveVistoTimer = useRef(null); // Referencia para guardar el tiempo de reproducción minimo (100 ms) para considerar un canal como visto
+    const isInitialCast = useRef(true); // Referencia para evitar doble carga al conectar
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [showRemoteControls, setShowRemoteControls] = useState(true);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +45,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [playbackRate, setPlaybackRate] = useState(1.0); // Estado para manejar la velocidad del video
     const [isScreenLock, setIsScreenLock] = useState(false); // Estado para manejar el 'bloqueo de pantalla'
     const [showIconLock, setShowIconLock] = useState(false); // Estado para manejar la visibilidad de la notificación del 'bloqueo de pantalla'
+    const [background, setBackground] = useState(''); // Estado para manejar la imagen de fondo que se muestra cuando se está transmitiendo
+    const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
+    const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
+    const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
+
+    const isCasting = castState === 'connected';
 
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
@@ -56,15 +66,42 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         return () => {
             Orientation.unlockAllOrientations();
             clearTimeout(controlTimeout.current);
+            clearTimeout(remoteControlTimeout.current);
             clearTimeout(lockTimeout.current);
         };
     }, []);
 
     useEffect(() => {
-        if (tipo === 'live') {
-            cambiarCanal(contenido);
+        switch (tipo) {
+            case 'live':
+                cambiarCanal(contenido);
+                setBackground(contenido.stream_icon);
+                break;
+            case 'vod':
+                const imagen = contenido.backdrop_path ? `https://image.tmdb.org/t/p/original${contenido.backdrop_path}` : '';
+                setBackground(imagen);
+                break;
+            case 'series':
+                setBackground(contenido.backdrop);
+                break;
+            default:
+                break;
         }
     }, [contenido]);
+
+    useEffect(() => {
+        if (tipo === 'live' && fullScreen) {
+            showTemporarilyControls();
+        }
+
+        if (!isLoading) {
+            showTemporarilyControls();
+        }
+        
+        if (isCasting && mediaStatus?.playerState === 'BUFFERING') {
+            showTemporarilyRemoteControls();
+        }
+    }, [tipo, isLoading, fullScreen, isCasting, mediaStatus?.playerState]);
 
     useEffect(() => {
         if (!fullScreen) return;
@@ -89,6 +126,48 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         return () => backHandler.remove();
     }, [fullScreen, showSettings, showChannels]);
 
+    // useEffect que maneja la CONEXIÓN INICIAL
+    useEffect(() => {
+        // Esta función se ejecutará cada vez que el 'client' o el 'castState' cambien
+        if (client && isCasting) {
+            isInitialCast.current = true; // Marcam que esta es la conexión inicial
+            castVideo(currentTime); // Transmite el video actual
+        }
+    }, [client, castState]);
+
+    // useEffect que maneja los CAMBIOS DE CONTENIDO (Canal/Episodio)
+    useEffect(() => {
+        if (client && isCasting) {
+            if (isInitialCast.current) {
+                // Si es el primer render después de conectar, no hace nada y baja la bandera
+                isInitialCast.current = false;
+            } else {
+                // Si ya hbaía una conexión (no es el cast inicial) y el 'contenido' cambia, significa que el usuario cambió de canal
+                castVideo(0); // Carga el nuevo contenido desde el inicio
+            }
+        }
+    }, [contenido, castVideo, isCasting, client]);
+
+    const castVideo = useCallback((startTime = 0) => {
+        if (!client || !contenido) return;
+
+        console.log('Enviando a Cast:', contenido.name);
+        setPaused(true); // Pausa el reproductor local
+
+        client.loadMedia({
+            mediaInfo: {
+                contentUrl: contenido.link,
+                contentType: 'application/vnd.apple.mpegurl', // Asumiendo HLS para IPTV
+                metadata: {
+                    title: contenido.name,
+                    subtitle: '',
+                    images: [{ url: tipo !== 'series' ? contenido.stream_icon : contenido.cover }],
+                },
+            },
+            startTime: Math.round(startTime), // Inicia en el tiempo actual
+        });
+    }, [client, contenido, tipo]);
+
     const savePlaybackTime = useCallback((timeToSave) => {
         const item_id = tipo === 'series' ? 'episode_id' : 'stream_id';
 
@@ -110,12 +189,27 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         controlTimeout.current = setTimeout(() => setShowControls(false), 4000);
     };
 
+    const showTemporarilyRemoteControls = () => {
+        setShowRemoteControls(true);
+        if (remoteControlTimeout.current) clearTimeout(remoteControlTimeout.current);
+        remoteControlTimeout.current = setTimeout(() => setShowRemoteControls(false), 4000);
+    };
+
     const toggleControls = () => {
         if (showControls) {
             setShowControls(false);
             clearTimeout(controlTimeout.current);
         } else {
             showTemporarilyControls();
+        }
+    };
+
+    const toggleRemoteControls = () => {
+        if (showRemoteControls) {
+            setShowRemoteControls(false);
+            clearTimeout(remoteControlTimeout.current);
+        } else {
+            showTemporarilyRemoteControls();
         }
     };
 
@@ -134,6 +228,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         lockTimeout.current = setTimeout(() => setShowIconLock(false), 3000);
     };
 
+    // Función para Play/Pause en el reproductor local
     const togglePlayPause = () => {
         setPaused(prev => !prev);
 
@@ -142,7 +237,29 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setCurrentTime(0);
             playerRef.current?.seek(0);
         }
-    }
+    };
+
+    // Función para Play/Pause en el reproductor remoto
+    const remoteTogglePlayPause = () => {
+        if (!client) return;
+        if (mediaStatus?.playerState === 'PLAYING') {
+            client.pause();
+        } else {
+            client.play();
+        }
+    };
+
+    // Función para buscar (adelantar/retroceder) en el reproductor remoto
+    const remoteSeekTo = (time) => {
+        if (!client) return;
+        client.seek({ position: time });
+    };
+
+    // Función para el slider en el reproductor remoto
+    const remoteSlidingComplete = (value) => {
+        if (!client) return;
+        client.seek({ position: value[0] });
+    };
 
     const handleBack = () => {
         if (tipo === 'live') {
@@ -338,184 +455,253 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     return (
         <View style={styles.container}>
-            <TouchableWithoutFeedback
-                style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
-                onPress={() => {
-                    if (showSettings) {
-                        setShowSettings(false);
-                        return
-                    }
-                    if (showChannels) {
-                        setShowChannels(false);
-                        return
-                    }
-                    if (!fullScreen) {
-                        setFullScreen(true);
-                    }
-                    if (isScreenLock) {
-                        toggleIconLock();
-                        return
-                    }
-                    toggleControls();
-                }}
-            >
-                <View style={styles.container}>
-                    <Video
-                        ref={playerRef}
-                        source={{ uri: contenido.link }}
-                        style={styles.videoPlayer}
-                        resizeMode={resizeMode.modo}
-                        rate={playbackRate}
-                        paused={paused}
-                        onLoadStart={handleLoadStart}
-                        onLoad={handleLoad}
-                        onBuffer={handleBuffer}
-                        onProgress={handleProgress}
-                        onEnd={handleEnd}
-                        controls={false}
-                        selectedVideoTrack={selectedVideoTrack}
-                        selectedAudioTrack={selectedAudioTrack}
-                        selectedTextTrack={selectedTextTrack}
-                    />
-
-                    {/* Muestra la animación de carga, ya sea cuando un canal está cargando en pantalla chica
-                    o cuando cualquier tipo de contenido está cargando mientras la pantalla está bloqueada */}
-                    {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && isLoading && (
-                        <View style={{ flex: 1, justifyContent: 'center', }}>
-                            <ActivityIndicator size={50} color="#fff" />
-                        </View>
-                    )}
-
-                    {fullScreen && showControls && !isScreenLock && ( // Muestra los controles solo si la pantalla está completa y no está bloqueada
-                        <View style={styles.overlay}>
-                            {/* Top */}
-                            <View style={styles.topControls}>
-                                <TouchableOpacity onPress={handleBack}>
-                                    <Icon name="arrow-circle-left" size={26} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
-                                <View style={styles.rightIcons}>
-                                    <Icon2 name="cast" size={26} color="#fff" />
-                                    <TouchableOpacity onPress={() => {
-                                        setIsScreenLock(true);
-                                        toggleIconLock();
-                                    }}
-                                    >
-                                        <Icon name="unlock-alt" size={26} color="#fff" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => {
-                                        setShowControls(false);
-                                        setShowSettings(true);
-                                    }}>
-                                        <Icon2 name="cog-outline" size={26} color="#fff" />
-                                    </TouchableOpacity>
+            {isCasting ? (
+                <TouchableWithoutFeedback
+                    onPress={() => {
+                        if (!fullScreen) {
+                            setFullScreen(true);
+                        }
+                        toggleRemoteControls();
+                    }}
+                >
+                    <View style={{ flex: 1 }}>
+                        <ImageBackground
+                            source={background ? { uri: background } : require('../../assets/fondo.jpg')}
+                            style={{ flex: 1 }}
+                            resizeMode={tipo === 'live' ? 'contain' : 'cover'}
+                        >
+                            <View style={[styles.castContainer, { backgroundColor: background ? 'rgba(16, 16, 16, 0.75)' : 'rgba(16,16,16,0.5)' }]}>
+                                <View style={{ alignItems: 'center' }}>
+                                    <Icon2 name="cast-connected" size={100} color="#fff" />
+                                    <Text style={styles.castText1}>
+                                        Reproduciendo en tu TV
+                                    </Text>
+                                    <Text style={styles.castText2}>
+                                        {nombre}
+                                    </Text>
                                 </View>
-                            </View>
 
-                            {/* Middle */}
-                            <View style={styles.middleControls}>
-                                <TouchableOpacity onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}>
-                                    <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
-                                </TouchableOpacity>
-                                {isLoading ? (
-                                    <ActivityIndicator size={50} color="#fff" />
-                                ) : (
-                                    <TouchableOpacity onPress={togglePlayPause}>
-                                        <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
-                                    </TouchableOpacity>
-                                )}
-                                <TouchableOpacity onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}>
-                                    <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Bottom */}
-                            <View>
-                                {tipo === 'live' ? (
-                                    <View style={styles.bottomControlsLive}>
-                                        <FastImage
-                                            style={styles.imagen}
-                                            source={{ uri: contenido.stream_icon }}
-                                            resizeMode="contain"
-                                        />
-                                        <View style={styles.barra} />
-                                    </View>
-                                ) : (
+                                {fullScreen && showRemoteControls && (
                                     <View style={styles.bottomControls}>
-                                        <Text style={styles.time}>{formatTime(currentTime)}</Text>
-                                        <Slider
-                                            value={currentTime}
-                                            minimumValue={0}
-                                            maximumValue={duration}
-                                            onSlidingComplete={seekTo}
-                                            trackStyle={styles.track}
-                                            thumbStyle={styles.thumb}
-                                            minimumTrackTintColor="#00c0fe"
-                                            maximumTrackTintColor="#888"
-                                            containerStyle={{ flex: 1 }}
-                                        />
-                                        <Text style={styles.time}>{formatTime(duration)}</Text>
+                                        <TouchableOpacity style={{ marginRight: 20 }} onPress={tipo === 'live' ? handlePrevious : () => remoteSeekTo((mediaStatus?.streamPosition ?? 0) - 10)}>
+                                            <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={45} color="#fff" />
+                                        </TouchableOpacity>
+                                        {(mediaStatus?.playerState === 'BUFFERING') ? (
+                                            <ActivityIndicator size={40} color="#fff" />
+                                        ) : (
+                                            <TouchableOpacity onPress={remoteTogglePlayPause}>
+                                                <Icon4 name={paused ? 'play' : 'pause'} size={30} color="#fff" />
+                                            </TouchableOpacity>
+                                        )}
+                                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={tipo === 'live' ? handleNext : () => remoteSeekTo((mediaStatus?.streamPosition ?? 0) + 10)}>
+                                            <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={45} color="#fff" />
+                                        </TouchableOpacity>
+
+                                        {tipo === 'live' ? (
+                                            <View style={[styles.barra, { width: '75%', marginLeft: 5 }]} />
+                                        ) : (
+                                            <>
+                                                <Text style={styles.time}>{formatTime(mediaStatus?.streamPosition ?? 0)}</Text>
+                                                <Slider
+                                                    value={mediaStatus?.streamPosition ?? 0}
+                                                    minimumValue={0}
+                                                    maximumValue={mediaStatus?.mediaInfo?.streamDuration ?? 0}
+                                                    onSlidingComplete={remoteSlidingComplete}
+                                                    trackStyle={styles.track}
+                                                    thumbStyle={styles.thumb}
+                                                    minimumTrackTintColor="#00c0fe"
+                                                    maximumTrackTintColor="#888"
+                                                    containerStyle={{ flex: 0.9 }}
+                                                />
+                                                <Text style={styles.time}>{formatTime(mediaStatus?.mediaInfo?.streamDuration ?? 0)}</Text>
+                                            </>
+                                        )}
                                     </View>
                                 )}
-                                <View style={styles.bottomIcons}>
-                                    {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
-                                        <TouchableOpacity
-                                            style={{ flexDirection: 'row', }}
-                                            onPress={() => {
-                                                setShowControls(false);
-                                                if (tipo === 'live') {
-                                                    setShowChannels(true);
-                                                } else {
-                                                    setModalVisible(true);
-                                                }
-                                            }}
-                                        >
-                                            <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
-                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
-                                        <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
-                                        <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
+                            </View>
+                        </ImageBackground>
+                    </View>
+                </TouchableWithoutFeedback>
+            ) : (
+                <TouchableWithoutFeedback
+                    style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
+                    onPress={() => {
+                        if (showSettings) {
+                            setShowSettings(false);
+                            return
+                        }
+                        if (showChannels) {
+                            setShowChannels(false);
+                            return
+                        }
+                        if (!fullScreen) {
+                            setFullScreen(true);
+                        }
+                        if (isScreenLock) {
+                            toggleIconLock();
+                            return
+                        }
+                        toggleControls();
+                    }}
+                >
+                    <View style={styles.container}>
+                        <Video
+                            ref={playerRef}
+                            source={{ uri: contenido.link }}
+                            style={styles.videoPlayer}
+                            resizeMode={resizeMode.modo}
+                            rate={playbackRate}
+                            paused={paused}
+                            onLoadStart={handleLoadStart}
+                            onLoad={handleLoad}
+                            onBuffer={handleBuffer}
+                            onProgress={handleProgress}
+                            onEnd={handleEnd}
+                            controls={false}
+                            selectedVideoTrack={selectedVideoTrack}
+                            selectedAudioTrack={selectedAudioTrack}
+                            selectedTextTrack={selectedTextTrack}
+                        />
+
+                        {/* Muestra la animación de carga, ya sea cuando un canal está cargando en pantalla chica
+                        o cuando cualquier tipo de contenido está cargando mientras la pantalla está bloqueada */}
+                        {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && isLoading && (
+                            <View style={{ flex: 1, justifyContent: 'center', }}>
+                                <ActivityIndicator size={50} color="#fff" />
+                            </View>
+                        )}
+
+                        {fullScreen && showControls && !isScreenLock && ( // Muestra los controles solo si la pantalla está completa y no está bloqueada
+                            <View style={styles.overlay}>
+                                {/* Top */}
+                                <View style={styles.topControls}>
+                                    <TouchableOpacity onPress={handleBack}>
+                                        <Icon name="arrow-circle-left" size={26} color="#fff" />
                                     </TouchableOpacity>
-                                    {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
-                                        <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
-                                            <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
-                                            <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    {tipo === 'series' && ( // Solo se muestra para episodios
-                                        <TouchableOpacity
-                                            style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
-                                            onPress={nextEpisode}
-                                            disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                    <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
+                                    <View style={styles.rightIcons}>
+                                        <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
+                                        <TouchableOpacity onPress={() => {
+                                            setIsScreenLock(true);
+                                            toggleIconLock();
+                                        }}
                                         >
-                                            <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
-                                            <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                            <Icon name="unlock-alt" size={26} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => {
+                                            setShowControls(false);
+                                            setShowSettings(true);
+                                        }}>
+                                            <Icon2 name="cog-outline" size={26} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {/* Middle */}
+                                <View style={styles.middleControls}>
+                                    <TouchableOpacity onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}>
+                                        <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
+                                    </TouchableOpacity>
+                                    {isLoading ? (
+                                        <ActivityIndicator size={50} color="#fff" />
+                                    ) : (
+                                        <TouchableOpacity onPress={togglePlayPause}>
+                                            <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
                                         </TouchableOpacity>
                                     )}
+                                    <TouchableOpacity onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}>
+                                        <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Bottom */}
+                                <View>
+                                    {tipo === 'live' ? (
+                                        <View style={styles.bottomControlsLive}>
+                                            <FastImage
+                                                style={styles.imagen}
+                                                source={{ uri: contenido.stream_icon }}
+                                                resizeMode="contain"
+                                            />
+                                            <View style={styles.barra} />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.bottomControls}>
+                                            <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                            <Slider
+                                                value={currentTime}
+                                                minimumValue={0}
+                                                maximumValue={duration}
+                                                onSlidingComplete={seekTo}
+                                                trackStyle={styles.track}
+                                                thumbStyle={styles.thumb}
+                                                minimumTrackTintColor="#00c0fe"
+                                                maximumTrackTintColor="#888"
+                                                containerStyle={{ flex: 1 }}
+                                            />
+                                            <Text style={styles.time}>{formatTime(duration)}</Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.bottomIcons}>
+                                        {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
+                                            <TouchableOpacity
+                                                style={{ flexDirection: 'row', }}
+                                                onPress={() => {
+                                                    setShowControls(false);
+                                                    if (tipo === 'live') {
+                                                        setShowChannels(true);
+                                                    } else {
+                                                        setModalVisible(true);
+                                                    }
+                                                }}
+                                            >
+                                                <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
+                                                <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
+                                            <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
+                                            <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
+                                        </TouchableOpacity>
+                                        {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
+                                            <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
+                                                <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
+                                                <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        {tipo === 'series' && ( // Solo se muestra para episodios
+                                            <TouchableOpacity
+                                                style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
+                                                onPress={nextEpisode}
+                                                disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                            >
+                                                <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
+                                                <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                    )}
+                        )}
 
-                    {isScreenLock && showIconLock && fullScreen && ( // Muestra la notificación de pantalla bloqueda solo si está activada y en panatalla grande
-                        <View style={styles.lockContainer}>
-                            <TouchableOpacity
-                                style={styles.lockIcon}
-                                onPress={() => {
-                                    setShowIconLock(false);
-                                    setIsScreenLock(false);
-                                }}
-                            >
-                                <Icon name="lock" size={35} color="#000" />
-                            </TouchableOpacity>
-                            <Text style={styles.lockText1}>Pantalla Bloqueada</Text>
-                            <Text style={styles.lockText2}>Presione para Desbloquear</Text>
-                        </View>
-                    )}
-                </View>
-            </TouchableWithoutFeedback>
+                        {isScreenLock && showIconLock && fullScreen && ( // Muestra la notificación de pantalla bloqueda solo si está activada y en panatalla grande
+                            <View style={styles.lockContainer}>
+                                <TouchableOpacity
+                                    style={styles.lockIcon}
+                                    onPress={() => {
+                                        setShowIconLock(false);
+                                        setIsScreenLock(false);
+                                    }}
+                                >
+                                    <Icon name="lock" size={35} color="#000" />
+                                </TouchableOpacity>
+                                <Text style={styles.lockText1}>Pantalla Bloqueada</Text>
+                                <Text style={styles.lockText2}>Presione para Desbloquear</Text>
+                            </View>
+                        )}
+                    </View>
+                </TouchableWithoutFeedback>
+            )}
             {showSettings && (
                 <PanelSettings
                     onClose={() => setShowSettings(false)}
@@ -560,9 +746,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#000'
     },
-    video: {
-        width: '100%',
-        height: '100%'
+    castContainer: {
+        flex: 1,
+        justifyContent: 'space-around',
+        alignItems: 'center',
     },
     fullScreenVideo: {
         ...StyleSheet.absoluteFillObject,
@@ -698,6 +885,19 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 13,
     },
+    castText1: {
+        color: 'white',
+        marginTop: 5,
+        fontSize: 20,
+    },
+    castText2: {
+        color: '#888',
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        paddingHorizontal: 15,
+        marginTop: 5,
+    }
 });
 
 export default Reproductor;
