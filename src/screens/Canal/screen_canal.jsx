@@ -176,16 +176,18 @@ const Canal = ({ navigation, route }) => {
                                 </View>
                             </View>
                         )}
-                        <Reproductor
-                            tipo={'live'}
-                            fullScreen={isFullScreen}
-                            setFullScreen={(value) => setIsFullScreen(value)}
-                            categoria={categories[selectedCategoryIndex]}
-                            channelIndex={selectedChannelIndex}
-                            contenido={selectedChannel}
-                            onContentChange={seleccionarCanal}
-                            markAsWatched={handleToggleWatched}
-                        />
+                        <View style={!isFullScreen ? styles.reproductor : { flex: 1 }}>
+                            <Reproductor
+                                tipo={'live'}
+                                fullScreen={isFullScreen}
+                                setFullScreen={(value) => setIsFullScreen(value)}
+                                categoria={categories[selectedCategoryIndex]}
+                                channelIndex={selectedChannelIndex}
+                                contenido={selectedChannel}
+                                onContentChange={seleccionarCanal}
+                                markAsWatched={handleToggleWatched}
+                            />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -261,6 +263,15 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '500'
+    },
+    reproductor: {
+        flex: 1,
+        marginHorizontal: 5,
+        marginBottom: 2.5,
+        borderRadius: 15,
+        borderWidth: 3,
+        overflow: 'hidden',
+        borderColor: '#999',
     }
 });
 
