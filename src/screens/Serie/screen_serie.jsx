@@ -342,6 +342,8 @@ const Serie = ({ navigation, route }) => {
                         name: selectedEpisode.title,
                         playback_time: selectedEpisode.playback_time,
                         episode_run_time: Number(selectedEpisode.duration_secs),
+                        cover: serie.cover,
+                        backdrop: background,
                     }}
                     episodios={episodios}
                     idxEpisode={episodios.findIndex(episodio => episodio.id === selectedEpisode.id)}
