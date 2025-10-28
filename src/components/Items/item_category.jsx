@@ -10,7 +10,7 @@ const ItemCategory = ({ categoria, seleccionado, seleccionar, isOnReproductor })
 
     return (
         <TouchableHighlight
-            style={{ padding: 10, borderBottomWidth: 1, backgroundColor, borderBottomColor }}
+            style={{ height: 40, padding: 10, borderBottomWidth: 1, backgroundColor, borderBottomColor }}
             onPress={handleSelectionCategory}
             underlayColor={(categoria.category_id !== seleccionado) ? "#D5700F" : "#006172"}
         >
