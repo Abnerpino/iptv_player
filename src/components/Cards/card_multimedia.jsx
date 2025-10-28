@@ -143,13 +143,13 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                 </View>
 
                 {isLoading ? (
-                    <View style={styles.updateContainer}>
+                    <View style={[styles.updateContainer, { justifyContent: 'center' }]}>
                         <ActivityIndicator size="small" color="#fff" />
                         <Text style={styles.updatingText}>Actualizando</Text>
                     </View>
                 ) : (
                     <TouchableOpacity
-                        style={[styles.updateContainer, { backgroundColor: buttonColor }]}
+                        style={[styles.updateContainer, { backgroundColor: buttonColor, justifyContent: 'space-evenly' }]}
                         onPress={() => handleUpdateStreaming(true)}
                         onPressIn={handlePressIn}
                         onPressOut={handlePressOut}
@@ -198,7 +198,6 @@ const styles = StyleSheet.create({
     updateContainer: {
         flexDirection: 'row',
         flex: 0.2,
-        justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
         height: '100%',
@@ -209,7 +208,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         paddingVertical: 10,
-        verticalAlign: 'middle',
         marginLeft: 5,
     },
     updateText: {
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
         height: '100%',
         width: '70%',
         textAlign: 'left',
-        verticalAlign: 'middle'
+        textAlignVertical: 'center',
     },
     imageContainer2: {
         height: '100%',
