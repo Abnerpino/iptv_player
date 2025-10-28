@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -26,6 +26,7 @@ const Canal = ({ navigation, route }) => {
     const [selectedChannelIndex, setSelectedChannelIndex] = useState(initialChannelIndex); //Estado para manejar el indice del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
+    const flatListRef = useRef(null);
 
     const handleToggleWatched = () => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
@@ -57,6 +58,53 @@ const Canal = ({ navigation, route }) => {
 
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
     }, [categories, currentIndex, searchCont]);
+
+    useEffect(() => {
+        // Sale si la ref de la FlatList aún no está lista
+        if (!flatListRef.current) {
+            return;
+        }
+
+        try {
+            // Comprueba si la categoría actual es la que contiene el canal seleccionado
+            if (currentIndex === selectedCategoryIndex) {
+
+                // Encuentra el índice del canal seleccionado DENTRO de la lista actual (contentToShow)
+                const targetIndex = contentToShow.findIndex(
+                    channel => channel.stream_id === selectedChannel.stream_id
+                );
+
+                // Si encuentra el canal en la lista actual, se desplaza a él
+                if (targetIndex !== -1) {
+                    // Se usa setTimeout para darle tiempo a la FlatList a renderizar los nuevos items antes de hacer el desplazamiento
+                    setTimeout(() => {
+                        flatListRef.current?.scrollToIndex({
+                            index: targetIndex,
+                            animated: false,
+                            viewPosition: 0, // 0 = arriba, 0.5 = centro
+                        });
+                    }, 150); // Un pequeño delay de 150ms para dar tiempo a que termine de renderizar
+                }
+            } else {
+                // Si cambia a una categoría que NO tiene el canal seleccionado, se asegura de que la lista comience desde el principio (índice 0)
+                setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({
+                        index: 0,
+                        animated: false,
+                    });
+                }, 150);
+            }
+        } catch (error) {
+            console.warn("Error al intentar hacer scroll en FlatList:", error);
+        }
+
+    }, [currentIndex, selectedCategoryIndex, contentToShow, selectedChannel, isFullScreen]);
+
+    const getItemLayout = (data, index) => ({
+        length: 50,
+        offset: 50 * index,
+        index,
+    });
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
@@ -139,6 +187,7 @@ const Canal = ({ navigation, route }) => {
                                 </View>
                             ) : (
                                 <FlatList
+                                    ref={flatListRef}
                                     data={contentToShow}
                                     numColumns={1}
                                     renderItem={({ item }) => (
@@ -149,6 +198,8 @@ const Canal = ({ navigation, route }) => {
                                         />
                                     )}
                                     keyExtractor={item => item.num}
+                                    getItemLayout={getItemLayout}
+                                    initialNumToRender={15}
                                 />
                             )}
                         </View>
