@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
+import FlashMessage, { showMessage } from 'react-native-flash-message';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
@@ -138,6 +139,15 @@ const Menu = ({ navigation }) => {
         setModalEVisible(false);
     };
 
+    const showToast = (mensaje) => {
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            backgroundColor: '#EEE',
+            color: '#000'
+        });
+    };
+
     const optionsDate = {
         year: 'numeric',
         month: 'long', // '2-digit' para mes numérico
@@ -182,20 +192,35 @@ const Menu = ({ navigation }) => {
                         <Text style={styles.date}>{formattedDate[1]}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
-                        <TouchableOpacity onPress={() => setModalNVisible(true)} style={{ marginRight: 15 }}>
+                        <TouchableOpacity
+                            style={{ marginRight: 15 }} 
+                            onPress={() => setModalNVisible(true)}
+                            onLongPress={() => showToast('Notificaciones')}
+                        >
                             <Icon2
                                 name={notificaciones.length === 0 ? "bell-outline" : (allSeenNotifications ? "bell" : "bell-badge")}
                                 color={notificaciones.length === 0 ? "white" : (allSeenNotifications ? "white" : "yellow")}
                                 size={26}
                             />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('About')} style={{ marginRight: 15 }}>
+                        <TouchableOpacity
+                            style={{ marginRight: 15 }}
+                            onPress={() => navigation.navigate('About')}
+                            onLongPress={() => showToast('Acerca de')}
+                        >
                             <Icon name="info-circle" size={26} color="#FFF" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('SpeedTest')} style={{ marginRight: 15 }}>
+                        <TouchableOpacity
+                            style={{ marginRight: 15 }}
+                            onPress={() => navigation.navigate('SpeedTest')}
+                            onLongPress={() => showToast('Test de Internet')}
+                        >
                             <Icon3 name="network-check" size={26} color="white" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setModalEVisible(true)}>
+                        <TouchableOpacity
+                            onPress={() => setModalEVisible(true)}
+                            onLongPress={() => showToast('Salir')}
+                        >
                             <Icon3 name="exit-to-app" size={26} color="white" />
                         </TouchableOpacity>
                     </View>
@@ -214,6 +239,10 @@ const Menu = ({ navigation }) => {
                             onFinishLoading={handleFinishLoading}
                         />
                     ))}
+                    <FlashMessage
+                        position='top'
+                        style={styles.flashMessage}
+                    />
                 </View>
 
                 {/* Footer con fecha de expiración, usuario y tipo de paquete */}
@@ -275,6 +304,16 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 20,
         height: '70%'
+    },
+    flashMessage: {
+        width: '17%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        paddingTop: 2.5,
+        paddingBottom: 5,
+        marginTop: -20,
+        marginRight: 5
     },
     footer: {
         marginTop: 'auto',
