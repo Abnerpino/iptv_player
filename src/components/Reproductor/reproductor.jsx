@@ -13,6 +13,7 @@ import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
+import PanelNextEpisode from '../Panels/panel_next-episode';
 
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
@@ -24,6 +25,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
     const liveVistoTimer = useRef(null); // Referencia para guardar el tiempo de reproducción minimo (100 ms) para considerar un canal como visto
     const isInitialCast = useRef(true); // Referencia para evitar doble carga al conectar
+    const countdownTimer = useRef(null); // Referencia para el temporizador de la cuenta regresiva
+    const isShowingNextPanel = useRef(false); // Referencia para evitar multiples llamadas al componente de 'Siguiente Episodio'
+    const prevEpisodeId = useRef(null); // Referencia para guardar el id del episodio reproducido anteriormente
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
@@ -46,6 +50,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [isScreenLock, setIsScreenLock] = useState(false); // Estado para manejar el 'bloqueo de pantalla'
     const [showIconLock, setShowIconLock] = useState(false); // Estado para manejar la visibilidad de la notificación del 'bloqueo de pantalla'
     const [background, setBackground] = useState(''); // Estado para manejar la imagen de fondo que se muestra cuando se está transmitiendo
+    const [showNextEpisode, setShowNextEpisode] = useState(false); // Estado para controlar la visibilidad del componente
+    const [countdown, setCountdown] = useState(5); // Estado para controlar el valor de la cuenta regresiva
+    const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -58,6 +65,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         return () => {
             savePlaybackTime(latestTime.current);
             clearTimeout(liveVistoTimer.current);
+            clearInterval(countdownTimer.current);
         };
     }, [savePlaybackTime]);
 
@@ -68,6 +76,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             clearTimeout(controlTimeout.current);
             clearTimeout(remoteControlTimeout.current);
             clearTimeout(lockTimeout.current);
+            clearInterval(countdownTimer.current);
         };
     }, []);
 
@@ -83,6 +92,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 break;
             case 'series':
                 setBackground(contenido.backdrop);
+                // Resetea los estados del "siguiente episodio" solo si se ha cambiado de episodio
+                if (prevEpisodeId.current !== contenido.episode_id) {
+                    isShowingNextPanel.current = false;
+                    setHasCanceledNextEpisode(false);
+                    setShowNextEpisode(false);
+                    clearInterval(countdownTimer.current);
+                }
+                // Actualiza la referencia para el próximo cambio de contenido
+                prevEpisodeId.current = contenido.episode_id;
                 break;
             default:
                 break;
@@ -97,7 +115,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (!isLoading) {
             showTemporarilyControls();
         }
-        
+
         if (isCasting && mediaStatus?.playerState === 'BUFFERING') {
             showTemporarilyRemoteControls();
         }
@@ -125,6 +143,32 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
         return () => backHandler.remove();
     }, [fullScreen, showSettings, showChannels]);
+
+    // useEffect para la cuenta regresiva del panel de 'Siguiente Episodio'
+    useEffect(() => {
+        if (showNextEpisode) {
+            // Inicia el temporizador
+            countdownTimer.current = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 0) {
+                        // Se acabó el tiempo
+                        clearInterval(countdownTimer.current);
+
+                        // Llama a la función estabilizada
+                        handlePlayNow();
+                        return 0;
+                    }
+                    return prev - 1; // Resta 1 segundo
+                });
+            }, 1000); // Se ejecuta cada segundo
+        } else {
+            // Limpia el temporizador si el componente se oculta
+            clearInterval(countdownTimer.current);
+        }
+
+        // Función de limpieza
+        return () => clearInterval(countdownTimer.current);
+    }, [showNextEpisode, handlePlayNow]);
 
     // useEffect que maneja la CONEXIÓN INICIAL
     useEffect(() => {
@@ -270,6 +314,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     const handleProgress = ({ currentTime }) => {
+        // Si se llega al 99% de reproducción del episodio y el panel de configuración o de canales o el modal de episodios está abierto, los cierra o si la pantalla está bloqueada la desbloquea, para que se mustre el panel de 'Siguiente Episodio'
+        if (tipo === 'series' && (currentTime / contenido.episode_run_time) >= 0.99 && (showSettings || showChannels || modalVisible || isScreenLock)) {
+            setShowSettings(false);
+            setShowChannels(false);
+            setModalVisible(false);
+            setIsScreenLock(false);
+        }
+
         // Si el panel de ajustes o el panel de canales está abierto, no actualiza el tiempo y ni hace nada más
         if (showSettings || showChannels) {
             return;
@@ -280,6 +332,20 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
         if (tipo === 'series') {
             onProgressUpdate(currentTime, contenido.episode_id);
+
+            // Lógica para el manejo del panel de 'Siguiente Episodio'
+            if (
+                contenido.episode_run_time > 0 &&
+                (currentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
+                !isShowingNextPanel.current &&                            // 2. La bandera indica que no se está mostrando ya
+                !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
+                (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
+            ) {
+                isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
+                setShowControls(false); // Oculta los controles
+                setCountdown(5); // Reinicia la cuenta regresiva a 5
+                setShowNextEpisode(true); // Muestra el panel
+            }
         }
 
         if (tipo === 'vod') {
@@ -427,10 +493,36 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }
 
     // Función para cambiar al siguiente episodio
-    const nextEpisode = () => {
-        onContentChange(episodios[idxEpisode + 1]);
-        setVisto(episodios[idxEpisode + 1]);
+    const nextEpisode = useCallback(() => {
+        // Se asegura de que no sea el último episodio de la temporada
+        if ((idxEpisode + 1) < episodios.length) {
+            onContentChange(episodios[idxEpisode + 1]);
+            setVisto(episodios[idxEpisode + 1]);
+        }
+
+        // Lógica de reseteo de variables del panel de 'Siguiente Episodio'
+        isShowingNextPanel.current = false;
+        setShowNextEpisode(false);
+        clearInterval(countdownTimer.current);
+        setHasCanceledNextEpisode(false);
+    }, [idxEpisode, episodios, onContentChange, setVisto]);
+
+    // Se ejecuta al presionar "CANCELAR" en el panel de 'Siguiente Episodio'
+    const handleCancelNextEpisode = () => {
+        isShowingNextPanel.current = false;
+        setShowNextEpisode(false);
+        setHasCanceledNextEpisode(true); // Recuerda que el usuario canceló
     };
+
+    // Se ejecuta al presionar "REPRODUCIR AHORA" o al terminar el contador en el panel de 'Siguiente Episodio'
+    const handlePlayNow = useCallback(() => {
+        setShowNextEpisode(false);
+
+        // Comprobación de seguridad
+        if ((idxEpisode + 1) < episodios.length) {
+            nextEpisode(); // Llama a la función existente
+        }
+    }, [idxEpisode, episodios, nextEpisode]);
 
     // Función para cambiar la relación de aspecto
     const cycleAspectRatio = () => {
@@ -526,6 +618,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 <TouchableWithoutFeedback
                     style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
                     onPress={() => {
+                        if (showNextEpisode) return; // Si se muestra el panel de "Siguiente Episodio", no hace nada al tocar la pantalla
                         if (showSettings) {
                             setShowSettings(false);
                             return
@@ -571,7 +664,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             </View>
                         )}
 
-                        {fullScreen && showControls && !isScreenLock && ( // Muestra los controles solo si la pantalla está completa y no está bloqueada
+                        {/* Muestra los controles solo si la pantalla está completa, no está bloqueada y no se muestra el panel de 'Siguiente Episodio'*/}
+                        {fullScreen && showControls && !isScreenLock && !showNextEpisode && (
                             <View style={styles.overlay}>
                                 {/* Top */}
                                 <View style={styles.topControls}>
@@ -735,8 +829,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 onSelectEpisode={(episodio) => {
                     onContentChange(episodio);
                     setVisto(episodio);
+                    // Lógica para resetear las variables del panel de 'Siguiente Episodio'
+                    isShowingNextPanel.current = false; // Marca como falsa la bandera para que se pueda volver a mostrar el panel
+                    setShowNextEpisode(false); // Oculta el panel si estaba visible
+                    clearInterval(countdownTimer.current); // Limpia el temporizador
+                    setHasCanceledNextEpisode(false); // Resetea el estado de cancelación
                 }}
             />
+            {showNextEpisode && (idxEpisode + 1) < episodios.length && (
+                <PanelNextEpisode
+                    imagen={episodios[idxEpisode + 1]?.movie_image}
+                    countdown={countdown}
+                    onCancel={handleCancelNextEpisode}
+                    onPlayNow={handlePlayNow}
+                />
+            )}
         </View>
     );
 };
