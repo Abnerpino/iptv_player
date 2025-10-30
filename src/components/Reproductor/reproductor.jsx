@@ -444,7 +444,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
-    const seekTo = (time) => playerRef.current?.seek(time[0]);
+    const seekTo = (time) => {
+        if (Array.isArray(time)) {
+            playerRef.current?.seek(time[0]);
+
+        } else {
+            playerRef.current?.seek(time);
+        }
+    }
 
     const formatTime = (seconds) => {
         const hours = Math.floor(seconds / 3600);
