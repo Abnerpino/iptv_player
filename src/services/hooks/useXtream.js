@@ -101,9 +101,10 @@ export const useXtream = () => {
                     stream_icon,
                     category_id,
                     category_ids: category_ids.map(category => category.toString()),
-                    link: direct_source ? direct_source : `${host}/live/${user}/${password}/${stream_id}.ts`,
-                    favorito: false,//canal?.favorito ?? false,
-                    visto: false//canal?.visto ?? false,
+                    link: direct_source ?? '',
+                    aux_link: `${host}/live/${user}/${password}/${stream_id}.ts`,
+                    favorito: false,
+                    visto: false
                 });
             });
 
@@ -116,14 +117,11 @@ export const useXtream = () => {
     const getVodStream = async () => {
         const newVod = [];
         const newLink = `${url}&action=get_vod_streams`;
-        //const vod = getItems('vod');
 
         try {
             const response = await fetch(newLink);
             const stream = await response.json();
             stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, direct_source, container_extension }) => {
-                //const pelicula = vod?.find(movie => movie.stream_id === stream_id);
-
                 newVod.push({
                     num: num.toString(),
                     name: name ? name : stream_id.toString(),
@@ -147,12 +145,12 @@ export const useXtream = () => {
                     genres: '',
                     vote_average: '',
                     cast: '',
-                    link: direct_source ? direct_source : `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
-                    favorito: false,//pelicula?.favorito ?? false,
-                    visto: false,//pelicula?.visto ?? false
+                    link: direct_source ?? '',
+                    aux_link: `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
+                    favorito: false,
+                    visto: false,
                     playback_time: '0'
                 });
-
             });
 
             return newVod;
@@ -164,14 +162,12 @@ export const useXtream = () => {
     const getSeries = async () => {
         const newSeries = [];
         const newLink = `${url}&action=get_series`;
-        //const series = getItems('series');
 
         try {
             const response = await fetch(newLink);
             const stream = await response.json();
 
             stream.forEach(({ num, series_id, name, title, year, cover, plot, genre, category_id, category_ids, release_date, rating, backdrop_path }) => {
-                //const serie = series?.find(serie => serie.series_id === series_id);
                 const regex = /Saga|Collection/i; // La 'i' hace que sea case-insensitive
 
                 newSeries.push({
@@ -196,9 +192,9 @@ export const useXtream = () => {
                     genres: '',
                     overview: '',
                     cast: '',
-                    temporadas: [],//(serie && serie.temporadas.length > 0) ? serie.temporadas : [],
-                    favorito: false,//serie?.favorito ?? false,
-                    visto: false,//serie?.visto ?? false,
+                    temporadas: [],
+                    favorito: false,
+                    visto: false,
                     saga: regex.test(name) ? true : false,
                     last_ep_played: [0, 0]
                 });
@@ -247,7 +243,8 @@ export const useXtream = () => {
                 rating: ep.info?.rating?.toString() ?? '0',
                 season: ep.season?.toString() ?? '0',
                 id_serie: idSerie,
-                link: ep.direct_source ? ep.direct_source : `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
+                link: ep?.direct_source ?? '',
+                aux_link: `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
                 visto: false,
                 playback_time: '0'
             }));
