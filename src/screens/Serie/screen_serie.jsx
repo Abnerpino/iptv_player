@@ -339,6 +339,7 @@ const Serie = ({ navigation, route }) => {
                         temporada: selectedSeason.numero,
                         episode_id: selectedEpisode.id,
                         link: selectedEpisode.link,
+                        aux_link: selectedEpisode.aux_link,
                         name: selectedEpisode.title,
                         playback_time: selectedEpisode.playback_time,
                         episode_run_time: Number(selectedEpisode.duration_secs),
