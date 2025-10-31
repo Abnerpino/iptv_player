@@ -14,6 +14,7 @@ import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
+import NotificationMessage from '../NotificationMessage';
 
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
@@ -54,6 +55,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [countdown, setCountdown] = useState(5); // Estado para controlar el valor de la cuenta regresiva
     const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
     const [mainLinkFailed, setMainLinkFailed] = useState(false); // Estado para saber si el link principal falló
+    const [isCannotReproduce, setIsCannotReproduce] = useState(false); // Estado para saber cuando un contenido ya no puede ser reproducido
+    const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del componente NotificationMessage
+    const [message, setMessage] = useState(''); // Estado para manejar el mensaje del componente NotificationMessage
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -83,10 +87,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     useEffect(() => {
         if (tipo !== 'series' || (prevEpisodeId.current !== contenido.episode_id)) {
-            // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
-            setMainLinkFailed(false);
-            // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
-            setIsLoading(true);
+            setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
+            setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
+            setIsCannotReproduce(false); // Se asegura de que 'isCannotReproduce' sea falso cada vez que se cambia el contenido
         }
 
         switch (tipo) {
@@ -470,7 +473,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
             // Deja de cargar (para evitar bucles) y muestra el error
             setIsLoading(false);
-            console.log('No se puede reproducir este contenido');
+            setIsCannotReproduce(true);
+            setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
+            setShowNotifactionMessage(true);
+            setTimeout(() => {
+                setShowNotifactionMessage(false);
+                setMessage('');
+            }, 4000);
         }
     };
 
@@ -694,11 +703,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             selectedTextTrack={selectedTextTrack}
                         />
 
-                        {/* Muestra la animación de carga, ya sea cuando un canal está cargando en pantalla chica
-                        o cuando cualquier tipo de contenido está cargando mientras la pantalla está bloqueada */}
-                        {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && isLoading && (
-                            <View style={{ flex: 1, justifyContent: 'center', }}>
-                                <ActivityIndicator size={50} color="#fff" />
+                        {/* Cuando un canal está en pantalla chica o cuando cualquier tipo de contenido tiene la pantalla bloqueada... */}
+                        {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                {/* Muestra la animación de carga */}
+                                {isLoading && (
+                                    <ActivityIndicator size={50} color="#fff" />
+                                )}
+                                {/* Muestra el icono de reproducción deshabilitada*/}
+                                {isCannotReproduce && (
+                                    <Icon3 name='play-disabled' size={60} color="#fff" />
+                                )}
                             </View>
                         )}
 
@@ -731,17 +746,30 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
                                 {/* Middle */}
                                 <View style={styles.middleControls}>
-                                    <TouchableOpacity onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}>
+                                    {/* Botón para ir al canal anterior / retroceder 10 segundos */}
+                                    <TouchableOpacity
+                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1}}
+                                        onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
+                                        disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
+                                    >
                                         <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
                                     </TouchableOpacity>
+                                    {/* Animación de carga, Icono de reproducción deshabilitada o Botón de play/pausa */}
                                     {isLoading ? (
                                         <ActivityIndicator size={50} color="#fff" />
+                                    ) : isCannotReproduce ? (
+                                        <Icon3 name='play-disabled' size={60} color="#fff" />
                                     ) : (
                                         <TouchableOpacity onPress={togglePlayPause}>
                                             <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
                                         </TouchableOpacity>
                                     )}
-                                    <TouchableOpacity onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}>
+                                    {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
+                                    <TouchableOpacity 
+                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1}}
+                                        onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
+                                        disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
+                                    >
                                         <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
                                     </TouchableOpacity>
                                 </View>
@@ -880,6 +908,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     countdown={countdown}
                     onCancel={handleCancelNextEpisode}
                     onPlayNow={handlePlayNow}
+                />
+            )}
+            {showNotifactionMessage && (
+                <NotificationMessage
+                    mensaje={message}
                 />
             )}
         </View>
