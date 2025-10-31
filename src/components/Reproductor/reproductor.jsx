@@ -53,6 +53,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [showNextEpisode, setShowNextEpisode] = useState(false); // Estado para controlar la visibilidad del componente
     const [countdown, setCountdown] = useState(5); // Estado para controlar el valor de la cuenta regresiva
     const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
+    const [mainLinkFailed, setMainLinkFailed] = useState(false); // Estado para saber si el link principal falló
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -81,6 +82,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, []);
 
     useEffect(() => {
+        if (tipo !== 'series' || (prevEpisodeId.current !== contenido.episode_id)) {
+            // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
+            setMainLinkFailed(false);
+            // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
+            setIsLoading(true);
+        }
+
         switch (tipo) {
             case 'live':
                 cambiarCanal(contenido);
@@ -200,7 +208,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
         client.loadMedia({
             mediaInfo: {
-                contentUrl: contenido.link,
+                contentUrl: mainLinkFailed ? contenido.aux_link : contenido.link,
                 contentType: 'application/vnd.apple.mpegurl', // Asumiendo HLS para IPTV
                 metadata: {
                     title: contenido.name,
@@ -444,6 +452,28 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
+    const handleVideoError = (error) => {
+        console.log('Error de Video:', error);
+
+        // Si el link principal AÚN NO HA FALLADO...
+        if (!mainLinkFailed) {
+            console.log('Falló el link principal. Intentando con el auxiliar...');
+
+            // Marca que falló, para que el próximo render use el aux_link
+            setMainLinkFailed(true);
+
+            // Mantiene el 'loading' visible, porque va a reintentar
+            setIsLoading(true);
+        } else {
+            // Si llega aquí, es porque el aux_link TAMBIÉN falló
+            console.log('Falló también el link auxiliar.');
+
+            // Deja de cargar (para evitar bucles) y muestra el error
+            setIsLoading(false);
+            console.log('No se puede reproducir este contenido');
+        }
+    };
+
     const seekTo = (time) => {
         if (Array.isArray(time)) {
             playerRef.current?.seek(time[0]);
@@ -647,7 +677,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     <View style={styles.container}>
                         <Video
                             ref={playerRef}
-                            source={{ uri: contenido.link }}
+                            source={{ uri: mainLinkFailed ? contenido.aux_link : contenido.link }}
                             style={styles.videoPlayer}
                             resizeMode={resizeMode.modo}
                             rate={playbackRate}
@@ -657,6 +687,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             onBuffer={handleBuffer}
                             onProgress={handleProgress}
                             onEnd={handleEnd}
+                            onError={handleVideoError}
                             controls={false}
                             selectedVideoTrack={selectedVideoTrack}
                             selectedAudioTrack={selectedAudioTrack}
