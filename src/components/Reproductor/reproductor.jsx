@@ -29,6 +29,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const countdownTimer = useRef(null); // Referencia para el temporizador de la cuenta regresiva
     const isShowingNextPanel = useRef(false); // Referencia para evitar multiples llamadas al componente de 'Siguiente Episodio'
     const prevEpisodeId = useRef(null); // Referencia para guardar el id del episodio reproducido anteriormente
+    const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
@@ -56,6 +57,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
     const [mainLinkFailed, setMainLinkFailed] = useState(false); // Estado para saber si el link principal falló
     const [isCannotReproduce, setIsCannotReproduce] = useState(false); // Estado para saber cuando un contenido ya no puede ser reproducido
+    const [retryCount, setRetryCount] = useState(0); // Estado para el manejo del contador de reintentos
+    const [sourceKey, setSourceKey] = useState(0); // Estado para el manejo de la llave para forzar recarga
     const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del componente NotificationMessage
     const [message, setMessage] = useState(''); // Estado para manejar el mensaje del componente NotificationMessage
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
@@ -71,6 +74,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             savePlaybackTime(latestTime.current);
             clearTimeout(liveVistoTimer.current);
             clearInterval(countdownTimer.current);
+            clearTimeout(bufferTimeout.current);
         };
     }, [savePlaybackTime]);
 
@@ -82,6 +86,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             clearTimeout(remoteControlTimeout.current);
             clearTimeout(lockTimeout.current);
             clearInterval(countdownTimer.current);
+            clearTimeout(bufferTimeout.current);
         };
     }, []);
 
@@ -90,6 +95,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
             setIsCannotReproduce(false); // Se asegura de que 'isCannotReproduce' sea falso cada vez que se cambia el contenido
+            setRetryCount(0); // Resetea el contador de reintentos
+            clearTimeout(bufferTimeout.current); // Limpia cualquier temporizador de "búfer"
+            setSourceKey(prev => prev + 1); // Fuerza la recarga del componente Video con una nueva llave
+            setShowNotifactionMessage(false); // Oculta cualquier mensaje anterior
         }
 
         switch (tipo) {
@@ -374,7 +383,53 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     // Método para manejar el buffer
     const handleBuffer = ({ isBuffering }) => {
-        setIsLoading(isBuffering);
+        clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
+
+        if (isBuffering) {
+            // El video se detuvo a cargar
+            setIsLoading(true);
+
+            // Inicia un temporizador, si sigue en búfer después de 5 segundos, lo considera "atascado"
+            bufferTimeout.current = setTimeout(() => {
+                const newCount = retryCount + 1;
+
+                if (newCount > 5) {
+                    // --- FALLO TOTAL ---
+                    console.log('Fallaron todos los reintentos de búfer.');
+                    clearTimeout(bufferTimeout.current);
+                    setIsLoading(false);
+                    setIsCannotReproduce(true);
+                    setMessage('Error de red. No se pudo reproducir el contenido.');
+                    setShowNotifactionMessage(true);
+                    setTimeout(() => { // Oculta el mensaje después de 4 seg
+                        setShowNotifactionMessage(false);
+                        setMessage('');
+                    }, 4000);
+
+                } else {
+                    // --- REINTENTANDO ---
+                    console.log(`Reintento de búfer #${newCount}`);
+                    setRetryCount(newCount);
+                    setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+                    setShowNotifactionMessage(true); // Muestra el mensaje de reintento
+
+                    // Fuerza la recarga del video cambiando su 'key'
+                    setSourceKey(prev => prev + 1);
+                }
+            }, 5000); // 5 segundos de espera antes de reintentar
+
+        } else {
+            // --- ÉXITO DE BÚFER ---
+            // El video se reanudó
+            setIsLoading(false);
+
+            // Si estaba mostrando un mensaje de reintento, lo oculta
+            if (retryCount > 0) {
+                setRetryCount(0); // Resetea el contador
+                setShowNotifactionMessage(false); // Oculta el mensaje
+                setMessage('');
+            }
+        }
     };
 
     const handleLoadStart = () => {
@@ -458,6 +513,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handleVideoError = (error) => {
         console.log('Error de Video:', error);
 
+        // Detiene cualquier lógica de reintento de búfer si hay un error fatal
+        clearTimeout(bufferTimeout.current);
+        setRetryCount(0);
+        setShowNotifactionMessage(false);
+
         // Si el link principal AÚN NO HA FALLADO...
         if (!mainLinkFailed) {
             console.log('Falló el link principal. Intentando con el auxiliar...');
@@ -490,7 +550,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         } else {
             playerRef.current?.seek(time);
         }
-    }
+    };
 
     const formatTime = (seconds) => {
         const hours = Math.floor(seconds / 3600);
@@ -685,6 +745,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 >
                     <View style={styles.container}>
                         <Video
+                            key={sourceKey}
                             ref={playerRef}
                             source={{ uri: mainLinkFailed ? contenido.aux_link : contenido.link }}
                             style={styles.videoPlayer}
@@ -748,7 +809,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 <View style={styles.middleControls}>
                                     {/* Botón para ir al canal anterior / retroceder 10 segundos */}
                                     <TouchableOpacity
-                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1}}
+                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1 }}
                                         onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
                                         disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
                                     >
@@ -765,8 +826,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         </TouchableOpacity>
                                     )}
                                     {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
-                                    <TouchableOpacity 
-                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1}}
+                                    <TouchableOpacity
+                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1 }}
                                         onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
                                         disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
                                     >
