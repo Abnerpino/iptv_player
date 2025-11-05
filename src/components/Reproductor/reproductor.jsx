@@ -379,72 +379,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
-    const handleProgress = ({ currentTime }) => {
-        // Si el id es diferente, el contenido cambió y se debe actualizar su fecha de visualización
-        if (idContenido.current !== contenido.stream_id) {
-            const fecha = new Date(); // Obtiene la fecha (tiempo) actual 
-            updateProps(tipo, false, contenido.stream_id, { fecha_visto: fecha }); // Actualiza le propiedad 'fecha_visto' con la fecha actual
-            idContenido.current = contenido.stream_id; // Actualiza la referencia para el próximo cambio de contenido
-        }
-
-        // Si se llega al 99% de reproducción del episodio y el panel de configuración o de canales o el modal de episodios está abierto, los cierra o si la pantalla está bloqueada la desbloquea, para que se mustre el panel de 'Siguiente Episodio'
-        if (tipo === 'series' && (currentTime / contenido.episode_run_time) >= 0.99 && (showSettings || showChannels || modalVisible || isScreenLock)) {
-            setShowSettings(false);
-            setShowChannels(false);
-            setModalVisible(false);
-            setIsScreenLock(false);
-        }
-
-        // Si el panel de ajustes o el panel de canales está abierto, no actualiza el tiempo y ni hace nada más
-        if (showSettings || showChannels) {
-            return;
-        }
-
-        setCurrentTime(currentTime);
-        latestTime.current = currentTime;
-
-        if (tipo === 'series') {
-            onProgressUpdate(currentTime, contenido.episode_id);
-
-            // Lógica para el manejo del panel de 'Siguiente Episodio'
-            if (
-                contenido.episode_run_time > 0 &&
-                (currentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
-                !isShowingNextPanel.current &&                            // 2. La bandera indica que no se está mostrando ya
-                !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
-                (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
-            ) {
-                isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
-                setShowControls(false); // Oculta los controles
-                setCountdown(5); // Reinicia la cuenta regresiva a 5
-                setShowNextEpisode(true); // Muestra el panel
-            }
-        }
-
-        if (tipo === 'vod') {
-            onProgressUpdate(currentTime);
-        }
-
-        const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
-
-        // Comprueba si ha pasado suficiente tiempo desde el último guardado
-        if (Math.abs(currentTime - lastSaveTime.current) > SAVE_INTERVAL) { // Se usa valor absoluto porque lo importante no es la dirección (atrás o adelante), sino la magintud del salto en el tiempo
-            savePlaybackTime(currentTime);
-            lastSaveTime.current = currentTime; // Actualiza el último tiempo de guardado
-        }
-    };
-
-    // Método para manejar los cambios de estado del video (está reproduciendose o no)
-    const handlePlaybackState = ({ isPlaying }) => {
-        // Si el contenido dejó de reproducirse, no está cargando y no está en pausa...
-        if (!isPlaying && !isLoading && !paused) {
-            console.log('Imagen congelada');
-            clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
-            // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, llama a la lógica de reintento
-            bufferTimeout.current = setTimeout(performRetry, 3000);
-        }
-    };
-
     // Método para manejar el buffer
     const handleBuffer = ({ isBuffering }) => {
         clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
@@ -469,8 +403,44 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
-    const handleLoadStart = () => {
-        setIsLoading(true);
+    const handleEnd = () => {
+        if (tipo === 'vod' || tipo === 'series') {
+            savePlaybackTime(duration); // Guarda explícitamente la duración total como el tiempo de reproducción
+            setPaused(true); // Pausa el reproductor en la UI
+        }
+    };
+
+    const handleVideoError = (error) => {
+        console.log('Error de Video:', error);
+
+        // Detiene cualquier lógica de reintento de búfer si hay un error fatal
+        clearTimeout(bufferTimeout.current);
+        setRetryCount(0);
+        setShowNotifactionMessage(false);
+
+        // Si el link principal AÚN NO HA FALLADO...
+        if (!mainLinkFailed) {
+            console.log('Falló el link principal. Intentando con el auxiliar...');
+
+            // Marca que falló, para que el próximo render use el aux_link
+            setMainLinkFailed(true);
+
+            // Mantiene el 'loading' visible, porque va a reintentar
+            setIsLoading(true);
+        } else {
+            // Si llega aquí, es porque el aux_link TAMBIÉN falló
+            console.log('Falló también el link auxiliar.');
+
+            // Deja de cargar (para evitar bucles) y muestra el error
+            setIsLoading(false);
+            setIsCannotReproduce(true);
+            setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
+            setShowNotifactionMessage(true);
+            setTimeout(() => {
+                setShowNotifactionMessage(false);
+                setMessage('');
+            }, 4000);
+        }
     };
 
     const handleLoad = (data) => {
@@ -540,43 +510,73 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         lastSaveTime.current = startTime; // Sincroniza el último tiempo guardado
     };
 
-    const handleEnd = () => {
-        if (tipo === 'vod' || tipo === 'series') {
-            savePlaybackTime(duration); // Guarda explícitamente la duración total como el tiempo de reproducción
-            setPaused(true); // Pausa el reproductor en la UI
+    const handleLoadStart = () => {
+        setIsLoading(true);
+    };
+
+    const handleProgress = ({ currentTime }) => {
+        // Si el id es diferente, el contenido cambió y se debe actualizar su fecha de visualización
+        if (idContenido.current !== contenido.stream_id) {
+            const fecha = new Date(); // Obtiene la fecha (tiempo) actual 
+            updateProps(tipo, false, contenido.stream_id, { fecha_visto: fecha }); // Actualiza le propiedad 'fecha_visto' con la fecha actual
+            idContenido.current = contenido.stream_id; // Actualiza la referencia para el próximo cambio de contenido
+        }
+
+        // Si se llega al 99% de reproducción del episodio y el panel de configuración o de canales o el modal de episodios está abierto, los cierra o si la pantalla está bloqueada la desbloquea, para que se mustre el panel de 'Siguiente Episodio'
+        if (tipo === 'series' && (currentTime / contenido.episode_run_time) >= 0.99 && (showSettings || showChannels || modalVisible || isScreenLock)) {
+            setShowSettings(false);
+            setShowChannels(false);
+            setModalVisible(false);
+            setIsScreenLock(false);
+        }
+
+        // Si el panel de ajustes o el panel de canales está abierto, no actualiza el tiempo y ni hace nada más
+        if (showSettings || showChannels) {
+            return;
+        }
+
+        setCurrentTime(currentTime);
+        latestTime.current = currentTime;
+
+        if (tipo === 'series') {
+            onProgressUpdate(currentTime, contenido.episode_id);
+
+            // Lógica para el manejo del panel de 'Siguiente Episodio'
+            if (
+                contenido.episode_run_time > 0 &&
+                (currentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
+                !isShowingNextPanel.current &&                            // 2. La bandera indica que no se está mostrando ya
+                !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
+                (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
+            ) {
+                isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
+                setShowControls(false); // Oculta los controles
+                setCountdown(5); // Reinicia la cuenta regresiva a 5
+                setShowNextEpisode(true); // Muestra el panel
+            }
+        }
+
+        if (tipo === 'vod') {
+            onProgressUpdate(currentTime);
+        }
+
+        const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
+
+        // Comprueba si ha pasado suficiente tiempo desde el último guardado
+        if (Math.abs(currentTime - lastSaveTime.current) > SAVE_INTERVAL) { // Se usa valor absoluto porque lo importante no es la dirección (atrás o adelante), sino la magintud del salto en el tiempo
+            savePlaybackTime(currentTime);
+            lastSaveTime.current = currentTime; // Actualiza el último tiempo de guardado
         }
     };
 
-    const handleVideoError = (error) => {
-        console.log('Error de Video:', error);
-
-        // Detiene cualquier lógica de reintento de búfer si hay un error fatal
-        clearTimeout(bufferTimeout.current);
-        setRetryCount(0);
-        setShowNotifactionMessage(false);
-
-        // Si el link principal AÚN NO HA FALLADO...
-        if (!mainLinkFailed) {
-            console.log('Falló el link principal. Intentando con el auxiliar...');
-
-            // Marca que falló, para que el próximo render use el aux_link
-            setMainLinkFailed(true);
-
-            // Mantiene el 'loading' visible, porque va a reintentar
-            setIsLoading(true);
-        } else {
-            // Si llega aquí, es porque el aux_link TAMBIÉN falló
-            console.log('Falló también el link auxiliar.');
-
-            // Deja de cargar (para evitar bucles) y muestra el error
-            setIsLoading(false);
-            setIsCannotReproduce(true);
-            setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
-            setShowNotifactionMessage(true);
-            setTimeout(() => {
-                setShowNotifactionMessage(false);
-                setMessage('');
-            }, 4000);
+    // Método para manejar los cambios de estado del video (está reproduciendose o no)
+    const handlePlaybackState = ({ isPlaying }) => {
+        // Si el contenido dejó de reproducirse, no está cargando y no está en pausa...
+        if (!isPlaying && !isLoading && !paused) {
+            console.log('Imagen congelada');
+            clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
+            // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, llama a la lógica de reintento
+            bufferTimeout.current = setTimeout(performRetry, 3000);
         }
     };
 
@@ -786,20 +786,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             ref={playerRef}
                             source={{ uri: mainLinkFailed ? contenido.aux_link : contenido.link }}
                             style={styles.videoPlayer}
-                            resizeMode={resizeMode.modo}
-                            rate={playbackRate}
-                            paused={paused}
-                            onLoadStart={handleLoadStart}
-                            onLoad={handleLoad}
-                            onBuffer={handleBuffer}
-                            onProgress={handleProgress}
-                            onPlaybackStateChanged={handlePlaybackState}
-                            onEnd={handleEnd}
-                            onError={handleVideoError}
                             controls={false}
-                            selectedVideoTrack={selectedVideoTrack}
+                            paused={paused}
+                            rate={playbackRate}
+                            resizeMode={resizeMode.modo}
                             selectedAudioTrack={selectedAudioTrack}
                             selectedTextTrack={selectedTextTrack}
+                            selectedVideoTrack={selectedVideoTrack}
+                            onAudioFocusChanged={handleAudioFocusChange}
+                            onBuffer={handleBuffer}
+                            onEnd={handleEnd}
+                            onError={handleVideoError}
+                            onLoad={handleLoad}
+                            onLoadStart={handleLoadStart}
+                            onProgress={handleProgress}
+                            onPlaybackStateChanged={handlePlaybackState}
                         />
 
                         {/* Cuando un canal está en pantalla chica o cuando cualquier tipo de contenido tiene la pantalla bloqueada... */}
