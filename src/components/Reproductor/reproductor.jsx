@@ -325,6 +325,51 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         client.seek({ position: value[0] });
     };
 
+    // Función que centraliza la lógica de reintento
+    const performRetry = () => {
+        const newCount = retryCount + 1; // Lee el estado actual
+
+        if (newCount > 5) {
+            // --- FALLO TOTAL ---
+            console.log('Fallaron todos los reintentos de búfer.');
+            setIsLoading(false);
+            setIsCannotReproduce(true);
+            setMessage('Error de red. No se pudo reproducir el contenido.');
+            setShowNotifactionMessage(true);
+            setTimeout(() => {
+                setShowNotifactionMessage(false);
+                setMessage('');
+            }, 4000);
+            return; // No re-arma el temporizador
+
+        } else {
+            // --- LÓGICA DE REINTENTO ESCALONADO ---
+            setRetryCount(newCount);
+            setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+            setShowNotifactionMessage(true); // Muestra el mensaje de reintento
+            setTimeout(() => {
+                setShowNotifactionMessage(false);
+                setMessage('');
+            }, 2000);
+
+            if (newCount <= 3) {
+                // Intento 1, 2, 3: "Soft Reload" (Seek)
+                console.log(`Reintento (Suave) #${newCount}: Buscando a ${latestTime.current}`);
+                if (playerRef.current) {
+                    playerRef.current.seek(latestTime.current);
+                }
+
+                // Re-arma el temporizador para la próxima comprobación
+                bufferTimeout.current = setTimeout(performRetry, 5000);
+
+            } else {
+                // Intento 4, 5: "Hard Reload" (Source Key)
+                console.log(`Reintento (Duro) #${newCount}: Recargando source key`);
+                setSourceKey(prev => prev + 1);
+            }
+        }
+    };
+
     const handleBack = () => {
         if (tipo === 'live') {
             setFullScreen(false);
@@ -381,6 +426,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
     };
 
+    // Método para manejar los cambios de estado del video (está reproduciendose o no)
+    const handlePlaybackState = ({ isPlaying }) => {
+        // Si el contenido dejó de reproducirse, no está cargando y no está en pausa...
+        if (!isPlaying && !isLoading && !paused) {
+            console.log('Imagen congelada');
+            clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
+            // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, llama a la lógica de reintento
+            bufferTimeout.current = setTimeout(performRetry, 3000);
+        }
+    };
+
     // Método para manejar el buffer
     const handleBuffer = ({ isBuffering }) => {
         clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
@@ -389,35 +445,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             // El video se detuvo a cargar
             setIsLoading(true);
 
-            // Inicia un temporizador, si sigue en búfer después de 5 segundos, lo considera "atascado"
-            bufferTimeout.current = setTimeout(() => {
-                const newCount = retryCount + 1;
-
-                if (newCount > 5) {
-                    // --- FALLO TOTAL ---
-                    console.log('Fallaron todos los reintentos de búfer.');
-                    clearTimeout(bufferTimeout.current);
-                    setIsLoading(false);
-                    setIsCannotReproduce(true);
-                    setMessage('Error de red. No se pudo reproducir el contenido.');
-                    setShowNotifactionMessage(true);
-                    setTimeout(() => { // Oculta el mensaje después de 4 seg
-                        setShowNotifactionMessage(false);
-                        setMessage('');
-                    }, 4000);
-
-                } else {
-                    // --- REINTENTANDO ---
-                    console.log(`Reintento de búfer #${newCount}`);
-                    setRetryCount(newCount);
-                    setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
-                    setShowNotifactionMessage(true); // Muestra el mensaje de reintento
-
-                    // Fuerza la recarga del video cambiando su 'key'
-                    setSourceKey(prev => prev + 1);
-                }
-            }, 5000); // 5 segundos de espera antes de reintentar
-
+            // Inicia un temporizador, si sigue en búfer después de 5 segundos, llama a la lógica de reintento
+            bufferTimeout.current = setTimeout(performRetry, 5000);
         } else {
             // --- ÉXITO DE BÚFER ---
             // El video se reanudó
@@ -756,6 +785,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             onLoad={handleLoad}
                             onBuffer={handleBuffer}
                             onProgress={handleProgress}
+                            onPlaybackStateChanged={handlePlaybackState}
                             onEnd={handleEnd}
                             onError={handleVideoError}
                             controls={false}
