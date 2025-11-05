@@ -26,7 +26,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
 
     const handleNavigateToScreen = useCallback(async () => {
         if (tipo === 'live') {
-            navigation.navigate('Canal', { selectedContent: item, idCategory });
+            navigation.navigate('Canal', { idContent: item.stream_id, idCategory });
         }
         else if (tipo === 'vod') {
             try {
@@ -52,7 +52,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                         );
                     }
                 }
-                navigation.navigate('Pelicula', { selectedContent: item });
+                navigation.navigate('Pelicula', { idContent: item.stream_id });
             } catch (error) {
                 //Mostrar mensaje de que no está disponible el contenido
                 console.log(error);
@@ -85,7 +85,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                 }
                 const response = await getEpisodes(item.series_id);
                 response ? console.log('Episodios agregados') : console.log('No se agregaron los episodios');
-                navigation.navigate('Serie', { tipo, selectedContent: item });
+                navigation.navigate('Serie', { idContent: item.series_id });
             } catch (error) {
                 //Mostrar mensaje de que no está disponible el contenido
                 console.log('CardContenido: ', error);
