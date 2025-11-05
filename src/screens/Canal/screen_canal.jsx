@@ -3,16 +3,16 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackgro
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
-import Video from 'react-native-video';
-import { useQuery } from '@realm/react';
+import { useObject, useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
 
 const Canal = ({ navigation, route }) => {
-    const canal = route.params.selectedContent;
-    const id_categoria = route.params.idCategory;
+    const { idContent, idCategory } = route.params;
+    const canal = useObject('Canal', idContent); // Encuentra el canal usando su Modelo y su ID
+    const id_categoria = idCategory;
 
     const { getModelName, updateProps, getWatchedItems, getFavoriteItems } = useStreaming();
     const categoryModel = getModelName('live', true); //Obtiene el nombre del modelo para las categorias de 'live'

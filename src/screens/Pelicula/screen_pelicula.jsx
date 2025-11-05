@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from '@realm/react';
+import { useObject, useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ProgressBar from '../../components/ProgressBar/progress_bar';
 import StarRating from '../../components/StarRating';
@@ -9,7 +9,9 @@ import CardActor from '../../components/Cards/card_actor';
 import Reproductor from '../../components/Reproductor';
 
 const Pelicula = ({ navigation, route }) => {
-    const pelicula = route.params.selectedContent;
+    const { idContent } = route.params;
+    const pelicula = useObject('Pelicula', idContent); // Encuentra la pelicula usando su Modelo y su ID
+    
     const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;

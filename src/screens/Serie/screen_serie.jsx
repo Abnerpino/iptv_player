@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from '@realm/react';
+import { useObject, useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
@@ -12,7 +12,9 @@ import ProgressBar from '../../components/ProgressBar/progress_bar';
 import Reproductor from '../../components/Reproductor';
 
 const Serie = ({ navigation, route }) => {
-    const serie = route.params.selectedContent;
+    const { idContent } = route.params;
+    const serie = useObject('Serie', idContent); // Encuentra la serie usando su Modelo y su ID
+
     const poster = serie.cover !== "" ? serie.cover : serie.poster_path !== "" ? `https://image.tmdb.org/t/p/original${serie.poster_path}` : null;
     const background = serie.backdrop_path !== "" ? serie.backdrop_path : serie.backdrop_path_aux !== "" ? `https://image.tmdb.org/t/p/original${serie.backdrop_path_aux}` : null;
     const originalName = serie.original_name;
@@ -335,7 +337,7 @@ const Serie = ({ navigation, route }) => {
                     fullScreen={true}
                     setMostrar={(value) => setShowReproductor(value)}
                     contenido={{
-                        series_id: serie.series_id,
+                        stream_id: serie.series_id, // se cambió 'series_id' por 'stream_id' para facilitar su uso en el reproductor
                         temporada: selectedSeason.numero,
                         episode_id: selectedEpisode.id,
                         link: selectedEpisode.link,
