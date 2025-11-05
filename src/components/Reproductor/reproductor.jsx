@@ -29,6 +29,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const countdownTimer = useRef(null); // Referencia para el temporizador de la cuenta regresiva
     const isShowingNextPanel = useRef(false); // Referencia para evitar multiples llamadas al componente de 'Siguiente Episodio'
     const prevEpisodeId = useRef(null); // Referencia para guardar el id del episodio reproducido anteriormente
+    const idContenido = useRef(null); // Referencia para guardar el id del contenido reproducido anteriormente (canal, pelicula o serie)
     const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
@@ -242,7 +243,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             if (tipo === 'vod') {
                 updateProps(tipo, false, contenido.stream_id, { playback_time: time });
             } else { // 'series', para un episodio
-                updateEpisodeProps(contenido.series_id, contenido.temporada, contenido.episode_id, 'playback_time', time);
+                updateEpisodeProps(contenido.stream_id, contenido.temporada, contenido.episode_id, 'playback_time', time);
             }
         }
     }, [contenido, tipo, updateEpisodeProps, updateProps]);
@@ -379,6 +380,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     const handleProgress = ({ currentTime }) => {
+        // Si el id es diferente, el contenido cambió y se debe actualizar su fecha de visualización
+        if (idContenido.current !== contenido.stream_id) {
+            const fecha = new Date(); // Obtiene la fecha (tiempo) actual 
+            updateProps(tipo, false, contenido.stream_id, { fecha_visto: fecha }); // Actualiza le propiedad 'fecha_visto' con la fecha actual
+            idContenido.current = contenido.stream_id; // Actualiza la referencia para el próximo cambio de contenido
+        }
+
         // Si se llega al 99% de reproducción del episodio y el panel de configuración o de canales o el modal de episodios está abierto, los cierra o si la pantalla está bloqueada la desbloquea, para que se mustre el panel de 'Siguiente Episodio'
         if (tipo === 'series' && (currentTime / contenido.episode_run_time) >= 0.99 && (showSettings || showChannels || modalVisible || isScreenLock)) {
             setShowSettings(false);
