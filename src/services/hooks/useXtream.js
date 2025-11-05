@@ -92,8 +92,6 @@ export const useXtream = () => {
             const stream = await response.json();
 
             stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids, direct_source }) => {
-                //const canal = live?.find(channel => channel.stream_id === stream_id);
-
                 newLive.push({
                     num: num.toString(),
                     name: name ? name : stream_id.toString(),
@@ -104,7 +102,8 @@ export const useXtream = () => {
                     link: direct_source ?? '',
                     aux_link: `${host}/live/${user}/${password}/${stream_id}.ts`,
                     favorito: false,
-                    visto: false
+                    visto: false,
+                    fecha_visto: null,
                 });
             });
 
@@ -149,6 +148,7 @@ export const useXtream = () => {
                     aux_link: `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
                     favorito: false,
                     visto: false,
+                    fecha_visto: null,
                     playback_time: '0'
                 });
             });
@@ -195,6 +195,7 @@ export const useXtream = () => {
                     temporadas: [],
                     favorito: false,
                     visto: false,
+                    fecha_visto: null,
                     saga: regex.test(name) ? true : false,
                     last_ep_played: [0, 0]
                 });
@@ -217,9 +218,6 @@ export const useXtream = () => {
                 const response = await fetch(newLink);
                 const stream = await response.json();
                 transformEpisodes(stream, idSerie, serie);
-                /*realm.write(() => {
-                    serie.temporadas.push(...episodios);
-                });*/
                 console.log('Se agregaron los episodios');
                 return true;
             }

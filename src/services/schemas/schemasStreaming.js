@@ -12,6 +12,7 @@ export const CanalSchema = {
         aux_link: 'string',
         favorito: 'bool',
         visto: 'bool',
+        fecha_visto: 'date?',
     },
 };
 
@@ -56,6 +57,7 @@ export const PeliculaSchema = {
         aux_link: 'string',
         favorito: 'bool',
         visto: 'bool',
+        fecha_visto: 'date?',
         playback_time: 'string',
     },
 };
@@ -129,6 +131,7 @@ export const SerieSchema = {
         temporadas: { type: 'list', objectType: 'Temporada' },
         favorito: 'bool',
         visto: 'bool',
+        fecha_visto: 'date?',
         saga: 'bool',
         last_ep_played: 'int[]',
     },
