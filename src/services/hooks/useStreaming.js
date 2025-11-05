@@ -17,10 +17,11 @@ export const useStreaming = () => {
                 const oldItem = realm.objectForPrimaryKey(model, item[idField]);
                 let dataToSave = { ...item };
 
-                // Preserva estado de las propiedades 'visto', 'favorito', 'playback_time' y 'temporadas'
+                // Preserva estado de las propiedades 'visto', 'favorito', 'fecha_visto', 'playback_time' y 'temporadas'
                 if (oldItem) {
                     dataToSave.visto = oldItem.visto;
                     dataToSave.favorito = oldItem.favorito;
+                    dataToSave.fecha_visto = oldItem.fecha_visto;
                     if (type === 'vod') {
                         dataToSave.playback_time = oldItem.playback_time;
                     }
@@ -87,10 +88,10 @@ export const useStreaming = () => {
         });
     };
 
-    // Método para obtener los items vistos de una colección, ordenados por la propiedad 'num
+    // Método para obtener los items vistos de una colección, ordenados en reversa (descendente) por la propiedad 'fecha_visto' (fecha de visualización más reciente)
     const getWatchedItems = (type) => {
         const model = getModelName(type);
-        const items = realm.objects(model).sorted('num');
+        const items = realm.objects(model).sorted('fecha_visto', true);
         return items.filtered('visto == true');
     };
 
@@ -164,6 +165,7 @@ export const useStreaming = () => {
         realm.write(() => {
             items.forEach(item => {
                 item.visto = false; // Desmarca como Visto el item
+                item.fecha_visto = null; // Asigna a 'null' su fecha de visualización
 
                 if (type === 'series') {
                     item.temporadas = []; // Borra las temporadas y sus respectivos episodios
