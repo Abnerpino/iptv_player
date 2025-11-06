@@ -470,23 +470,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
 
-        if (tipo === 'live') {
-            // Limpia cualquier temporizador anterior por si acaso
-            clearTimeout(liveVistoTimer.current);
-
-            // Inicia el temporizador de 100 milisegundos
-            liveVistoTimer.current = setTimeout(() => {
-                if (!hasMarkedLiveAsVisto.current) {
-                    markAsWatched(); // Llama a la función del padre para marcarlo en Realm
-                    hasMarkedLiveAsVisto.current = true; // Activa la bandera para no volver a entrar aquí
-                }
-            }, 100);
-
-            return; // Sale de la función porque el resto del código es solo para peliculas y episodios
-        } else {
-            isVideoPlaying.current === true; // Avisa que la pelicula o episodio ya ha cargado
-        }
-
         setDuration(data.duration);
 
         // Captura las pistas disponibles
@@ -508,6 +491,23 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 type: 'index',
                 value: 0 //El índice 0 es la primera pista
             });
+        }
+
+        if (tipo === 'live') {
+            // Limpia cualquier temporizador anterior por si acaso
+            clearTimeout(liveVistoTimer.current);
+
+            // Inicia el temporizador de 100 milisegundos
+            liveVistoTimer.current = setTimeout(() => {
+                if (!hasMarkedLiveAsVisto.current) {
+                    markAsWatched(); // Llama a la función del padre para marcarlo en Realm
+                    hasMarkedLiveAsVisto.current = true; // Activa la bandera para no volver a entrar aquí
+                }
+            }, 100);
+
+            return; // Sale de la función porque el resto del código es solo para peliculas y episodios
+        } else {
+            isVideoPlaying.current === true; // Avisa que la pelicula o episodio ya ha cargado
         }
 
         let startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
