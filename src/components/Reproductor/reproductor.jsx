@@ -34,6 +34,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
+    const [pausedByFocusLoss, setPausedByFocusLoss] = useState(false); // Estado para manejar cuando se pause el video por pérdida de foco
     const [showControls, setShowControls] = useState(true);
     const [showRemoteControls, setShowRemoteControls] = useState(true);
     const [duration, setDuration] = useState(0);
@@ -95,6 +96,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (tipo !== 'series' || (prevEpisodeId.current !== contenido.episode_id)) {
             setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
+            setPaused(false); // Se asegura de que 'paused' sea falso cada vez que se cambia el contenido
+            setPausedByFocusLoss(false); // Se asegura de que 'pausedByFocusLoss' sea falso cada vez que se cambia el contenido
             setIsCannotReproduce(false); // Se asegura de que 'isCannotReproduce' sea falso cada vez que se cambia el contenido
             setRetryCount(0); // Resetea el contador de reintentos
             clearTimeout(bufferTimeout.current); // Limpia cualquier temporizador de "búfer"
@@ -376,6 +379,26 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setFullScreen(false);
         } else {
             setMostrar(false);
+        }
+    };
+
+    const handleAudioFocusChange = ({ hasAudioFocus }) => {
+        if (!hasAudioFocus) {
+            // PIERDE EL FOCO
+            // Si el video no está pausado por el usuario...
+            if (!paused) {
+                console.log("Audio focus perdido. Pausando video...");
+                setPaused(true);
+                setPausedByFocusLoss(true); // Marca que la app pausó el video
+            }
+        } else {
+            // RECUPERA EL FOCO
+            // Si la app pausó el video (y no el usuario), lo reanuda
+            if (pausedByFocusLoss) {
+                console.log("Audio focus recuperado. Reanudando video...");
+                setPaused(false);
+                setPausedByFocusLoss(false); // Limpia la marca
+            }
         }
     };
 
@@ -824,6 +847,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 {/* Muestra el icono de reproducción deshabilitada*/}
                                 {isCannotReproduce && (
                                     <Icon3 name='play-disabled' size={60} color="#fff" />
+                                )}
+                                {/* Muestra el botón de 'play'*/}
+                                {paused && (
+                                    <TouchableOpacity onPress={togglePlayPause}>
+                                        <Icon4 name='play' size={45} color="#fff" />
+                                    </TouchableOpacity>
                                 )}
                             </View>
                         )}
