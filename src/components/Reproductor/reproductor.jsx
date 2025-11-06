@@ -24,6 +24,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const lastSaveTime = useRef(0); // Referencia que controla el momento para guardar el ultimo tiempo de reproducción
     const latestTime = useRef(0); // Referencia que almacena el ultimo tiempo de reproducción que se va a guardar
     const hasMarkedLiveAsVisto = useRef(false); // Referencia para saber si un canal ya se ha empezado a reproducir
+    const isVideoPlaying = useRef(false); // // Referencia para saber si una pelicula o episodio ya se ha empezado a reproducir
     const liveVistoTimer = useRef(null); // Referencia para guardar el tiempo de reproducción minimo (100 ms) para considerar un canal como visto
     const isInitialCast = useRef(true); // Referencia para evitar doble carga al conectar
     const countdownTimer = useRef(null); // Referencia para el temporizador de la cuenta regresiva
@@ -482,6 +483,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             }, 100);
 
             return; // Sale de la función porque el resto del código es solo para peliculas y episodios
+        } else {
+            isVideoPlaying.current === true; // Avisa que la pelicula o episodio ya ha cargado
         }
 
         setDuration(data.duration);
@@ -594,8 +597,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     // Método para manejar los cambios de estado del video (está reproduciendose o no)
     const handlePlaybackState = ({ isPlaying }) => {
-        // Si el contenido dejó de reproducirse, no está cargando y no está en pausa...
-        if (!isPlaying && !isLoading && !paused) {
+        // Si el contenido dejó de reproducirse, no está cargando, no está en pausa y si es una pelicula o episodio (especialmente si ya tiene un tiempo guardado), ya inició/reanudó la reproducción...
+        if (!isPlaying && !isLoading && !paused && (tipo === 'live' || isVideoPlaying.current)) {
             // Activa 'isLoading' como guardia para prevenir que se vuelva a ejecutar este bloque de código, cancelando la primera ejecución
             setIsLoading(true);
             console.log('Imagen congelada');
