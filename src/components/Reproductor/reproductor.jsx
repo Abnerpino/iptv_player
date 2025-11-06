@@ -327,49 +327,49 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     // Función que centraliza la lógica de reintento
-    const performRetry = () => {
-        const newCount = retryCount + 1; // Lee el estado actual
+    const performRetry = useCallback(() => {
+        // Usar la actualización funcional para OBTENER y ESTABLECER el estado más reciente de 'retryCount'
+        setRetryCount(currentCount => {
+            const newCount = currentCount + 1; // Obtiene el valor más reciente
 
-        if (newCount > 5) {
-            // --- FALLO TOTAL ---
-            console.log('Fallaron todos los reintentos de búfer.');
-            setIsLoading(false);
-            setIsCannotReproduce(true);
-            setMessage('Error de red. No se pudo reproducir el contenido.');
-            setShowNotifactionMessage(true);
-            setTimeout(() => {
-                setShowNotifactionMessage(false);
-                setMessage('');
-            }, 4000);
-            return; // No re-arma el temporizador
-
-        } else {
-            // --- LÓGICA DE REINTENTO ESCALONADO ---
-            setRetryCount(newCount);
-            setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
-            setShowNotifactionMessage(true); // Muestra el mensaje de reintento
-            setTimeout(() => {
-                setShowNotifactionMessage(false);
-                setMessage('');
-            }, 2000);
-
-            if (newCount <= 3) {
-                // Intento 1, 2, 3: "Soft Reload" (Seek)
-                console.log(`Reintento (Suave) #${newCount}: Buscando a ${latestTime.current}`);
-                if (playerRef.current) {
-                    playerRef.current.seek(latestTime.current);
-                }
-
-                // Re-arma el temporizador para la próxima comprobación
-                bufferTimeout.current = setTimeout(performRetry, 5000);
+            if (newCount > 5) {
+                // --- FALLO TOTAL ---
+                console.log('Fallaron todos los reintentos de búfer.');
+                setIsLoading(false);
+                setIsCannotReproduce(true);
+                setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
+                setShowNotifactionMessage(true);
+                setTimeout(() => {
+                    setShowNotifactionMessage(false);
+                    setMessage('');
+                }, 4000);
+                return; // No re-arma el temporizador
 
             } else {
-                // Intento 4, 5: "Hard Reload" (Source Key)
-                console.log(`Reintento (Duro) #${newCount}: Recargando source key`);
-                setSourceKey(prev => prev + 1);
+                // --- LÓGICA DE REINTENTO ESCALONADO ---
+                setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+                setShowNotifactionMessage(true); // Muestra el mensaje de reintento
+
+                if (newCount <= 3) {
+                    // Intento 1, 2, 3: "Soft Reload" (Seek)
+                    console.log(`Reintento (Suave) #${newCount}: Buscando a ${latestTime.current}`);
+                    if (playerRef.current) {
+                        playerRef.current.seek(latestTime.current);
+                    }
+
+                    // Re-arma el temporizador para la próxima comprobación
+                    bufferTimeout.current = setTimeout(performRetry, 5000);
+
+                } else {
+                    // Intento 4, 5: "Hard Reload" (Source Key)
+                    console.log(`Reintento (Duro) #${newCount}: Recargando source key`);
+                    setSourceKey(prev => prev + 1);
+                }
+
+                return newCount; // Actualiza el estado al nuevo contador
             }
-        }
-    };
+        });
+    }, []);
 
     const handleBack = () => {
         if (tipo === 'live') {
@@ -380,7 +380,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     // Método para manejar el buffer
-    const handleBuffer = ({ isBuffering }) => {
+    const handleBuffer = useCallback(({ isBuffering }) => {
         clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
 
         if (isBuffering) {
@@ -401,7 +401,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 setMessage('');
             }
         }
-    };
+    }, [performRetry, retryCount]);
 
     const handleEnd = () => {
         if (tipo === 'vod' || tipo === 'series') {
@@ -573,10 +573,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handlePlaybackState = ({ isPlaying }) => {
         // Si el contenido dejó de reproducirse, no está cargando y no está en pausa...
         if (!isPlaying && !isLoading && !paused) {
+            // Activa 'isLoading' como guardia para prevenir que se vuelva a ejecutar este bloque de código, cancelando la primera ejecución
+            setIsLoading(true);
             console.log('Imagen congelada');
             clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
-            // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, llama a la lógica de reintento
-            bufferTimeout.current = setTimeout(performRetry, 3000);
+
+            const newCount = retryCount + 1; // Lee el estado actual
+            setRetryCount(newCount);
+            setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+            setShowNotifactionMessage(true); // Muestra el mensaje de reintento
+
+            // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, hace una 'recarga forzada'
+            bufferTimeout.current = setTimeout(() => {
+                console.log(`Reintento (Duro) #${newCount}: Recargando source key`);
+                setSourceKey(prev => prev + 1);
+            }, 3000);
         }
     };
 
