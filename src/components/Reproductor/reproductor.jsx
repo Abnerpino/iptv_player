@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import { Slider } from '@miblanchard/react-native-slider';
@@ -9,12 +9,12 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/FontAwesome5';
 import GoogleCast, { CastButton, useCastState, useRemoteMediaClient, useMediaStatus } from 'react-native-google-cast';
 import Orientation from 'react-native-orientation-locker';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
-import NotificationMessage from '../NotificationMessage';
 
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
     const playerRef = useRef(null);
@@ -32,6 +32,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const prevEpisodeId = useRef(null); // Referencia para guardar el id del episodio reproducido anteriormente
     const idContenido = useRef(null); // Referencia para guardar el id del contenido reproducido anteriormente (canal, pelicula o serie)
     const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
+    const fullScreenRef = useRef(fullScreen); // Referencia para saber cuando la pantalla está en tamaño completo o no
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
@@ -62,8 +63,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [isCannotReproduce, setIsCannotReproduce] = useState(false); // Estado para saber cuando un contenido ya no puede ser reproducido
     const [retryCount, setRetryCount] = useState(0); // Estado para el manejo del contador de reintentos
     const [sourceKey, setSourceKey] = useState(0); // Estado para el manejo de la llave para forzar recarga
-    const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del componente NotificationMessage
-    const [message, setMessage] = useState(''); // Estado para manejar el mensaje del componente NotificationMessage
+    const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del mensaje de notificación
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -94,6 +94,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, []);
 
     useEffect(() => {
+        fullScreenRef.current = fullScreen; // Mantiene actualizada la referencia del tamaño de pantalla cada vez que cambia
+        hideMessage(); // Oculta los mensajes de notificación cada vez que el tamaño de pantalla cambia para evitar mostrarlos con estilos incorrectos
+    }, [fullScreen]);
+
+    useEffect(() => {
         if (tipo !== 'series' || (prevEpisodeId.current !== contenido.episode_id)) {
             setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
@@ -103,7 +108,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setRetryCount(0); // Resetea el contador de reintentos
             clearTimeout(bufferTimeout.current); // Limpia cualquier temporizador de "búfer"
             setSourceKey(prev => prev + 1); // Fuerza la recarga del componente Video con una nueva llave
-            setShowNotifactionMessage(false); // Oculta cualquier mensaje anterior
+            setShowNotifactionMessage(false); // Indica que ya no se debe mostrar el mensaje de notificación
+            hideMessage(); // Oculta cualquier mensaje de notificación anterior
         }
 
         switch (tipo) {
@@ -255,7 +261,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const showTemporarilyControls = () => {
         setShowControls(true);
         if (controlTimeout.current) clearTimeout(controlTimeout.current);
-        controlTimeout.current = setTimeout(() => setShowControls(false), 4000);
+        controlTimeout.current = setTimeout(() => {
+            if (!showNotifactionMessage) {
+                hideMessage();
+            }
+            setShowControls(false);
+        }, 4000);
     };
 
     const showTemporarilyRemoteControls = () => {
@@ -266,6 +277,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     const toggleControls = () => {
         if (showControls) {
+            if (!showNotifactionMessage) {
+                hideMessage();
+            }
             setShowControls(false);
             clearTimeout(controlTimeout.current);
         } else {
@@ -332,6 +346,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     // Función que centraliza la lógica de reintento
     const performRetry = useCallback(() => {
+        let toastMessage = '';
+
         // Usar la actualización funcional para OBTENER y ESTABLECER el estado más reciente de 'retryCount'
         setRetryCount(currentCount => {
             const newCount = currentCount + 1; // Obtiene el valor más reciente
@@ -341,17 +357,16 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 console.log('Fallaron todos los reintentos de búfer.');
                 setIsLoading(false);
                 setIsCannotReproduce(true);
-                setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
+                toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`, 3;
                 setShowNotifactionMessage(true);
                 setTimeout(() => {
                     setShowNotifactionMessage(false);
-                    setMessage('');
                 }, 4000);
-                return; // No re-arma el temporizador
+                return newCount; // Actualiza el estado al nuevo contador
 
             } else {
                 // --- LÓGICA DE REINTENTO ESCALONADO ---
-                setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+                toastMessage = `Error de reproducción, reintentando conexión (${newCount}/5)`, 3;
                 setShowNotifactionMessage(true); // Muestra el mensaje de reintento
 
                 if (newCount <= 3) {
@@ -373,9 +388,16 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 return newCount; // Actualiza el estado al nuevo contador
             }
         });
-    }, []);
+
+        if (toastMessage) {
+            showToast(toastMessage, 3);
+        }
+    }, [tipo]);
 
     const handleBack = () => {
+        if (!showNotifactionMessage) {
+            hideMessage();
+        }
         if (tipo === 'live') {
             setFullScreen(false);
         } else {
@@ -422,7 +444,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             if (retryCount > 0) {
                 setRetryCount(0); // Resetea el contador
                 setShowNotifactionMessage(false); // Oculta el mensaje
-                setMessage('');
             }
         }
     }, [performRetry, retryCount]);
@@ -436,6 +457,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     const handleVideoError = (error) => {
         console.log('Error de Video:', error);
+        const code = error?.error?.errorCode ?? '';
+        let toastMessage = '';
 
         // Detiene cualquier lógica de reintento de búfer si hay un error fatal
         clearTimeout(bufferTimeout.current);
@@ -454,15 +477,33 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         } else {
             // Si llega aquí, es porque el aux_link TAMBIÉN falló
             console.log('Falló también el link auxiliar.');
+            setIsLoading(false); // Deja de cargar (para evitar bucles)
+            setIsCannotReproduce(true); // Establece que el contenido no se puede reproducir
 
-            // Deja de cargar (para evitar bucles) y muestra el error
-            setIsLoading(false);
-            setIsCannotReproduce(true);
-            setMessage(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
+            // Asigna el mensaje de error
+            switch (code) {
+                case '22001':
+                    toastMessage = '¡Error de red! Revise su conexión a Internet';      
+                    break;
+                case '22004':
+                    toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`;
+                    break;
+                case '23003':
+                    toastMessage = `${tipo === 'live' ? 'Canal' : tipo === 'vod' ? 'Película' : 'Episodio'} no disponible por el momento, intente luego`;
+                    break;
+                case '24001':
+                    toastMessage = '¡Error de reproducción! Pista de audio no soportada';
+                    break;
+                default:
+                    toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`;
+                    break;
+            }
+
+            // Muestra y oculta el mensaje de error
+            showToast(toastMessage, 3);
             setShowNotifactionMessage(true);
             setTimeout(() => {
                 setShowNotifactionMessage(false);
-                setMessage('');
             }, 4000);
         }
     };
@@ -606,7 +647,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
             const newCount = retryCount + 1; // Lee el estado actual
             setRetryCount(newCount);
-            setMessage(`Error de reproducción, reintentando conexión (${newCount}/5)`);
+            showToast(`Error de reproducción, reintentando conexión (${newCount}/5)`, 3);
             setShowNotifactionMessage(true); // Muestra el mensaje de reintento
 
             // Inicia un temporizador, si sigue sin avanzar la reproducción después de 3 segundos, hace una 'recarga forzada'
@@ -723,6 +764,23 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         const currentIndex = rates.indexOf(playbackRate);
         const nextIndex = (currentIndex + 1) % rates.length;
         setPlaybackRate(rates[nextIndex]);
+    };
+
+    const showToast = (mensaje, numId) => {
+        if (numId !== 3) {
+            Vibration.vibrate();
+        }
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: numId === 3 ? 3000 : 1000,
+            position: numId === 3 ? 'bottom' : 'top',
+            backgroundColor: '#EEE',
+            color: '#000',
+            style: numId === 1 ? styles.flashMessage1 : numId === 2 ? styles.flashMessage2 : fullScreenRef.current ? styles.flashMessage3 : styles.flashMessage3_small,
+            titleStyle: { fontSize: numId === 3 ? 16 : 14 }
+        });
     };
 
     return (
@@ -843,20 +901,16 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         {/* Cuando un canal está en pantalla chica o cuando cualquier tipo de contenido tiene la pantalla bloqueada... */}
                         {((tipo === 'live' && !fullScreen) || (fullScreen && isScreenLock)) && (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                                {/* Muestra la animación de carga */}
-                                {isLoading && (
+                                {/* Muestra la animación de carga, el icono de reproducción deshabilitada o el botón de 'play' */}
+                                {isLoading ? (
                                     <ActivityIndicator size={50} color="#fff" />
-                                )}
-                                {/* Muestra el icono de reproducción deshabilitada*/}
-                                {isCannotReproduce && (
+                                ) : isCannotReproduce ? (
                                     <Icon3 name='play-disabled' size={60} color="#fff" />
-                                )}
-                                {/* Muestra el botón de 'play'*/}
-                                {paused && (
+                                ) : paused ? (
                                     <TouchableOpacity onPress={togglePlayPause}>
                                         <Icon4 name='play' size={45} color="#fff" />
                                     </TouchableOpacity>
-                                )}
+                                ) : null}
                             </View>
                         )}
 
@@ -865,23 +919,35 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             <View style={styles.overlay}>
                                 {/* Top */}
                                 <View style={styles.topControls}>
-                                    <TouchableOpacity onPress={handleBack}>
+                                    <TouchableOpacity
+                                        onPress={handleBack}
+                                        onLongPress={() => showToast('Regresar', 1)}
+                                    >
                                         <Icon name="arrow-circle-left" size={26} color="#fff" />
                                     </TouchableOpacity>
                                     <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                     <View style={styles.rightIcons}>
-                                        <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
-                                        <TouchableOpacity onPress={() => {
-                                            setIsScreenLock(true);
-                                            toggleIconLock();
-                                        }}
+                                        <TouchableOpacity
+                                            onLongPress={() => showToast('Transmitir', 2)}
+                                        >
+                                            <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setIsScreenLock(true);
+                                                toggleIconLock();
+                                            }}
+                                            onLongPress={() => showToast('Bloquear Pantalla', 2)}
                                         >
                                             <Icon name="unlock-alt" size={26} color="#fff" />
                                         </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => {
-                                            setShowControls(false);
-                                            setShowSettings(true);
-                                        }}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setShowControls(false);
+                                                setShowSettings(true);
+                                            }}
+                                            onLongPress={() => showToast('Ajustes', 2)}
+                                        >
                                             <Icon2 name="cog-outline" size={26} color="#fff" />
                                         </TouchableOpacity>
                                     </View>
@@ -1053,11 +1119,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     onPlayNow={handlePlayNow}
                 />
             )}
-            {showNotifactionMessage && (
-                <NotificationMessage
-                    mensaje={message}
-                />
-            )}
         </View>
     );
 };
@@ -1218,6 +1279,45 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 15,
         marginTop: 5,
+    },
+    flashMessage1: {
+        width: '12.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5.5%',
+        marginLeft: 1
+    },
+    flashMessage2: {
+        width: '18.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5.5%',
+        marginRight: 16
+    },
+    flashMessage3: {
+        width: '50%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'center',
+        paddingTop: 7.5,
+        paddingBottom: 5,
+        marginBottom: '15%',
+    },
+    flashMessage3_small: {
+        width: '50%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        paddingTop: 7.5,
+        paddingBottom: 5,
+        marginBottom: '7.5%',
+        marginRight: '5%'
     }
 });
 
