@@ -443,7 +443,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             // Si estaba mostrando un mensaje de reintento, lo oculta
             if (retryCount > 0) {
                 setRetryCount(0); // Resetea el contador
-                setShowNotifactionMessage(false); // Oculta el mensaje
+                setShowNotifactionMessage(false); // Indica que ya no se debe mostrar el mensaje
+                hideMessage(); // Oculta el mensaje inmediatamente
             }
         }
     }, [performRetry, retryCount]);
