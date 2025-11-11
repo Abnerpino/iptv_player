@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useObject, useQuery } from '@realm/react';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ProgressBar from '../../components/ProgressBar/progress_bar';
 import StarRating from '../../components/StarRating';
@@ -11,7 +12,7 @@ import Reproductor from '../../components/Reproductor';
 const Pelicula = ({ navigation, route }) => {
     const { idContent } = route.params;
     const pelicula = useObject('Pelicula', idContent); // Encuentra la pelicula usando su Modelo y su ID
-    
+
     const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
     const background = pelicula.backdrop_path;
     const originalTitle = pelicula.original_title;
@@ -32,12 +33,12 @@ const Pelicula = ({ navigation, route }) => {
     const [playbackTime, setPlaybackTime] = useState(parseFloat(pelicula.playback_time));
     const hasPerformedInitialSave = useRef(false);  // Referencia para saber cuando ya se guardó el 'playback_time' de la pelicula la primera vez que se reproduce
 
-    const isComplete = (runtime > 0 && (playbackTime / (runtime*60)) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+    const isComplete = (runtime > 0 && (playbackTime / (runtime * 60)) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {
         const storedPlaybackTime = parseFloat(pelicula.playback_time); // Obtiene el tiempo de reproducción que tenía la pelicula al ser cargada
-        
+
         // Verifica que la pelicula no haya sido guardado aún, que su 'playback_time' guardado sea 0 y que ya haya comenzado a reproducirse
         if (!hasPerformedInitialSave.current && storedPlaybackTime === 0 && playbackTime > 0) {
             updateProps('vod', false, pelicula.stream_id, { playback_time: playbackTime.toString() }); // Si se cumplen las condiciones, guarda el primer tiempo de reproducción que recibe
@@ -58,6 +59,17 @@ const Pelicula = ({ navigation, route }) => {
         updateProps('vod', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
     }, [playbackTime]);
 
+    useEffect(() => {
+        const backAction = () => {
+            handleBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, []);
+
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
 
@@ -69,6 +81,11 @@ const Pelicula = ({ navigation, route }) => {
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
         updateProps('vod', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+    };
+
+    const handleBack = () => {
+        hideMessage();
+        navigation.goBack();
     };
 
     const getDate = (date) => {
@@ -94,6 +111,19 @@ const Pelicula = ({ navigation, route }) => {
         setPlaybackTime(time);
     };
 
+    const showToast = (mensaje) => {
+        Vibration.vibrate();
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: 1000,
+            backgroundColor: '#EEE',
+            color: '#000',
+            style: styles.flashMessage
+        });
+    };
+
     const ItemSeparator = () => (
         <View style={{ width: 10 }} /> // Espacio entre elementos
     );
@@ -109,7 +139,11 @@ const Pelicula = ({ navigation, route }) => {
                         {/* Vista principal en columna */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
                             {/* Fila con textos */}
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
+                            <TouchableOpacity
+                                style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}
+                                onPress={handleBack}
+                                onLongPress={() => showToast('Regresar')}
+                            >
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
                             <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -230,6 +264,16 @@ const styles = StyleSheet.create({
         color: '#FFF',
         textAlign: 'center',
         paddingLeft: 5
+    },
+    flashMessage: {
+        width: '12.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5.5%',
+        marginLeft: 1
     },
 });
 

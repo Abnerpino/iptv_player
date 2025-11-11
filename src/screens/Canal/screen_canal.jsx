@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground, Vibration, BackHandler } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import { useObject, useQuery } from '@realm/react';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
@@ -100,11 +101,27 @@ const Canal = ({ navigation, route }) => {
 
     }, [currentIndex, selectedCategoryIndex, contentToShow, selectedChannel, isFullScreen]);
 
+    useEffect(() => {
+        const backAction = () => {
+            handleBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, []);
+
     const getItemLayout = (data, index) => ({
         length: 50,
         offset: 50 * index,
         index,
     });
+
+    const handleBack = () => {
+        hideMessage();
+        navigation.goBack();
+    };
 
     // Función para ir a la categoría anterior
     const handlePrevious = () => {
@@ -118,6 +135,19 @@ const Canal = ({ navigation, route }) => {
         // Fórmula para avanzar y dar la vuelta al llegar al final
         const newIndex = (currentIndex + 1) % categories.length;
         setCurrentIndex(newIndex);
+    };
+
+    const showToast = (mensaje) => {
+        Vibration.vibrate();
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: 1000,
+            backgroundColor: '#EEE',
+            color: '#000',
+            style: styles.flashMessage
+        });
     };
 
     // Función para actualizar el indice de la categoría seleccionada desde el panel del reproductor
@@ -151,7 +181,11 @@ const Canal = ({ navigation, route }) => {
                     {!isFullScreen && (
                         <View style={styles.listaContainer}>
                             <View style={{ flexDirection: 'row' }}>
-                                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.flechaIcono}>
+                                <TouchableOpacity
+                                    style={styles.flechaIcono}
+                                    onPress={handleBack}
+                                    onLongPress={() => showToast('Regresar')}
+                                >
                                     <Icon name="arrow-circle-left" size={26} color="white" />
                                 </TouchableOpacity>
                                 <Image
@@ -323,7 +357,17 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         overflow: 'hidden',
         borderColor: '#999',
-    }
+    },
+    flashMessage: {
+        width: '12.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5.5%',
+        marginLeft: 1
+    },
 });
 
 export default Canal;

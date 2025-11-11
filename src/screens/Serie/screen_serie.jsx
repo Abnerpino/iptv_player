@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useObject, useQuery } from '@realm/react';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
@@ -99,6 +100,17 @@ const Serie = ({ navigation, route }) => {
 
     }, [playbackInfo, selectedEpisode]);
 
+    useEffect(() => {
+        const backAction = () => {
+            handleBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, []);
+
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
 
@@ -110,6 +122,11 @@ const Serie = ({ navigation, route }) => {
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
         updateProps('series', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+    };
+
+    const handleBack = () => {
+        hideMessage();
+        navigation.goBack();
     };
 
     const getDate = (date) => {
@@ -146,6 +163,19 @@ const Serie = ({ navigation, route }) => {
         setPlaybackInfo({ time, episodeId });
     };
 
+    const showToast = (mensaje) => {
+        Vibration.vibrate();
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: 1000,
+            backgroundColor: '#EEE',
+            color: '#000',
+            style: styles.flashMessage
+        });
+    };
+
     const ItemSeparator = () => (
         <View style={{ width: 10 }} /> // Espacio entre elementos
     );
@@ -165,7 +195,11 @@ const Serie = ({ navigation, route }) => {
                             paddingVertical: 10
                         }}>
                             {/* Fila con el botón de regreso y el titulo de la serie */}
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}>
+                            <TouchableOpacity
+                                style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}
+                                onPress={handleBack}
+                                onLongPress={() => showToast('Regresar')}
+                            >
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
                             <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -393,6 +427,16 @@ const styles = StyleSheet.create({
         color: '#FFF',
         textAlign: 'center',
         paddingLeft: 5
+    },
+    flashMessage: {
+        width: '12.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5.5%',
+        marginLeft: 1
     },
 });
 
