@@ -10,7 +10,7 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading }) => {
+const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage }) => {
     const { getEpisodes } = useXtream();
     const { getModelName, getLastPlayedEpisode, updateProps } = useStreaming();
     const [error, setError] = useState(false);
@@ -18,6 +18,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
     // Obtiene las categorías correctas según el tipo
     const categoryModel = getModelName(tipo, true);
     const categories = useQuery(categoryModel);
+    const vistos = categories.find(categoria => categoria.category_id === '0.2');
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
 
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
@@ -25,6 +26,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
     const episodio = (tipo === 'series' && item.visto) ? getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]) : null;
 
     const handleNavigateToScreen = useCallback(async () => {
+        hideMessage();
         if (tipo === 'live') {
             navigation.navigate('Canal', { idContent: item.stream_id, idCategory });
         }
@@ -107,11 +109,22 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item]);
 
+    const handleToggleRemoveVisto = useCallback(async () => {
+        Vibration.vibrate();
+
+        updateProps(tipo, false, item[item_id], { visto: false, fecha_visto: null }); // Actualiza el item en el schema
+
+        const currentTotal = vistos.total;
+        let newTotal = Math.max(0, currentTotal - 1);
+
+        updateProps(tipo, true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
+    }, [tipo, item]);
+
     return (
         <TouchableOpacity
             style={[styles.container, { height: tipo === 'live' ? 100 : 160 }]}
             onPress={handleNavigateToScreen}
-            onLongPress={handleToggleFavorite}
+            onLongPress={idCategory === '0.2' ? handleToggleRemoveVisto : handleToggleFavorite}
         >
             <FastImage
                 style={styles.image}
