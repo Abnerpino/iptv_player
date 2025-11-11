@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
-import FlashMessage, { showMessage } from 'react-native-flash-message';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
@@ -145,8 +145,10 @@ const Menu = ({ navigation }) => {
         showMessage({
             message: mensaje,
             type: 'default',
+            duration: 1000,
             backgroundColor: '#EEE',
-            color: '#000'
+            color: '#000',
+            style: styles.flashMessage,
         });
     };
 
@@ -196,7 +198,10 @@ const Menu = ({ navigation }) => {
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
                         <TouchableOpacity
                             style={{ marginRight: 15 }} 
-                            onPress={() => setModalNVisible(true)}
+                            onPress={() => {
+                                hideMessage();
+                                setModalNVisible(true);
+                            }}
                             onLongPress={() => showToast('Notificaciones')}
                         >
                             <Icon2
@@ -207,20 +212,29 @@ const Menu = ({ navigation }) => {
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={{ marginRight: 15 }}
-                            onPress={() => navigation.navigate('About')}
+                            onPress={() => {
+                                hideMessage();
+                                navigation.navigate('About');
+                            }}
                             onLongPress={() => showToast('Sobre la App')}
                         >
                             <Icon name="info-circle" size={26} color="#FFF" />
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={{ marginRight: 15 }}
-                            onPress={() => navigation.navigate('SpeedTest')}
+                            onPress={() => {
+                                hideMessage();
+                                navigation.navigate('SpeedTest')
+                            }}
                             onLongPress={() => showToast('Test de Internet')}
                         >
                             <Icon3 name="network-check" size={26} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => setModalEVisible(true)}
+                            onPress={() => {
+                                hideMessage();
+                                setModalEVisible(true);
+                            }}
                             onLongPress={() => showToast('Salir de la App')}
                         >
                             <Icon3 name="exit-to-app" size={26} color="white" />
@@ -241,10 +255,6 @@ const Menu = ({ navigation }) => {
                             onFinishLoading={handleFinishLoading}
                         />
                     ))}
-                    <FlashMessage
-                        position='top'
-                        style={styles.flashMessage}
-                    />
                 </View>
 
                 {/* Footer con fecha de expiración, usuario y tipo de paquete */}
@@ -312,10 +322,10 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         alignSelf: 'flex-end',
-        paddingTop: 2.5,
+        paddingTop: 1,
         paddingBottom: 5,
-        marginTop: -20,
-        marginRight: 5
+        marginTop: '8.5%',
+        marginRight: 22.5
     },
     footer: {
         marginTop: 'auto',
