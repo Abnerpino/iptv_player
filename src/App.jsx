@@ -8,6 +8,7 @@ import Seccion from "./screens/Seccion";
 import Canal from "./screens/Canal";
 import Pelicula from "./screens/Pelicula";
 import Serie from "./screens/Serie";
+import FlashMessage from "react-native-flash-message";
 import { StatusBar } from "react-native";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -50,6 +51,7 @@ const App = () => {
             </Stack.Navigator>
           </NavigationContainer>
         </PersistGate>
+        <FlashMessage position='top' />
       </Provider>
     </RealmProvider>
   );
