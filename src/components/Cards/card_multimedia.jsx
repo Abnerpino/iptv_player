@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Animated, ActivityIndicator, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useXtream } from '../../services/hooks/useXtream';
 
 const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading }, ref) => {
@@ -73,10 +74,12 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
     };
 
     const handleNavigateToScreen = () => {
+        hideMessage();
         navigation.navigate('Seccion', { tipo });
     };
 
     const handleUpdateStreaming = async (flag) => {
+        hideMessage();
         setIsLoading(true);
         progressAnim.setValue(0);
         if (flag) onStartLoading?.();
@@ -127,6 +130,24 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
         outputRange: ["0%", "100%"]
     });
 
+    const showToast = (mensaje) => {
+        Vibration.vibrate();
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: 1000,
+            backgroundColor: '#EEE',
+            color: '#000',
+            position: 'bottom',
+            style: [styles.flashMessage, {
+                alignSelf: tipo === 'live' ? 'flex-start' : tipo === 'vod' ? 'center' : 'flex-end',
+                marginLeft: tipo === 'live' ? '8%' : 0,
+                marginRight: tipo === 'series' ? '8%' : 0
+            }],
+        });
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: fondo }]}>
             <TouchableOpacity style={styles.touchableContent} onPress={handleNavigateToScreen}>
@@ -153,6 +174,7 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                         onPress={() => handleUpdateStreaming(true)}
                         onPressIn={handlePressIn}
                         onPressOut={handlePressOut}
+                        onLongPress={() => showToast(`Actualizar ${tipo === 'live' ? 'canales' : tipo === 'vod' ? 'películas' : 'series'}`)}
                     >
                         <Text style={styles.updateText}>{timeAgo}</Text>
                         <View style={styles.imageContainer2}>
@@ -242,6 +264,14 @@ const styles = StyleSheet.create({
     progressBar: {
         height: '100%', // Ocupa toda la altura
         backgroundColor: 'rgba(255, 255, 255, 0.5)', // Color de la barra de progreso
+    },
+    flashMessage: {
+        width: '20%',
+        borderRadius: 20,
+        alignItems: 'center',
+        paddingTop: 2.5,
+        paddingBottom: 1,
+        marginBottom: '5%',
     },
 });
 
