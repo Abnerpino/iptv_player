@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
@@ -79,6 +80,22 @@ const Seccion = ({ navigation, route }) => {
         }
     }
 
+    const handleBack = () => {
+        hideMessage();
+        navigation.goBack();
+    };
+
+    useEffect(() => {
+        const backAction = () => {
+            handleBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, []);
+
     // Quita items de las categorias 'Recientemente Vistos' y 'Favoritos' marcando con 'false' las propiedades 'visto' y 'favorito',
     const handleUnmarkItems = () => {
         if (category.category_id === '0.2') { // Si la categoría es 'Recientemente Vistos'
@@ -90,6 +107,19 @@ const Seccion = ({ navigation, route }) => {
             unmarkItemsAsFavorite(type); // Desmarca como Favoritos (false) los items que ya han sido marcados como Favoritos (true)
             updateProps(type, true, category.category_id, { total: 0 }); // Actualiza el total de la categoría Favoritos a 0
         }
+    };
+
+    const showToast = (mensaje, numStyle) => {
+        Vibration.vibrate();
+
+        showMessage({
+            message: mensaje,
+            type: 'default',
+            duration: 1000,
+            backgroundColor: '#EEE',
+            color: '#000',
+            style: numStyle === 1 ? styles.flashMessage1 : styles.flashMessage2,
+        });
     };
 
     return (
@@ -106,7 +136,11 @@ const Seccion = ({ navigation, route }) => {
                 <View style={styles.container}>
                     <View style={styles.menuContainer}>
                         <View style={{ flexDirection: 'row' }}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}>
+                            <TouchableOpacity
+                                style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}
+                                onPress={handleBack}
+                                onLongPress={() => showToast('Regresar', 1)}
+                            >
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
                             <Image
@@ -145,18 +179,26 @@ const Seccion = ({ navigation, route }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
                             <View style={{ flex: 1, alignItems: 'center', }}>
                                 {mostrarBusqueda ? (
-                                    <SearchBar message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`} searchText={searchCont} setSearchText={setSearchCont} />
+                                    <SearchBar
+                                        message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`}
+                                        searchText={searchCont} setSearchText={setSearchCont}
+                                    />
                                 ) : (
                                     <Text style={styles.sectionTitle}>{category?.category_name}</Text>
                                 )}
                             </View>
-                            <TouchableOpacity onPress={() => setMostrarBusqueda(prev => !prev)} style={{ marginLeft: 20, }}>
+                            <TouchableOpacity
+                                style={{ marginLeft: 20, }}
+                                onPress={() => setMostrarBusqueda(prev => !prev)}
+                                onLongPress={() => showToast(mostrarBusqueda ? 'Ocultar Barra de Búsqueda' : 'Mostrar Barra de Búsqueda', 2)}
+                            >
                                 <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={26} color="#FFF" />
                             </TouchableOpacity>
                             {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
                                 <TouchableOpacity
                                     style={{ marginLeft: 20, opacity: category?.total > 0 ? 1 : 0.5 }}
                                     onPress={handleUnmarkItems}
+                                    onLongPress={() => showToast(category?.category_id === '0.2' ? 'Eliminar Historial' : 'Quitar Favoritos', 2)}
                                     disabled={category?.total > 0 ? false : true}
                                 >
                                     <Icon2 name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'} size={26} color="#FFF" />
@@ -195,6 +237,7 @@ const Seccion = ({ navigation, route }) => {
                                         idCategory={category.category_id}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
+                                        hideMessage={() => hideMessage()}
                                     />
                                 )}
                                 keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
@@ -229,6 +272,26 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 24,
         fontWeight: 'bold',
+    },
+    flashMessage1: {
+        width: '12.5%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5%',
+        marginLeft: 1
+    },
+    flashMessage2: {
+        width: '25%',
+        borderRadius: 20,
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        paddingTop: 1,
+        paddingBottom: 5,
+        marginTop: '5%',
+        marginRight: 5
     },
 });
 
