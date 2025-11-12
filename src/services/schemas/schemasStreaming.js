@@ -1,3 +1,14 @@
+export const NotificacionSchema = {
+    name: 'Notificacion',
+    primaryKey: 'id',
+    properties: {
+        id: 'string',
+        message: 'string',
+        visto: 'bool',
+        fecha: 'date',
+    },
+};
+
 export const CanalSchema = {
     name: 'Canal',
     primaryKey: 'stream_id',

@@ -16,7 +16,7 @@ import { Provider } from "react-redux";
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from "./services/redux/store";
 import { RealmProvider } from "@realm/react";
-import { CanalSchema, PeliculaSchema, SerieSchema, EpisodioSchema, TemporadaSchema, CatsLiveSchema, CatsVodSchema, CatsSerieSchema } from "./services/schemas/schemasStreaming";
+import { NotificacionSchema, CanalSchema, PeliculaSchema, SerieSchema, EpisodioSchema, TemporadaSchema, CatsLiveSchema, CatsVodSchema, CatsSerieSchema } from "./services/schemas/schemasStreaming";
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +24,7 @@ const App = () => {
   return (
     <RealmProvider
       schema={[
+        NotificacionSchema,
         CanalSchema,
         PeliculaSchema,
         SerieSchema,
