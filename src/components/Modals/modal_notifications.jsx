@@ -1,16 +1,14 @@
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useSelector, useDispatch } from 'react-redux';
-import { markAsViewed } from '../../services/redux/slices/notificationsSlice';
+import { useStreaming } from '../../services/hooks/useStreaming'; 
 import ItemNotification from '../Items/item_notification';
 
-const ModalNotifications = ({ openModal, handleCloseModal }) => {
-    const dispatch = useDispatch();
-    const notificaciones = useSelector(state => state.notifications.list);
+const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expiracion }) => {
+    const { markNotification } = useStreaming();
     
     // Funcion para controlar las notificaciones que ya han sido vistas (se debe de presionar sobre la notificación para que se considere vista)
     function verNotificacion(idNotificacion) {
-        dispatch(markAsViewed(idNotificacion));
+        markNotification(idNotificacion);
     }
 
     return (
@@ -26,7 +24,7 @@ const ModalNotifications = ({ openModal, handleCloseModal }) => {
                             <Icon name="window-close" size={27} color="red" />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 14, paddingVertical: 12.5, maxHeight: '88%', }}>
+                    <View style={{ paddingHorizontal: 14, paddingTop: 12.5, paddingBottom: notificaciones.length === 0 ? 12.5 : 0, maxHeight: '88%', }}>
                         {!notificaciones || notificaciones.length === 0 ? (
                             <Text style={{ color: '#000', fontSize: 16, fontStyle: 'italic', textAlign: 'center' }}>
                                 Sin notificaciones
@@ -39,7 +37,7 @@ const ModalNotifications = ({ openModal, handleCloseModal }) => {
                                     <ItemNotification
                                         notificacion={item}
                                         seleccionar={verNotificacion}
-                                        longitud={notificaciones.length}
+                                        expiracion={expiracion}
                                     />
                                 )}
                                 keyExtractor={item => item.id.toString()}
