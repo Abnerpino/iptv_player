@@ -11,7 +11,7 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
-import ModalExit from '../../components/Modals/modal_exit';
+import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
@@ -22,7 +22,7 @@ const Menu = ({ navigation }) => {
     const notifications = useQuery('Notificacion');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
-    const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de salir
+    const [modalCVisible, setModalCVisible] = useState(false); //Estado para manejar el modal de confirmación
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
 
@@ -53,7 +53,7 @@ const Menu = ({ navigation }) => {
                 const secondsSinceUpdate = Math.floor((now - lastUpdate) / 1000);
                 console.log(`Segundos desde la última actualización: ${secondsSinceUpdate.toFixed(2)}`);
 
-                if (secondsSinceUpdate < 86400) {
+                if (secondsSinceUpdate < 120) {
                     console.log("Aún no pasan 2 minutos, no se descarga nada.");
                     //return;
                 } else {
@@ -117,7 +117,7 @@ const Menu = ({ navigation }) => {
     useFocusEffect(
         useCallback(() => {
             const backAction = () => {
-                setModalEVisible(true);
+                setModalCVisible(true);
                 return true;
             };
 
@@ -136,7 +136,7 @@ const Menu = ({ navigation }) => {
     };
 
     const handleCancelExit = () => {
-        setModalEVisible(false);
+        setModalCVisible(false);
     };
 
     const showToast = (mensaje) => {
@@ -233,7 +233,7 @@ const Menu = ({ navigation }) => {
                         <TouchableOpacity
                             onPress={() => {
                                 hideMessage();
-                                setModalEVisible(true);
+                                setModalCVisible(true);
                             }}
                             onLongPress={() => showToast('Salir de la App')}
                         >
@@ -283,10 +283,11 @@ const Menu = ({ navigation }) => {
                     expiracion={expirationDate}
                 />
 
-                <ModalExit
-                    visible={modalEVisible}
+                <ModalConfirmation
+                    visible={modalCVisible}
                     onConfirm={handleConfirmExit}
                     onCancel={handleCancelExit}
+                    numdId={1}
                 />
 
                 <ModalLoading visible={loading} />
