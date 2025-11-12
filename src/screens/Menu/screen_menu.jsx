@@ -3,13 +3,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground, Vibration } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useXtream } from '../../services/hooks/useXtream';
+import { useQuery } from '@realm/react';
+import { showMessage, hideMessage } from 'react-native-flash-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
-import { showMessage, hideMessage } from 'react-native-flash-message';
-import { markAsViewed, setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalExit from '../../components/Modals/modal_exit';
@@ -20,14 +19,16 @@ const Menu = ({ navigation }) => {
     const vodCardRef = useRef(null);
     const seriesCardRef = useRef(null);
     const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
-    const notificaciones = useSelector(state => state.notifications.list);
-    const dispatch = useDispatch();
-    const { getFullStreaming } = useXtream();
+    const notifications = useQuery('Notificacion');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
     const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de salir
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
+
+    const notificaciones = React.useMemo(() => {
+        return notifications.sorted('fecha', true);
+    }, [notifications]);
 
     const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
@@ -44,16 +45,6 @@ const Menu = ({ navigation }) => {
     };
 
     useEffect(() => {
-        if (notificaciones.length === 0) {
-            const msg = [
-                //{ id: 1, mensaje: "¡La fecha de expiración de su paquete es el lunes 14! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
-                //{ id: 2, mensaje: "¡La fecha de expiración de su paquete es el lunes 15! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
-                //{ id: 3, mensaje: "¡La fecha de expiración de su paquete es el lunes 16! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
-                //{ id: 4, mensaje: "¡La fecha de expiración de su paquete es el lunes 17! Haga el pago para renovar antes de esa fecha y evite cortes en su servicio.\n\nAtte: Su Proveedor de Servicios", visto: false },
-            ];
-            dispatch(setListNotifications(msg));
-        }
-
         const checkAndUpdateContent = async () => {
             try {
                 const savedTime = await AsyncStorage.getItem('@last_update_time_iptv');
@@ -62,20 +53,29 @@ const Menu = ({ navigation }) => {
                 const secondsSinceUpdate = Math.floor((now - lastUpdate) / 1000);
                 console.log(`Segundos desde la última actualización: ${secondsSinceUpdate.toFixed(2)}`);
 
-                if (secondsSinceUpdate < 120) {
+                if (secondsSinceUpdate < 86400) {
                     console.log("Aún no pasan 2 minutos, no se descarga nada.");
-                    return;
+                    //return;
+                } else {
+                    handleStartLoading?.();
+                    await liveCardRef.current?.triggerUpdateEffects();
+                    await vodCardRef.current?.triggerUpdateEffects();
+                    await seriesCardRef.current?.triggerUpdateEffects();
+                    await updateLastUpdateTime();
+                    handleFinishLoading?.();
                 }
-
-                handleStartLoading?.();
-                await liveCardRef.current?.triggerUpdateEffects();
-                await vodCardRef.current?.triggerUpdateEffects();
-                await seriesCardRef.current?.triggerUpdateEffects();
-                await updateLastUpdateTime();
-                handleFinishLoading?.();
             } catch (error) {
                 console.log('Ocurrió un error en el proceso de actualización: ', error);
                 handleFinishLoading?.();
+            }
+
+            // Si hay notificaciones...
+            if (notificaciones.length > 0) {
+                const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
+                //Si todavia hay alguna notificación sin ver...
+                if (result) {
+                    setModalNVisible(true); // Muestra el modal cada vez que se monte la pantalla Menú
+                }
             }
         };
 
@@ -197,7 +197,7 @@ const Menu = ({ navigation }) => {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
                         <TouchableOpacity
-                            style={{ marginRight: 15 }} 
+                            style={{ marginRight: 15 }}
                             onPress={() => {
                                 hideMessage();
                                 setModalNVisible(true);
@@ -277,8 +277,10 @@ const Menu = ({ navigation }) => {
                 </View>
 
                 <ModalNotifications
+                    notificaciones={notificaciones}
                     openModal={modalNVisible}
                     handleCloseModal={handleCloseModal}
+                    expiracion={expirationDate}
                 />
 
                 <ModalExit
