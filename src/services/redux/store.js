@@ -3,7 +3,6 @@ import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { combineReducers } from 'redux';
 import clientReducer from './slices/clientSlice';
-import notificationsReducer from './slices/notificationsSlice';
 
 const persistConfig = {
   key: 'root',
@@ -12,7 +11,6 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   client: clientReducer,
-  notifications: notificationsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
