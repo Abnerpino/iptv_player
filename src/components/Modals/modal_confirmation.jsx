@@ -2,23 +2,26 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ModalExit = ({ visible, onConfirm, onCancel }) => {
+const ModalConfirmation = ({ visible, onConfirm, onCancel, numdId, itemName }) => {
     return (
         <Modal transparent visible={visible} onRequestClose={onCancel} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
-                        <Icon name="exit" size={27} color="#333" />
-                        <Text style={styles.title}>SALIR</Text>
+                        <Icon name={numdId === 1 ? "exit" : "warning"} size={27} color="#333" />
+                        <Text style={styles.title}>{numdId === 1 ? 'SALIR' : 'AVISO'}</Text>
                     </View>
+                    {numdId !== 1 && (
+                        <Text style={styles.textMessage}>{`¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`}</Text>
+                    )}
                     <View style={styles.buttonsContainer}>
                         <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'green' }]}>
                             <Icon2 name="check" size={24} color="#FFF" />
-                            <Text style={styles.text}>Aceptar</Text>
+                            <Text style={styles.textButton}>Aceptar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'red' }]}>
                             <Icon2 name="cancel" size={24} color="#FFF" />
-                            <Text style={styles.text}>Cancelar</Text>
+                            <Text style={styles.textButton}>Cancelar</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -65,11 +68,19 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         width: '30%',
     },
-    text: {
+    textMessage: {
+        color: '#000',
+        fontSize: 18,
+        fontWeight: '500',
+        textAlign: 'center',
+        marginTop: 10,
+        marginHorizontal: 5,
+    },
+    textButton: {
         fontSize: 18,
         color: "#FFF",
         textAlign: 'center',
     },
 });
 
-export default ModalExit;
+export default ModalConfirmation;
