@@ -31,10 +31,19 @@ class HostingController {
 
     async obtenerNotificaciones(id) {
         try {
+            //Obtiene todos los registros relacionados con el cliente
             const allRecords = await pb.collection('notifications').getFullList({
-                filter: `client_id = "${id}"`
-            }); //Obtiene todos los registros relacionados con el cliente
-            const notifications = allRecords.map(record => record.message); //Genera un nuevo arreglo de solo las notificaciones del cliente
+                filter: `client_id ~ "${id}"`
+            });
+
+            //Genera un nuevo arreglo de objetos para las notificaciones del cliente
+            const notifications = allRecords.map(record => ({
+                id: record.id,
+                message: record.message,
+                visto: false,
+                fecha: new Date()
+            }));
+            
             return notifications;
         } catch (error) {
             console.log('Error al obtener las notificaciones: ', error);
