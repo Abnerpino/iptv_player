@@ -10,7 +10,7 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage }) => {
+const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage, showModal }) => {
     const { getEpisodes } = useXtream();
     const { getModelName, getLastPlayedEpisode, updateProps } = useStreaming();
     const [error, setError] = useState(false);
@@ -18,7 +18,6 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
     // Obtiene las categorías correctas según el tipo
     const categoryModel = getModelName(tipo, true);
     const categories = useQuery(categoryModel);
-    const vistos = categories.find(categoria => categoria.category_id === '0.2');
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
 
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
@@ -97,6 +96,14 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
         }
     }, [navigation, tipo, item, onStartLoading, onFinishLoading, getEpisodes]);
 
+    const handleModalConfirmation = useCallback(async () => {
+        Vibration.vibrate();
+        showModal({
+            id: item[item_id],
+            nombre: item.name
+        });
+    }, [item, showModal]);
+
     const handleToggleFavorite = useCallback(async () => {
         Vibration.vibrate();
         const newFavoriteStatus = !item.favorito;
@@ -109,22 +116,11 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item]);
 
-    const handleToggleRemoveVisto = useCallback(async () => {
-        Vibration.vibrate();
-
-        updateProps(tipo, false, item[item_id], { visto: false, fecha_visto: null }); // Actualiza el item en el schema
-
-        const currentTotal = vistos.total;
-        let newTotal = Math.max(0, currentTotal - 1);
-
-        updateProps(tipo, true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
-    }, [tipo, item]);
-
     return (
         <TouchableOpacity
             style={[styles.container, { height: tipo === 'live' ? 100 : 160 }]}
             onPress={handleNavigateToScreen}
-            onLongPress={idCategory === '0.2' ? handleToggleRemoveVisto : handleToggleFavorite}
+            onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}
         >
             <FastImage
                 style={styles.image}
@@ -142,7 +138,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                     </Text>
                 )}
                 {tipo === 'series' && idCategory === '0.2' && (
-                    <Text style={styles.infoEpisode}>{`T${item.last_ep_played[0]+1}:E${item.last_ep_played[1]+1}`}</Text>
+                    <Text style={styles.infoEpisode}>{`T${item.last_ep_played[0] + 1}:E${item.last_ep_played[1] + 1}`}</Text>
                 )}
                 {item.favorito && (
                     <Icon name={"heart"} size={20} color={"red"} />
