@@ -6,13 +6,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import { setAndroid, setDeviceID, setDeviceModel, setExpirationDate, setHost, setIsActive, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
-import { setListNotifications } from '../../services/redux/slices/notificationsSlice';
 
 const hostingController = new HostingController();
 
 const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
+    const { upsertNotifications } = useStreaming();
     const dispatch = useDispatch();
     const { id, deviceId, isActive } = useSelector(state => state.client);
 
@@ -72,14 +73,14 @@ const Inicio = ({ navigation }) => {
                     const response = await hostingController.verificarCliente(deviceId);
                     const status = response?.active ?? false;
                     if (status) {
-                        const notifications = await hostingController.obtenerNotificaciones(id);
+                        const notifications = await hostingController.obtenerNotificaciones(response.id);
                         dispatch(setUsername(response.user_name));
                         dispatch(setUser(response.user));
                         dispatch(setPassword(response.password));
                         dispatch(setHost(response.host));
                         dispatch(setExpirationDate(response.expiration));
                         dispatch(setPurchasedPackage(response.package));
-                        dispatch(setListNotifications(notifications ? notifications : []));
+                        upsertNotifications(notifications);
                         result = {};
                         //Agregar alguna condición para que haga la petición automatica cada 48h
                     } else {

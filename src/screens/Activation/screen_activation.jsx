@@ -8,8 +8,8 @@ import Icon5 from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Linking } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { useStreaming } from '../../services/hooks/useStreaming';
 import { setClientName, setExpirationDate, setHost, setID, setIsActive, setIsRegistered, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
-import { setListNotifications } from '../../services/redux/slices/notificationsSlice';
 import HostingController from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
 
@@ -19,6 +19,7 @@ const Activation = ({ navigation, route }) => {
   const usuarios = route.params.data; //Recupera la lista de usuarios existentes
   const { id, deviceId, username, deviceModel, android, isRegistered, isActive } = useSelector(state => state.client);
   const dispatch = useDispatch();
+  const { upsertNotifications } = useStreaming();
   const [name, setName] = useState(''); //Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); //Estado para manejar el nombre de usuario ingresado
   const [visible, setVisible] = useState(false); //Estado para manejar la visibilidad del tooltip
@@ -126,7 +127,7 @@ const Activation = ({ navigation, route }) => {
   const validateActivation = async () => {
     handleStartLoading?.(); // Inicia el modal de carga
     const response = await hostingController.verificarCliente(deviceId); //Consultamos la información del cliente para verficar su activación
-    const notifications = await hostingController.obtenerNotificaciones(response ? response.id : '00000');
+    const notifications = await hostingController.obtenerNotificaciones(response.id);
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response) { //Si devuelve una respuesta valida...
@@ -138,7 +139,7 @@ const Activation = ({ navigation, route }) => {
         dispatch(setIsActive(true));
         dispatch(setExpirationDate(response.expiration));
         dispatch(setPurchasedPackage(response.package));
-        dispatch(setListNotifications(notifications ? notifications : []));
+        upsertNotifications(notifications);
         navigation.replace('Menu');
       } else { //Si la cuenta no está activa...
         setTimer(60);
