@@ -8,6 +8,7 @@ import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import SearchBar from '../../components/SearchBar';
+import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Seccion = ({ navigation, route }) => {
@@ -16,6 +17,9 @@ const Seccion = ({ navigation, route }) => {
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
     const [mostrarBusqueda, setMostrarBusqueda] = useState(false); //Estado para manejar cuando mostrar la barra de busqueda
+    const [confirmationResult, setConfirmationResult] = useState(null); //Estado para manejar la respuesta del modal de confirmación
+    const [showModal, setShowModal] = useState(false); //Estado para manejar el modal de confirmación
+    const [itemToDelete, setItemToDelete] = useState(null); //Estado para manejar el item seleccionado
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const flatListRef = useRef(null);   //Referencia al FlatList del contenido
 
@@ -66,6 +70,26 @@ const Seccion = ({ navigation, route }) => {
         }
     }, [category]);
 
+    // useEffect para manejar las opciones del modal de confirmación
+    useEffect(() => {
+        // Si el usuario presionó "Aceptar" y hay un item para eliminar
+        if (confirmationResult === true && itemToDelete) {
+            updateProps(type, false, itemToDelete.id, { visto: false, fecha_visto: null }); // Actualiza la propiedad del item en el schema
+
+            const vistos = categories.find(categoria => categoria.category_id === '0.2');
+            const currentTotal = vistos.total;
+            let newTotal = Math.max(0, currentTotal - 1);
+
+            updateProps(type, true, vistos.category_id, { total: newTotal }); // Actualiza la propiedad de la categoría en el schema
+        }
+
+        // Limpia los estados después de cualquier acción (Aceptar o Cancelar)
+        if (confirmationResult !== null) {
+            setConfirmationResult(null);
+            setItemToDelete(null);
+        }
+    }, [confirmationResult, itemToDelete]);
+
     //Filtra las categorias según sea la busqueda
     const filteredCategories = useMemo(() => {
         return categories.filter(item =>
@@ -107,6 +131,22 @@ const Seccion = ({ navigation, route }) => {
             unmarkItemsAsFavorite(type); // Desmarca como Favoritos (false) los items que ya han sido marcados como Favoritos (true)
             updateProps(type, true, category.category_id, { total: 0 }); // Actualiza el total de la categoría Favoritos a 0
         }
+    };
+
+    const handleShowModal = useCallback((item) => {
+        setItemToDelete(item); // Guarda el item que se quiere eliminar
+        setShowModal(true);
+        setConfirmationResult(null); // Reinicia el resultado
+    }, []);
+
+    const handleAccept = () => {
+        setShowModal(false);
+        setConfirmationResult(true);
+    };
+
+    const handleCancel = () => {
+        setShowModal(false);
+        setConfirmationResult(false);
     };
 
     const showToast = (mensaje, numStyle) => {
@@ -238,6 +278,7 @@ const Seccion = ({ navigation, route }) => {
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                         hideMessage={() => hideMessage()}
+                                        showModal={handleShowModal}
                                     />
                                 )}
                                 keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
@@ -250,6 +291,15 @@ const Seccion = ({ navigation, route }) => {
                         )}
                     </View>
                 </View>
+
+                <ModalConfirmation
+                    visible={showModal}
+                    onConfirm={handleAccept}
+                    onCancel={handleCancel}
+                    numdId={2}
+                    itemName={itemToDelete?.nombre}
+                />
+
                 <ModalLoading visible={loading} />
             </View>
         </ImageBackground>
