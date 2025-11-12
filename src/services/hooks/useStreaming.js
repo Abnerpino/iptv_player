@@ -3,6 +3,28 @@ import { useRealm } from "@realm/react";
 export const useStreaming = () => {
     const realm = useRealm();
 
+    const upsertNotifications = (newNotifications) => {
+        realm.write(() => {
+            const allNotifications = realm.objects('Notificacion');
+            const newNotificationsIds = newNotifications.map(item => item.id); // Genere un nuevo arreglo de solo los id´s de las nuevas notificaciones
+            const missingNotifications = allNotifications.filtered(`NOT (id IN $0)`, newNotificationsIds); // Filtra las notificaciones actuales que ya no se encuentran en las nuevas notificaciones
+            realm.delete(missingNotifications); // Elimina las notificaciones faltantes
+
+            newNotifications.forEach(item => {
+                const oldNotification = realm.objectForPrimaryKey('Notificacion', item.id);
+                let dataToSave = { ...item };
+
+                // Preserva la propiedad 'visto' y 'fecha' de la notificación solo si el mensaje es el mismo
+                if (oldNotification && dataToSave.message === oldNotification.message) {
+                    dataToSave.visto = oldNotification.visto;
+                    dataToSave.fecha = oldNotification.fecha;
+                }
+
+                realm.create('Notificacion', dataToSave, 'modified');
+            });
+        });
+    };
+
     const upsertContentItems = (type, newItems) => {
         const model = getModelName(type);
         const idField = type === 'series' ? 'series_id' : 'stream_id';
@@ -160,6 +182,16 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para marcar como vista una notificación
+    const markNotification = (id) => {
+        realm.write(() => {
+            const item = realm.objectForPrimaryKey('Notificacion', id);
+            if (item) {
+                item.visto = true;
+            }
+        });
+    };
+
     const unmarkItemsAsWatched = (type) => {
         const items = getWatchedItems(type);
         realm.write(() => {
@@ -193,6 +225,7 @@ export const useStreaming = () => {
     };
 
     return {
+        upsertNotifications,
         syncStreamingData,
         getWatchedItems,
         getFavoriteItems,
@@ -200,6 +233,7 @@ export const useStreaming = () => {
         updateProps,
         updateSeasonProps,
         updateEpisodeProps,
+        markNotification,
         unmarkItemsAsWatched,
         unmarkItemsAsFavorite,
         getModelName,
