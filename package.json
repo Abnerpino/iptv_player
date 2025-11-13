@@ -16,7 +16,6 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
     "@realm/react": "^0.11.0",
-    "@reduxjs/toolkit": "^2.6.1",
     "@rneui/base": "^4.0.0-rc.7",
     "@rneui/themed": "^4.0.0-rc.8",
     "install": "^0.13.0",
@@ -37,9 +36,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.6.3",
     "react-native-webview": "^13.13.5",
-    "react-redux": "^9.1.2",
-    "realm": "^20.1.0",
-    "redux-persist": "^6.0.0"
+    "realm": "^20.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
