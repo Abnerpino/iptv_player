@@ -3,6 +3,14 @@ import { useRealm } from "@realm/react";
 export const useStreaming = () => {
     const realm = useRealm();
 
+    // Método para crear usuario
+    const createUser = (userInfo) => {
+        realm.write(() => {
+            realm.create('Usuario', userInfo);
+        });
+    };
+
+    // Método para crear/actualizar notificaciones
     const upsertNotifications = (newNotifications) => {
         realm.write(() => {
             const allNotifications = realm.objects('Notificacion');
@@ -25,6 +33,7 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para crear/actualizar items de contenido
     const upsertContentItems = (type, newItems) => {
         const model = getModelName(type);
         const idField = type === 'series' ? 'series_id' : 'stream_id';
@@ -57,6 +66,7 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para crear/actualizar categorías y sincronizarlas con su contenido
     const syncStreamingData = (type, categories, items) => {
         return new Promise((resolve, reject) => {
             try {
@@ -129,6 +139,18 @@ export const useStreaming = () => {
         const model = getModelName('Serie');
         const serie = realm.objectForPrimaryKey(model, idSerie);
         return serie.temporadas[idxSeason].episodios[idxEpisode];
+    };
+
+    // Método para actualizar las propiedades del usuario
+    const updateUserProps = (deviceId, changes) => {
+        realm.write(() => {
+            const usuario = realm.objectForPrimaryKey('Usuario', deviceId);
+            if (usuario) {
+                Object.entries(changes).forEach(([key, value]) => {
+                    usuario[key] = value;
+                });
+            }
+        });
     };
 
     // Método para actualizar las propiedades de un item o categoría
@@ -225,11 +247,13 @@ export const useStreaming = () => {
     };
 
     return {
+        createUser,
         upsertNotifications,
         syncStreamingData,
         getWatchedItems,
         getFavoriteItems,
         getLastPlayedEpisode,
+        updateUserProps,
         updateProps,
         updateSeasonProps,
         updateEpisodeProps,
