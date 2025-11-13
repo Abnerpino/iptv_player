@@ -2,20 +2,18 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, ImageBackground } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNRestart from 'react-native-restart';
-import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQuery } from '@realm/react';
 import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { setAndroid, setDeviceID, setDeviceModel, setExpirationDate, setHost, setIsActive, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
 
 const hostingController = new HostingController();
 
 const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
-    const { upsertNotifications } = useStreaming();
-    const dispatch = useDispatch();
-    const { id, deviceId, isActive } = useSelector(state => state.client);
+    const { createUser, upsertNotifications, updateUserProps } = useStreaming();
+    const usuario = useQuery('Usuario');
 
     // Valor de animación de opacidad, comienza en 0 (transparente)
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -59,14 +57,27 @@ const Inicio = ({ navigation }) => {
         // Ejecuta la petición asincrónica
         const request = async () => {
             try {
-                //dispatch(setDeviceID(''));
+                const deviceId = await DeviceInfo.getUniqueId();
                 console.log('deviceId: ', deviceId);
-                if (!deviceId) {
-                    let devId = await DeviceInfo.getUniqueId();
-                    dispatch(setDeviceID(devId));
-                    dispatch(setDeviceModel(DeviceInfo.getModel()));
-                    dispatch(setAndroid(DeviceInfo.getSystemVersion()));
-                    const response = await hostingController.verificarCliente(devId);
+                if (!usuario[0]) {
+                    const newUser = {
+                        id: '',
+                        device_id: deviceId,
+                        client_name: '',
+                        username: '',
+                        user: '',
+                        password: '',
+                        host: '',
+                        is_registered: false,
+                        is_active: false,
+                        expiration_date: '',
+                        purchased_package: '',
+                        device_model: DeviceInfo.getModel(),
+                        android_version: DeviceInfo.getSystemVersion()
+                    }
+                    
+                    createUser(newUser);
+                    const response = await hostingController.verificarCliente(deviceId);
                     result = response; // guarda el resultado de la petición
                 } else {
                     //await getInfoAccount();
@@ -74,17 +85,19 @@ const Inicio = ({ navigation }) => {
                     const status = response?.active ?? false;
                     if (status) {
                         const notifications = await hostingController.obtenerNotificaciones(response.id);
-                        dispatch(setUsername(response.user_name));
-                        dispatch(setUser(response.user));
-                        dispatch(setPassword(response.password));
-                        dispatch(setHost(response.host));
-                        dispatch(setExpirationDate(response.expiration));
-                        dispatch(setPurchasedPackage(response.package));
+                        updateUserProps(deviceId, {
+                            username: response.username,
+                            user: response.user,
+                            password: response.password,
+                            host: response.host,
+                            expiration_date: response.expiration,
+                            purchased_package: response.package
+                        });
                         upsertNotifications(notifications);
                         result = {};
                         //Agregar alguna condición para que haga la petición automatica cada 48h
                     } else {
-                        dispatch(setIsActive(response.active));
+                        updateUserProps(deviceId, { is_active: response.active });
                         result = response;
                     }
                 }

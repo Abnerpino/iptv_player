@@ -1,12 +1,11 @@
-import { useSelector } from 'react-redux';
-import { useRealm } from '@realm/react';
+import { useRealm, useQuery } from '@realm/react';
 import { useStreaming } from './useStreaming';
 
 export const useXtream = () => {
     const realm = useRealm();
     const { syncStreamingData } = useStreaming();
-    const { user, password, host } = useSelector(state => state.client);
-    const url = `${host}/player_api.php?username=${user}&password=${password}`;
+    const usuario = useQuery('Usuario');
+    const url = `${usuario[0]?.host}/player_api.php?username=${usuario[0]?.user}&password=${usuario[0]?.password}`;
     const tipos = ['live', 'vod', 'series'];
     const initialCats = [
         { category_id: '0.1', category_name: 'TODO', total: 0, contenido: [] },
@@ -100,7 +99,7 @@ export const useXtream = () => {
                     category_id,
                     category_ids: category_ids.map(category => category.toString()),
                     link: direct_source ?? '',
-                    aux_link: `${host}/live/${user}/${password}/${stream_id}.ts`,
+                    aux_link: `${usuario[0]?.host}/live/${usuario[0]?.user}/${usuario[0]?.password}/${stream_id}.ts`,
                     favorito: false,
                     visto: false,
                     fecha_visto: null,
@@ -145,7 +144,7 @@ export const useXtream = () => {
                     vote_average: '',
                     cast: '',
                     link: direct_source ?? '',
-                    aux_link: `${host}/movie/${user}/${password}/${stream_id}.${container_extension}`,
+                    aux_link: `${usuario[0]?.host}/movie/${usuario[0]?.user}/${usuario[0]?.password}/${stream_id}.${container_extension}`,
                     favorito: false,
                     visto: false,
                     fecha_visto: null,
@@ -242,7 +241,7 @@ export const useXtream = () => {
                 season: ep.season?.toString() ?? '0',
                 id_serie: idSerie,
                 link: ep?.direct_source ?? '',
-                aux_link: `${host}/series/${user}/${password}/${ep.id}.${ep.container_extension}`,
+                aux_link: `${usuario[0]?.host}/series/${usuario[0]?.user}/${usuario[0]?.password}/${ep.id}.${ep.container_extension}`,
                 visto: false,
                 playback_time: '0'
             }));

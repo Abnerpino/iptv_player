@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, ToastAndroid } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, ToastAndroid, Vibration } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
@@ -7,9 +7,9 @@ import Icon4 from 'react-native-vector-icons/Feather';
 import Icon5 from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Linking } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import { showMessage, hideMessage } from 'react-native-flash-message';
+import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { setClientName, setExpirationDate, setHost, setID, setIsActive, setIsRegistered, setPassword, setPurchasedPackage, setUser, setUsername } from '../../services/redux/slices/clientSlice';
 import HostingController from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
 
@@ -17,9 +17,8 @@ const hostingController = new HostingController();
 
 const Activation = ({ navigation, route }) => {
   const usuarios = route.params.data; //Recupera la lista de usuarios existentes
-  const { id, deviceId, username, deviceModel, android, isRegistered, isActive } = useSelector(state => state.client);
-  const dispatch = useDispatch();
-  const { upsertNotifications } = useStreaming();
+  const usuario = useQuery('Usuario');
+  const { upsertNotifications, updateUserProps } = useStreaming();
   const [name, setName] = useState(''); //Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); //Estado para manejar el nombre de usuario ingresado
   const [visible, setVisible] = useState(false); //Estado para manejar la visibilidad del tooltip
@@ -82,9 +81,11 @@ const Activation = ({ navigation, route }) => {
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response) {
-      dispatch(setClientName(name.trim()));
-      dispatch(setUsername(localUsername));
-      dispatch(setIsRegistered(true));
+      updateUserProps(usuario[0]?.device_id, {
+        client_name: name.trim(),
+        username: localUsername,
+        is_registered: true,
+      });
       setError('');
     } else {
       setError('¡Ocurrió un error en el registro! Intente de nuevo');
@@ -93,22 +94,22 @@ const Activation = ({ navigation, route }) => {
 
   const handleRegisterDevice = async () => {
     const info = {
-      "device_id": deviceId,
-      "client_name": name.trim(),
-      "user_name": localUsername,
-      "user": '',
-      "password": '',
-      "host": '',
-      "active": false,
-      "expiration": '',
-      "package": '',
-      "device_model": deviceModel,
-      "android": android,
+      device_id: usuario[0]?.device_id,
+      client_name: name.trim(),
+      username: localUsername,
+      user: '',
+      password: '',
+      host: '',
+      active: false,
+      expiration: '',
+      package: '',
+      device_model: usuario[0]?.device_model,
+      android_version: usuario[0]?.android_version,
     };
 
     const response = await hostingController.registrarCliente(info);
     return response;
-  }
+  };
 
   const copyUsername = () => {
     Clipboard.setString(localUsername); // Copia el nombre de usuario al portapapeles
@@ -124,21 +125,38 @@ const Activation = ({ navigation, route }) => {
       .catch(() => ToastAndroid.show('No se pudo abrir WhatsApp', ToastAndroid.SHORT));
   };
 
+  const showToast = (mensaje) => {
+    Vibration.vibrate();
+
+    showMessage({
+      message: mensaje,
+      type: 'default',
+      duration: 1000,
+      position: 'bottom',
+      backgroundColor: '#EEE',
+      color: '#000',
+      style: styles.flashMessage,
+    });
+  };
+
   const validateActivation = async () => {
+    hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
-    const response = await hostingController.verificarCliente(deviceId); //Consultamos la información del cliente para verficar su activación
-    const notifications = await hostingController.obtenerNotificaciones(response.id);
+    const response = await hostingController.verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response) { //Si devuelve una respuesta valida...
       if (response.active) { //Si la cuenta ya está activa...
-        dispatch(setID(response.id));
-        dispatch(setUser(response.user));
-        dispatch(setPassword(response.password));
-        dispatch(setHost(response.host));
-        dispatch(setIsActive(true));
-        dispatch(setExpirationDate(response.expiration));
-        dispatch(setPurchasedPackage(response.package));
+        const notifications = await hostingController.obtenerNotificaciones(response.id);
+        updateUserProps(usuario[0]?.device_id, {
+          id: response.id,
+          user: response.user,
+          password: response.password,
+          host: response.host,
+          is_active: response.active,
+          expiration: response.expiration,
+          package: response.package
+        });
         upsertNotifications(notifications);
         navigation.replace('Menu');
       } else { //Si la cuenta no está activa...
@@ -162,13 +180,13 @@ const Activation = ({ navigation, route }) => {
     >
       <ScrollView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.textHeader}>BIENVENIDO  A</Text>
+          <Text style={styles.textHeader}>BIENVENIDO    A</Text>
           <Image
             source={require('../../assets/imagotipo.png')}
             style={{ height: '100%', width: '26%', resizeMode: 'contain', alignSelf: 'flex-start', }}
           />
         </View>
-        {!isRegistered ? (
+        {!usuario[0]?.is_registered ? (
           <View style={{ marginTop: 20, }}>
             <Text style={styles.indication}>¡Para comenzar a disfrutar de todo el contenido, el primer paso es registrarse! Llene los campos a continuación y después pulse el botón para finalizar el registro.</Text>
             <View style={{ alignSelf: 'center', width: '35%', marginTop: 25, }}>
@@ -221,14 +239,14 @@ const Activation = ({ navigation, route }) => {
           </View>
         ) : (
           <View style={{ marginTop: 10, }}>
-            <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro, el segundo paso es activar su cuenta! Siga las siguientes instrucciones para realizar la activación.</Text>
+            <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:</Text>
             <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Copie su nombre de usuario (pulse para copiarlo al portapapeles).</Text>
-            <Pressable style={styles.infoConteiner} onPress={copyUsername}>
+            <Pressable style={styles.infoConteiner} onPress={copyUsername} onLongPress={() => showToast('Presione para copiar')}>
               <Icon4 name="user" size={22} color="#FFF" />
-              <Text style={styles.info}>{username}</Text>
+              <Text style={styles.info}>{usuario[0]?.username}</Text>
             </Pressable>
             <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíe el nombre de usuario al siguiente número de WhatsApp (pulse para abrir el chat).</Text>
-            <Pressable style={styles.infoConteiner} onPress={openWhatsApp}>
+            <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para copiar')}>
               <Icon name="whatsapp" size={22} color="#FFF" />
               <Text style={styles.info}>(+52) 742 113 2908</Text>
             </Pressable>
@@ -268,23 +286,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '25%',
-    //backgroundColor: '#0F0'
   },
   textHeader: {
     fontSize: 25,
     fontWeight: 'bold',
     color: '#FFF',
-    paddingTop: 20,
-    //backgroundColor: '#F0F'
+    paddingTop: 15,
   },
   indication: {
     fontSize: 18,
     color: '#FFF',
     marginHorizontal: 25,
-    //backgroundColor: '#00F'
   },
   input: {
-    //backgroundColor: '#FFF',
     color: '#000',
     fontSize: 18,
     paddingVertical: 10,
@@ -341,6 +355,15 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     marginLeft: 5
+  },
+  flashMessage: {
+    width: '20%',
+    borderRadius: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingTop: 2.5,
+    paddingBottom: 1,
+    marginBottom: '2%',
   },
 });
 

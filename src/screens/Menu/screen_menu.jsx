@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground, Vibration } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
@@ -18,7 +17,7 @@ const Menu = ({ navigation }) => {
     const liveCardRef = useRef(null);
     const vodCardRef = useRef(null);
     const seriesCardRef = useRef(null);
-    const { username, expirationDate, purchasedPackage } = useSelector(state => state.client);
+    const usuario = useQuery('Usuario');
     const notifications = useQuery('Notificacion');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
@@ -262,17 +261,17 @@ const Menu = ({ navigation }) => {
                     <View style={{ flexDirection: 'row', width: '33%', paddingLeft: 5 }}>
                         <Icon2 name="calendar-clock" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>EXPIRACIÓN:</Text>
-                        <Text style={styles.footerText}>{expirationDate}</Text>
+                        <Text style={styles.footerText}>{usuario[0]?.expiration_date}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '34%', justifyContent: 'center' }}>
                         <Icon4 name="user" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>USUARIO:</Text>
-                        <Text style={styles.footerText}>{username}</Text>
+                        <Text style={styles.footerText}>{usuario[0]?.username}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '33%', justifyContent: 'flex-end', paddingRight: 5 }}>
                         <Icon2 name="package-variant-closed" size={20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>PAQUETE:</Text>
-                        <Text style={styles.footerText}>{purchasedPackage}</Text>
+                        <Text style={styles.footerText}>{usuario[0]?.purchased_package}</Text>
                     </View>
                 </View>
 
@@ -280,7 +279,7 @@ const Menu = ({ navigation }) => {
                     notificaciones={notificaciones}
                     openModal={modalNVisible}
                     handleCloseModal={handleCloseModal}
-                    expiracion={expirationDate}
+                    expiracion={usuario[0]?.expiration_date}
                 />
 
                 <ModalConfirmation
