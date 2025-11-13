@@ -1,3 +1,23 @@
+export const UsuarioSchema = {
+    name: 'Usuario',
+    primaryKey: 'device_id',
+    properties: {
+        id: 'string?',
+        device_id: 'string',
+        client_name: 'string?',
+        username: 'string?',
+        user: 'string?',
+        password: 'string?',
+        host: 'string?',
+        is_registered: 'bool',
+        is_active: 'bool',
+        expiration_date: 'string?',
+        purchased_package: 'string?',
+        device_model: 'string?',
+        android_version: 'string?',
+    }
+};
+
 export const NotificacionSchema = {
     name: 'Notificacion',
     primaryKey: 'id',
