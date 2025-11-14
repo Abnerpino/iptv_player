@@ -59,6 +59,9 @@ const Inicio = ({ navigation }) => {
             try {
                 const deviceId = await DeviceInfo.getUniqueId();
                 console.log('deviceId: ', deviceId);
+                const response = await hostingController.verificarCliente(deviceId);
+
+                // Si todavía no existe localmente el usuario, lo crea
                 if (!usuario[0]) {
                     const newUser = {
                         id: '',
@@ -75,30 +78,37 @@ const Inicio = ({ navigation }) => {
                         device_model: DeviceInfo.getModel(),
                         android_version: DeviceInfo.getSystemVersion()
                     }
-                    
+
                     createUser(newUser);
-                    const response = await hostingController.verificarCliente(deviceId);
                     result = response; // guarda el resultado de la petición
-                } else {
+                }
+
+                // Si el usuario ya existe en la nube...
+                if (response.numId === 2) {
                     //await getInfoAccount();
-                    const response = await hostingController.verificarCliente(deviceId);
-                    const status = response?.active ?? false;
-                    if (status) {
-                        const notifications = await hostingController.obtenerNotificaciones(response.id);
+                    const info = response.data;
+                    // Si la cuenta del usuario está activa...
+                    if (info.active) {
+                        const notifications = await hostingController.obtenerNotificaciones(info.id);
                         updateUserProps(deviceId, {
-                            username: response.username,
-                            user: response.user,
-                            password: response.password,
-                            host: response.host,
-                            expiration_date: response.expiration,
-                            purchased_package: response.package
+                            username: info.username,
+                            user: info.user,
+                            password: info.password,
+                            host: info.host,
+                            expiration_date: info.expiration,
+                            purchased_package: info.package
                         });
                         upsertNotifications(notifications);
-                        result = {};
+                        result = { numId: response.numId, data: null };
                         //Agregar alguna condición para que haga la petición automatica cada 48h
-                    } else {
-                        updateUserProps(deviceId, { is_active: response.active });
-                        result = response;
+                    } else { // Si la cuenta del usuario está inactiva...
+                        updateUserProps(deviceId, {
+                            client_name: info.client_name,
+                            username: info.username,
+                            is_registered: true,
+                            is_active: info.active,
+                        });
+                        result = { numId: 3, data: null };
                     }
                 }
             } catch (error) {
@@ -129,24 +139,23 @@ const Inicio = ({ navigation }) => {
         }, 100); // se revisa cada 100ms
 
         // Función para decidir qué hacer con el resultado de la petición
-        const manejarResultado = (data) => {
-            if (data === null) {
-                console.error('Resultado de la petición es null');
-                //Agregar aqui que se muestre un modal para recargar aplicación
-                //RNRestart.restart();
-                return;
-            }
-
-            if (Array.isArray(data)) {
-                navigation.replace('Activation', { data }); // si es un arreglo, ir a Activation
-            } else if (typeof data === 'object' && Object.keys(data).length > 0) {
-                console.log('Necesita reactivación');
-                //Agregar pantalla para reactivación
-            }
-            else if (typeof data === 'object' && Object.keys(data).length === 0) {
-                navigation.replace('Menu');       // si es un objeto y está vacío, ir a Menu
-            } else {
-                console.error('Tipo de respuesta desconocido');
+        const manejarResultado = (resultado) => {
+            switch (resultado.numId) {
+                case 1:
+                    navigation.replace('Activation', { data: resultado.data }); // Ir a Activación
+                    break;
+                case 2:
+                    navigation.replace('Menu'); // Ir a Menú
+                    break;
+                case 3:
+                    navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
+                    //Agregar pantalla para reactivación
+                    break;
+                default:
+                    console.error('Resultado de la petición es null');
+                    //Agregar aqui que se muestre un modal para recargar aplicación
+                    //RNRestart.restart();
+                    return;
             }
         };
 
