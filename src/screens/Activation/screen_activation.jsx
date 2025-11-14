@@ -17,6 +17,7 @@ const hostingController = new HostingController();
 
 const Activation = ({ navigation, route }) => {
   const usuarios = route.params.data; //Recupera la lista de usuarios existentes
+  const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
   const usuario = useQuery('Usuario');
   const { upsertNotifications, updateUserProps } = useStreaming();
   const [name, setName] = useState(''); //Estado para manejar el nombre ingresado
@@ -111,14 +112,67 @@ const Activation = ({ navigation, route }) => {
     return response;
   };
 
-  const copyUsername = () => {
-    Clipboard.setString(localUsername); // Copia el nombre de usuario al portapapeles
-    ToastAndroid.show('¡Usuario copiado al portapapeles!', ToastAndroid.SHORT);
+  const validateActivation = async () => {
+    hideMessage();
+    handleStartLoading?.(); // Inicia el modal de carga
+    const response = await hostingController.verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
+    handleFinishLoading?.(); // Termina el modal de carga
+
+    if (response.numId === 2) { //Si devuelve una respuesta valida...
+      const info = response.data;
+      if (info.active) { //Si la cuenta ya está activa...
+        const notifications = await hostingController.obtenerNotificaciones(info.id);
+        updateUserProps(usuario[0]?.device_id, {
+          id: info.id,
+          user: info.user,
+          password: info.password,
+          host: info.host,
+          is_active: info.active,
+          expiration_date: info.expiration,
+          purchased_package: info.package
+        });
+        upsertNotifications(notifications);
+        navigation.replace('Menu');
+      } else { //Si la cuenta no está activa...
+        setTimer(60);
+        setError('¡Su cuenta está inactiva!');
+      }
+    } else { // Si no devuelve una respuesta valida...
+      setError('¡Error en la verificación! Intente de nuevo');
+    }
+  };
+
+  const copyInfo = (numId) => {
+    let message = '';
+
+    switch(numId) {
+      case 1: // Nombre de usuario
+        message = usuario[0]?.username;
+        break;
+      case 2: // Número de tarjeta del proveedor
+        message = '4152314370922968';
+        break;
+      case 3: // Banco del proveedor
+        message = 'BBVA';
+        break;
+      case 4: // Nombre del proveedor
+        message = 'Abner Pino Federico';
+        break;
+      case 5: // Nombre del cliente
+        message = usuario[0]?.client_name;
+        break;
+      default:
+        message = '';
+        break;
+    }
+
+    Clipboard.setString(message); // Copia el mensaje al portapapeles
+    ToastAndroid.show('Información copiada al portapapeles!', ToastAndroid.SHORT);
   };
 
   const openWhatsApp = async () => {
     let number = '+527421132908';
-    let message = `ACTIVACIÓN DE CUENTA IPTV PLAYER\n\nUsuario: *${localUsername}*`;
+    let message = `${isReactivation ? 'REACTIVACIÓN' : 'ACTIVACIÓN'} DE CUENTA IPTV PLAYER\n\nUsuario: *${usuario[0]?.username}*`;
     let url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 
     Linking.openURL(url)
@@ -139,35 +193,6 @@ const Activation = ({ navigation, route }) => {
     });
   };
 
-  const validateActivation = async () => {
-    hideMessage();
-    handleStartLoading?.(); // Inicia el modal de carga
-    const response = await hostingController.verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
-    handleFinishLoading?.(); // Termina el modal de carga
-
-    if (response) { //Si devuelve una respuesta valida...
-      if (response.active) { //Si la cuenta ya está activa...
-        const notifications = await hostingController.obtenerNotificaciones(response.id);
-        updateUserProps(usuario[0]?.device_id, {
-          id: response.id,
-          user: response.user,
-          password: response.password,
-          host: response.host,
-          is_active: response.active,
-          expiration: response.expiration,
-          package: response.package
-        });
-        upsertNotifications(notifications);
-        navigation.replace('Menu');
-      } else { //Si la cuenta no está activa...
-        setTimer(60);
-        setError('¡Su cuenta está inactiva!');
-      }
-    } else { // Si no devuelve una respuesta valida...
-      setError('¡Error en la verificación! Intente de nuevo');
-    }
-  }
-
   return (
     <ImageBackground
       source={require('../../assets/fondo.jpg')}
@@ -179,14 +204,16 @@ const Activation = ({ navigation, route }) => {
       resizeMode='cover'
     >
       <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.textHeader}>BIENVENIDO    A</Text>
+        {/* Encabezado */}
+        <View style={[styles.header, { height: isReactivation ? '20%' : '25%' }]}>
+          <Text style={styles.textHeader}>{`${isReactivation ? 'BIENVENIDO     A' : 'BIENVENIDO    A'}`}</Text>
           <Image
             source={require('../../assets/imagotipo.png')}
-            style={{ height: '100%', width: '26%', resizeMode: 'contain', alignSelf: 'flex-start', }}
+            style={{ height: '100%', width: '26%', resizeMode: 'contain', alignSelf: 'center', }}
           />
         </View>
         {!usuario[0]?.is_registered ? (
+          // Registro
           <View style={{ marginTop: 20, }}>
             <Text style={styles.indication}>¡Para comenzar a disfrutar de todo el contenido, el primer paso es registrarse! Llene los campos a continuación y después pulse el botón para finalizar el registro.</Text>
             <View style={{ alignSelf: 'center', width: '35%', marginTop: 25, }}>
@@ -238,19 +265,62 @@ const Activation = ({ navigation, route }) => {
             </View>
           </View>
         ) : (
-          <View style={{ marginTop: 10, }}>
-            <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:</Text>
-            <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Copie su nombre de usuario (pulse para copiarlo al portapapeles).</Text>
-            <Pressable style={styles.infoConteiner} onPress={copyUsername} onLongPress={() => showToast('Presione para copiar')}>
-              <Icon4 name="user" size={22} color="#FFF" />
-              <Text style={styles.info}>{usuario[0]?.username}</Text>
-            </Pressable>
-            <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíe el nombre de usuario al siguiente número de WhatsApp (pulse para abrir el chat).</Text>
-            <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para copiar')}>
-              <Icon name="whatsapp" size={22} color="#FFF" />
-              <Text style={styles.info}>(+52) 742 113 2908</Text>
-            </Pressable>
-            <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Una vez que reciba la indicación de que su cuenta fue activada, pulse el botón para continuar.</Text>
+          <View style={{ marginTop: isReactivation ? 0 : 10, }}>
+            {isReactivation ? (
+              // Reactivación
+              <>
+                <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Su cuenta se encuentra desactivada! Siga las siguientes instrucciones para reactivarla:</Text>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Realice el pago correspondiente por transferencia a la siguiente cuenta.</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Icon name="credit-card-alt" size={22} color="#FFF" />
+                    <Text style={styles.info}>4152 3143 7092 2968</Text>
+                  </Pressable>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Icon name="bank" size={22} color="#FFF" />
+                    <Text style={styles.info}>BBVA</Text>
+                  </Pressable>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Icon name="vcard" size={22} color="#FFF" />
+                    <Text style={styles.info}>Abner Pino Federico</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>2. En el concepto (o motivo) del pago, escriba su nombre de usuario o su nombre completo.</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo(1)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Icon4 name="user" size={22} color="#FFF" />
+                    <Text style={styles.info}>{usuario[0]?.username}</Text>
+                  </Pressable>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo(5)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Icon name="vcard" size={22} color="#FFF" />
+                    <Text style={styles.info}>{usuario[0]?.client_name}</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Tome captura del comprobante de pago y envíela al siguiente número de WhatsApp:</Text>
+                <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para abrir')}>
+                  <Icon name="whatsapp" size={22} color="#FFF" />
+                  <Text style={styles.info}>(+52) 742 113 2908</Text>
+                </Pressable>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>4. Una vez que se le indique que su cuenta fue reactivada, pulse el botón 'Continuar'.</Text>
+              </>
+            ) : (
+              // Activación
+              <>
+                <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:</Text>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Copie su nombre de usuario (pulse para copiarlo al portapapeles).</Text>
+                <Pressable style={styles.infoConteiner} onPress={() => copyInfo()} onLongPress={() => showToast('Presione para copiar')}>
+                  <Icon4 name="user" size={22} color="#FFF" />
+                  <Text style={styles.info}>{usuario[0]?.username}</Text>
+                </Pressable>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíelo al siguiente WhatsApp (pulse para abrir el chat) y siga las indicaciones que se le den.</Text>
+                <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para abrir')}>
+                  <Icon name="whatsapp" size={22} color="#FFF" />
+                  <Text style={styles.info}>(+52) 742 113 2908</Text>
+                </Pressable>
+                <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Una vez que se le indique que su cuenta fue activada, pulse el botón 'Continuar'.</Text>
+              </>
+            )}
+            {/* Botón y mensaje de error */}
             <View style={{ width: '35%', alignItems: 'center', alignSelf: 'center', marginTop: 5, }}>
               <TouchableOpacity
                 style={[styles.button, { opacity: timer > 0 ? 0.5 : 1 }]}
@@ -285,7 +355,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '25%',
   },
   textHeader: {
     fontSize: 25,
