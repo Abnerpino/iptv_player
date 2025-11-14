@@ -18,14 +18,14 @@ class HostingController {
 
             if (result) { //Si ya existe...
                 console.log("Ya existe el device_id");
-                return result; //Retorna toda la información del cliente
+                return { numId: 2, data: result }; //Retorna toda la información del cliente
             } else { //Si todavía no existe
-                const users = allRecords.map(record => record.user_name.toLowerCase()); //Genera un nuevo arreglo de solo nombres de usuario
-                return users; //Retorna los usuarios
+                const users = allRecords.map(record => record.username.toLowerCase()); //Genera un nuevo arreglo de solo nombres de usuario
+                return { numId: 1, data: users }; //Retorna los usuarios
             }
         } catch (error) {
             console.error("Error al obtener el ID del dispositivo: ", error);
-            return null; //Retorna null si falla la petición
+            return {numId: -1, data: null}; //Retorna null si falla la petición
         }
     }
 
