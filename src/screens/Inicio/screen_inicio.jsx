@@ -91,10 +91,14 @@ const Inicio = ({ navigation }) => {
                     if (info.active) {
                         const notifications = await hostingController.obtenerNotificaciones(info.id);
                         updateUserProps(deviceId, {
+                            id: info.id,
+                            client_name: info.client_name,
                             username: info.username,
                             user: info.user,
                             password: info.password,
                             host: info.host,
+                            is_registered: true,
+                            is_active: info.active,
                             expiration_date: info.expiration,
                             purchased_package: info.package
                         });
