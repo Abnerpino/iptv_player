@@ -252,6 +252,7 @@ const Menu = ({ navigation }) => {
                             fondo={multimedia.fondo}
                             onStartLoading={handleStartLoading}
                             onFinishLoading={handleFinishLoading}
+                            username={usuario[0]?.username}
                         />
                     ))}
                 </View>

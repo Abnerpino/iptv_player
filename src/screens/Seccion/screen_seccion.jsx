@@ -13,6 +13,7 @@ import ModalLoading from '../../components/Modals/modal_loading';
 
 const Seccion = ({ navigation, route }) => {
     const type = route.params.tipo; //Obtiene el tipo de Multimedia seleccionada
+    const username = route.params.username; // Obtiene el nombre de usuario
     const [category, setCategory] = useState(null); //Estado para manejar la categoria seleccionada
     const [searchCat, setSearchCat] = useState(''); //Estado para manejar la búsqueda de categorias
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
@@ -279,6 +280,7 @@ const Seccion = ({ navigation, route }) => {
                                         onFinishLoading={handleFinishLoading}
                                         hideMessage={() => hideMessage()}
                                         showModal={handleShowModal}
+                                        username={username}
                                     />
                                 )}
                                 keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}

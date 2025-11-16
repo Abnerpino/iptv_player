@@ -11,7 +11,7 @@ import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
 
 const Canal = ({ navigation, route }) => {
-    const { idContent, idCategory } = route.params;
+    const { idContent, idCategory, username } = route.params;
     const canal = useObject('Canal', idContent); // Encuentra el canal usando su Modelo y su ID
     const id_categoria = idCategory;
 
@@ -271,6 +271,7 @@ const Canal = ({ navigation, route }) => {
                                 contenido={selectedChannel}
                                 onContentChange={seleccionarCanal}
                                 markAsWatched={handleToggleWatched}
+                                username={username}
                             />
                         </View>
                     </View>

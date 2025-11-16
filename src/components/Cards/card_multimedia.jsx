@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useXtream } from '../../services/hooks/useXtream';
 
-const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading }, ref) => {
+const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading, username }, ref) => {
     const { getStreamingByType } = useXtream();
     const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
@@ -75,7 +75,7 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
 
     const handleNavigateToScreen = () => {
         hideMessage();
-        navigation.navigate('Seccion', { tipo });
+        navigation.navigate('Seccion', { tipo, username });
     };
 
     const handleUpdateStreaming = async (flag) => {

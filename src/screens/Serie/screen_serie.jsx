@@ -13,7 +13,7 @@ import ProgressBar from '../../components/ProgressBar/progress_bar';
 import Reproductor from '../../components/Reproductor';
 
 const Serie = ({ navigation, route }) => {
-    const { idContent } = route.params;
+    const { idContent, username } = route.params;
     const serie = useObject('Serie', idContent); // Encuentra la serie usando su Modelo y su ID
 
     const poster = serie.cover !== "" ? serie.cover : serie.poster_path !== "" ? `https://image.tmdb.org/t/p/original${serie.poster_path}` : null;
@@ -388,6 +388,7 @@ const Serie = ({ navigation, route }) => {
                     onContentChange={handleChangeEpisode}
                     setVisto={handleChangeEpisode}
                     onProgressUpdate={handleProgressUpdate}
+                    username={username}
                 />
             )}
         </>

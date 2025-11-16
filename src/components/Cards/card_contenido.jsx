@@ -10,7 +10,7 @@ import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage, showModal }) => {
+const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage, showModal, username }) => {
     const { getEpisodes } = useXtream();
     const { getModelName, getLastPlayedEpisode, updateProps } = useStreaming();
     const [error, setError] = useState(false);
@@ -27,7 +27,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
     const handleNavigateToScreen = useCallback(async () => {
         hideMessage();
         if (tipo === 'live') {
-            navigation.navigate('Canal', { idContent: item.stream_id, idCategory });
+            navigation.navigate('Canal', { idContent: item.stream_id, idCategory, username });
         }
         else if (tipo === 'vod') {
             try {
@@ -53,7 +53,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                         );
                     }
                 }
-                navigation.navigate('Pelicula', { idContent: item.stream_id });
+                navigation.navigate('Pelicula', { idContent: item.stream_id, username });
             } catch (error) {
                 //Mostrar mensaje de que no está disponible el contenido
                 console.log(error);
@@ -86,7 +86,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
                 }
                 const response = await getEpisodes(item.series_id);
                 response ? console.log('Episodios agregados') : console.log('No se agregaron los episodios');
-                navigation.navigate('Serie', { idContent: item.series_id });
+                navigation.navigate('Serie', { idContent: item.series_id, username });
             } catch (error) {
                 //Mostrar mensaje de que no está disponible el contenido
                 console.log('CardContenido: ', error);

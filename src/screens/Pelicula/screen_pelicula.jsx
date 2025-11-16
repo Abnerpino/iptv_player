@@ -10,7 +10,7 @@ import CardActor from '../../components/Cards/card_actor';
 import Reproductor from '../../components/Reproductor';
 
 const Pelicula = ({ navigation, route }) => {
-    const { idContent } = route.params;
+    const { idContent, username } = route.params;
     const pelicula = useObject('Pelicula', idContent); // Encuentra la pelicula usando su Modelo y su ID
 
     const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
@@ -227,6 +227,7 @@ const Pelicula = ({ navigation, route }) => {
                     contenido={pelicula}
                     setMostrar={(value) => setShowReproductor(value)}
                     onProgressUpdate={handleProgressUpdate}
+                    username={username}
                 />
             )}
         </>
