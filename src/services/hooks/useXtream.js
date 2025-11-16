@@ -7,6 +7,7 @@ export const useXtream = () => {
     const usuario = useQuery('Usuario');
     const url = `${usuario[0]?.host}/player_api.php?username=${usuario[0]?.user}&password=${usuario[0]?.password}`;
     const tipos = ['live', 'vod', 'series'];
+    const customUserAgent = `IPTV_Player-${usuario[0]?.username}`;
     const initialCats = [
         { category_id: '0.1', category_name: 'TODO', total: 0, contenido: [] },
         { category_id: '0.2', category_name: 'RECIENTEMENTE VISTO', total: 0, contenido: [] },
@@ -15,7 +16,12 @@ export const useXtream = () => {
 
     const getInfoAccount = async () => {
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': customUserAgent
+                }
+            });
             const info = await response.json();
             console.log(info.user_info.status);
         } catch (error) {
@@ -65,7 +71,12 @@ export const useXtream = () => {
         const contentField = type === 'live' ? 'canales' : (type === 'vod' ? 'peliculas' : 'series');
 
         try {
-            const response = await fetch(newLink);
+            const response = await fetch(newLink, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': customUserAgent
+                }
+            });
             const categories = await response.json();
 
             const categorias = categories.map(({ category_id, category_name }) => ({
@@ -87,7 +98,12 @@ export const useXtream = () => {
         //const live = getItems('live');
 
         try {
-            const response = await fetch(newLink);
+            const response = await fetch(newLink, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': customUserAgent
+                }
+            });
             const stream = await response.json();
 
             stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids, direct_source }) => {
@@ -117,7 +133,12 @@ export const useXtream = () => {
         const newLink = `${url}&action=get_vod_streams`;
 
         try {
-            const response = await fetch(newLink);
+            const response = await fetch(newLink, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': customUserAgent
+                }
+            });
             const stream = await response.json();
             stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, direct_source, container_extension }) => {
                 newVod.push({
@@ -163,7 +184,12 @@ export const useXtream = () => {
         const newLink = `${url}&action=get_series`;
 
         try {
-            const response = await fetch(newLink);
+            const response = await fetch(newLink, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': customUserAgent
+                }
+            });
             const stream = await response.json();
 
             stream.forEach(({ num, series_id, name, title, year, cover, plot, genre, category_id, category_ids, release_date, rating, backdrop_path }) => {
@@ -214,7 +240,12 @@ export const useXtream = () => {
             if (serie && serie.temporadas.length > 0) {
                 console.log('Ya existen episodios');
             } else {
-                const response = await fetch(newLink);
+                const response = await fetch(newLink, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': customUserAgent
+                    }
+                });
                 const stream = await response.json();
                 transformEpisodes(stream, idSerie, serie);
                 console.log('Se agregaron los episodios');

@@ -16,7 +16,7 @@ import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched, username }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const remoteControlTimeout = useRef(null);
@@ -69,7 +69,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
 
     const isCasting = castState === 'connected';
-
+    const customUserAgent = `IPTV_Player-${username}`;
+    
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
         // La función de limpieza se ejecuta solo cuando el componente se desmonta
@@ -880,7 +881,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         <Video
                             key={sourceKey}
                             ref={playerRef}
-                            source={{ uri: mainLinkFailed ? contenido.aux_link : contenido.link }}
+                            source={{
+                                uri: mainLinkFailed ? contenido.aux_link : contenido.link,
+                                headers: {
+                                    'User-Agent': customUserAgent
+                                }
+                            }}
                             style={styles.videoPlayer}
                             controls={false}
                             paused={paused}
