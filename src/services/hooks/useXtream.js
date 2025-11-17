@@ -152,7 +152,7 @@ export const useXtream = () => {
                     plot,
                     genre,
                     release_date,
-                    episode_run_time: episode_run_time ? episode_run_time.toString() : '',
+                    episode_run_time: episode_run_time ? episode_run_time.toString() : '0',
                     category_id,
                     category_ids: category_ids.map(category => category.toString()),
                     tmdb_id: '',
