@@ -29,7 +29,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const isInitialCast = useRef(true); // Referencia para evitar doble carga al conectar
     const countdownTimer = useRef(null); // Referencia para el temporizador de la cuenta regresiva
     const isShowingNextPanel = useRef(false); // Referencia para evitar multiples llamadas al componente de 'Siguiente Episodio'
-    const prevEpisodeId = useRef(null); // Referencia para guardar el id del episodio reproducido anteriormente
+    const prevContentId = useRef(null); // Referencia para guardar el id del contenido reproducido anteriormente
     const idContenido = useRef(null); // Referencia para guardar el id del contenido reproducido anteriormente (canal, pelicula o serie)
     const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
     const fullScreenRef = useRef(fullScreen); // Referencia para saber cuando la pantalla está en tamaño completo o no
@@ -70,6 +70,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     const isCasting = castState === 'connected';
     const customUserAgent = `IPTV_Player-${username}`;
+    const idKey = tipo === 'vod' ? 'stream_id' : 'episode_id';
     
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
@@ -100,7 +101,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, [fullScreen]);
 
     useEffect(() => {
-        if (tipo !== 'series' || (prevEpisodeId.current !== contenido.episode_id)) {
+        if (tipo === 'live' || (prevContentId.current !== contenido[idKey])) {
             setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
             setPaused(false); // Se asegura de que 'paused' sea falso cada vez que se cambia el contenido
@@ -121,18 +122,19 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             case 'vod':
                 const imagen = contenido.backdrop_path ? `https://image.tmdb.org/t/p/original${contenido.backdrop_path}` : '';
                 setBackground(imagen);
+                prevContentId.current = contenido.stream_id;
                 break;
             case 'series':
                 setBackground(contenido.backdrop);
                 // Resetea los estados del "siguiente episodio" solo si se ha cambiado de episodio
-                if (prevEpisodeId.current !== contenido.episode_id) {
+                if (prevContentId.current !== contenido.episode_id) {
                     isShowingNextPanel.current = false;
                     setHasCanceledNextEpisode(false);
                     setShowNextEpisode(false);
                     clearInterval(countdownTimer.current);
                 }
                 // Actualiza la referencia para el próximo cambio de contenido
-                prevEpisodeId.current = contenido.episode_id;
+                prevContentId.current = contenido.episode_id;
                 break;
             default:
                 break;
@@ -513,7 +515,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
 
-        setDuration(data.duration);
+        const duracion = tipo !== 'live' ? (data.duration > 0 ? data.duration : Number(tipo === 'vod' ? (contenido.episode_run_time * 60) : contenido.episode_run_time)) : 0;
+        setDuration(duracion);
 
         // Captura las pistas disponibles
         setVideoTracks(data.videoTracks);
