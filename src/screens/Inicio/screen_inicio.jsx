@@ -28,7 +28,10 @@ const Inicio = ({ navigation }) => {
 
         let isRequestDone = false;     // bandera para saber si la petición terminó
         let isDelayDone = false;       // bandera para saber si ya pasaron los 1.5 segundos
-        let result = null;             // almacena el resultado de la petición
+        let result = {
+            numId: -1,
+            data: null
+        };  // almacena el resultado de la petición
 
         // Simula el retraso mínimo de 1.5 segundos antes de permitir navegación
         const delay = new Promise(resolve => setTimeout(() => {
@@ -60,6 +63,7 @@ const Inicio = ({ navigation }) => {
                 const deviceId = await DeviceInfo.getUniqueId();
                 console.log('deviceId: ', deviceId);
                 const response = await hostingController.verificarCliente(deviceId);
+                result = response; // guarda el resultado de la petición
 
                 // Si todavía no existe localmente el usuario, lo crea
                 if (!usuario[0]) {
@@ -80,7 +84,6 @@ const Inicio = ({ navigation }) => {
                     }
 
                     createUser(newUser);
-                    result = response; // guarda el resultado de la petición
                 }
 
                 // Si el usuario ya existe en la nube...
