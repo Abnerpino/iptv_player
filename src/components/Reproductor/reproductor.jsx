@@ -64,6 +64,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [retryCount, setRetryCount] = useState(0); // Estado para el manejo del contador de reintentos
     const [sourceKey, setSourceKey] = useState(0); // Estado para el manejo de la llave para forzar recarga
     const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del mensaje de notificación
+    const [useInternalTimer, setUseInternalTimer] = useState(false); // Estado para manejar el tiempo cuando las peliculas o episodios no tengan una duración válida
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -71,7 +72,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const isCasting = castState === 'connected';
     const customUserAgent = `IPTV_Player-${username}`;
     const idKey = tipo === 'vod' ? 'stream_id' : 'episode_id';
-    
+
     // useEffect para guardar el tiempo de reproducción al salir del reproductor
     useEffect(() => {
         // La función de limpieza se ejecuta solo cuando el componente se desmonta
@@ -203,6 +204,26 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         // Función de limpieza
         return () => clearInterval(countdownTimer.current);
     }, [showNextEpisode, handlePlayNow]);
+
+    // useEffect para el "cronómetro" interno cuando la duración no es válida
+    useEffect(() => {
+        let interval = null;
+
+        // Inicia el temporizador solo si useInternalTimer está activo (duración desconocida), no está pausado, no está cargando y el video no ha fallado
+        if (useInternalTimer && !paused && !isLoading && !isCannotReproduce) {
+            interval = setInterval(() => {
+                // Incrementa el tiempo actual en 1 cada segundo
+                setCurrentTime(prevTime => prevTime + 1);
+            }, 1000);
+        }
+
+        // Función de limpieza que se ejecuta cuando el componente se desmonta o cuando cualquiera de las dependencias cambia
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [useInternalTimer, paused, isLoading, isCannotReproduce]);
 
     // useEffect que maneja la CONEXIÓN INICIAL
     useEffect(() => {
@@ -487,7 +508,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             // Asigna el mensaje de error
             switch (code) {
                 case '22001':
-                    toastMessage = '¡Error de red! Revise su conexión a Internet';      
+                    toastMessage = '¡Error de red! Revise su conexión a Internet';
                     break;
                 case '22004':
                     toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`;
@@ -515,9 +536,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
 
-        const duracion = tipo !== 'live' ? (data.duration > 0 ? data.duration : Number(tipo === 'vod' ? (contenido.episode_run_time * 60) : contenido.episode_run_time)) : 0;
-        setDuration(duracion);
-
         // Captura las pistas disponibles
         setVideoTracks(data.videoTracks);
         setAudioTracks(data.audioTracks);
@@ -539,6 +557,44 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             });
         }
 
+        let startTime = 0; // Variable para el tiempo de inicio
+
+        if (data.duration <= 0) {
+            console.log('Duración desconocida detectada. Activando cronómetro interno.');
+            const duracion = tipo !== 'live' ? (data.duration > 0 ? data.duration : Number(tipo === 'vod' ? (contenido.episode_run_time * 60) : contenido.episode_run_time)) : 0;
+            setDuration(duracion);
+            setCurrentTime(0); // Inicia el cronómetro en 0
+            setUseInternalTimer(true); // Activa el timer del useEffect
+        } else {
+            setUseInternalTimer(false); // Desactiva el timer del useEffect
+
+            // Usa la duración válida del video
+            const duracionValida = data.duration;
+            setDuration(duracionValida);
+
+            startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
+
+            // Si la duración es válida y el porcentaje de reproducción es igual o mayor a 99%, reinicia el video
+            // Usa la duración del objeto 'contenido' porque no siempre es la misma con 'data.duration' y la barra de progreso trabaja con la de 'contenido'
+            if (duracionValida > 0 && tipo === 'vod' && Number(contenido.episode_run_time) > 0) {
+                if (startTime / (Number(contenido.episode_run_time) * 60) >= 0.99) {
+                    startTime = 0;
+                }
+            }
+            if (duracionValida > 0 && tipo === 'series' && contenido.episode_run_time > 0) {
+                if (startTime / contenido.episode_run_time >= 0.99) {
+                    startTime = 0;
+                }
+            }
+
+            if (startTime > 0 && playerRef.current) {
+                playerRef.current.seek(startTime); // Salta al tiempo guardado para intentar reanudar la reproducción
+            }
+
+            setCurrentTime(startTime);
+            lastSaveTime.current = startTime; // Sincroniza el último tiempo guardado
+        }
+
         if (tipo === 'live') {
             // Limpia cualquier temporizador anterior por si acaso
             clearTimeout(liveVistoTimer.current);
@@ -551,42 +607,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 }
             }, 100);
 
-            return; // Sale de la función porque el resto del código es solo para peliculas y episodios
+            return;
         } else {
             isVideoPlaying.current === true; // Avisa que la pelicula o episodio ya ha cargado
         }
-
-        let startTime = parseFloat(contenido.playback_time); // Convierte el string de Realm a número
-
-        // Si la duración es válida y el porcentaje de reproducción es igual o mayor a 99%, reinicia el video
-        // Usa la duración del objeto 'contenido' porque no siempre es la misma con 'data.duration' y la barra de progreso trabaja con la de 'contenido'
-        if (data.duration > 0 && tipo === 'vod' && Number(contenido.episode_run_time) > 0) {
-            if (startTime / (Number(contenido.episode_run_time) * 60) >= 0.99) {
-                startTime = 0;
-            }
-        }
-        if (data.duration > 0 && tipo === 'series' && contenido.episode_run_time > 0) {
-            if (startTime / contenido.episode_run_time >= 0.99) {
-                startTime = 0;
-            }
-        }
-
-        if (startTime > 0 && playerRef.current) {
-            // Solo para VOD y Series, intenta reanudar la reproducción
-            if (tipo === 'vod' || tipo === 'series') {
-                playerRef.current.seek(startTime); // Salta al tiempo guardado
-            }
-        }
-
-        setCurrentTime(startTime);
-        lastSaveTime.current = startTime; // Sincroniza el último tiempo guardado
     };
 
     const handleLoadStart = () => {
         setIsLoading(true);
     };
 
-    const handleProgress = ({ currentTime }) => {
+    const handleProgress = ({ currentTime: reportedTime }) => {
         // Si el id es diferente, el contenido cambió y se debe actualizar su fecha de visualización
         if (idContenido.current !== contenido.stream_id) {
             const fecha = new Date(); // Obtiene la fecha (tiempo) actual 
@@ -607,16 +638,27 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             return;
         }
 
-        setCurrentTime(currentTime);
-        latestTime.current = currentTime;
+        let reliableCurrentTime; // Variable para el tiempo fiable
+
+        // Si está usando el temporizador interno, significa que parte de su información es inválida y 'currentTime' todavía será 0 la unica vez que se ejecutará esta sección de código...
+        if (useInternalTimer) {
+            /// Lee el valor actual del estado (que viene del cronómetro)
+            reliableCurrentTime = currentTime + 0.021; // Le suma una cantidad muy pequeña de tiempo para que sea mayor a 0 y se marqué como vista
+        } else {
+            // El tiempo del evento es fiable, así que se actualiza el estado con él
+            setCurrentTime(reportedTime);
+            reliableCurrentTime = reportedTime;
+        }
+
+        latestTime.current = reliableCurrentTime;
 
         if (tipo === 'series') {
-            onProgressUpdate(currentTime, contenido.episode_id);
+            onProgressUpdate(reliableCurrentTime, contenido.episode_id);
 
             // Lógica para el manejo del panel de 'Siguiente Episodio'
             if (
                 contenido.episode_run_time > 0 &&
-                (currentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
+                (reliableCurrentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
                 !isShowingNextPanel.current &&                            // 2. La bandera indica que no se está mostrando ya
                 !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
                 (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
@@ -629,15 +671,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
 
         if (tipo === 'vod') {
-            onProgressUpdate(currentTime);
+            onProgressUpdate(reliableCurrentTime);
         }
 
         const SAVE_INTERVAL = 15; // Guardar cada 15 segundos
 
         // Comprueba si ha pasado suficiente tiempo desde el último guardado
-        if (Math.abs(currentTime - lastSaveTime.current) > SAVE_INTERVAL) { // Se usa valor absoluto porque lo importante no es la dirección (atrás o adelante), sino la magintud del salto en el tiempo
-            savePlaybackTime(currentTime);
-            lastSaveTime.current = currentTime; // Actualiza el último tiempo de guardado
+        if (Math.abs(reliableCurrentTime - lastSaveTime.current) > SAVE_INTERVAL) { // Se usa valor absoluto porque lo importante no es la dirección (atrás o adelante), sino la magintud del salto en el tiempo
+            savePlaybackTime(reliableCurrentTime);
+            lastSaveTime.current = reliableCurrentTime; // Actualiza el último tiempo de guardado
         }
     };
 
@@ -664,6 +706,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     const seekTo = (time) => {
+        // Si se está usando el temporizador interno, sigfinica que su duración y tiempo actual es inválido...
+        if (useInternalTimer) {
+            setCurrentTime(0); // Asigna 0 porque al ser inválida parte de su información, el video se reinicia
+        }
+
         if (Array.isArray(time)) {
             playerRef.current?.seek(time[0]);
 
@@ -967,9 +1014,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 <View style={styles.middleControls}>
                                     {/* Botón para ir al canal anterior / retroceder 10 segundos */}
                                     <TouchableOpacity
-                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1 }}
+                                        style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
                                         onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
-                                        disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
+                                        disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
                                     >
                                         <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
                                     </TouchableOpacity>
@@ -985,9 +1032,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     )}
                                     {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
                                     <TouchableOpacity
-                                        style={{ opacity: (tipo !== 'live' && isCannotReproduce) ? 0.5 : 1 }}
+                                        style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
                                         onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
-                                        disabled={(tipo !== 'live' && isCannotReproduce) ? true : false}
+                                        disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
                                     >
                                         <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
                                     </TouchableOpacity>
@@ -1011,6 +1058,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                 value={currentTime}
                                                 minimumValue={0}
                                                 maximumValue={duration}
+                                                disabled={useInternalTimer}
                                                 onSlidingComplete={seekTo}
                                                 trackStyle={styles.track}
                                                 thumbStyle={styles.thumb}
