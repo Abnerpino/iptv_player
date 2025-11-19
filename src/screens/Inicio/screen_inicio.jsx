@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, ImageBackground } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, ImageBackground, View, BackHandler } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNRestart from 'react-native-restart';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,7 @@ import { useQuery } from '@realm/react';
 import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import ModalConfirmation from '../../components/Modals/modal_confirmation';
 
 const hostingController = new HostingController();
 
@@ -14,6 +15,7 @@ const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
     const { createUser, upsertNotifications, updateUserProps } = useStreaming();
     const usuario = useQuery('Usuario');
+    const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de confirmación
 
     // Valor de animación de opacidad, comienza en 0 (transparente)
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -120,8 +122,6 @@ const Inicio = ({ navigation }) => {
                 }
             } catch (error) {
                 console.error('Error en la petición:', error);
-                //Agregar aqui que se muestre un modal para recargar aplicación
-                //RNRestart.restart();
             } finally {
                 isRequestDone = true;    // marca que la petición terminó
             }
@@ -156,13 +156,10 @@ const Inicio = ({ navigation }) => {
                     break;
                 case 3:
                     navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
-                    //Agregar pantalla para reactivación
                     break;
                 default:
-                    console.error('Resultado de la petición es null');
-                    //Agregar aqui que se muestre un modal para recargar aplicación
-                    //RNRestart.restart();
-                    return;
+                    setModalVisible(true); // Muestre el modal para recargar la aplicación
+                    break;
             }
         };
 
@@ -170,6 +167,30 @@ const Inicio = ({ navigation }) => {
         return () => clearInterval(checkRequestInterval);
     }, []);
 
+    useEffect(() => {
+        const backAction = () => {
+            // Muestra el modal de confirmación si se presiona el botón de Regresar y el modal está oculto
+            setModalVisible(true);
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+        return () => backHandler.remove();
+    }, [modalVisible]);
+
+    const handleReload = () => {
+        RNRestart.restart();
+    };
+
+    const handleExit = () => {
+        BackHandler.exitApp(); // Cierra la aplicación
+    };
+    
+    const handleCloseModal = () => {
+        setModalVisible(false);
+    };
+    
     return (
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
             <ImageBackground
@@ -180,7 +201,17 @@ const Inicio = ({ navigation }) => {
                     height: '100%',
                 }}
                 resizeMode='cover'
-            />
+            >
+                <View>
+                    <ModalConfirmation
+                        visible={modalVisible}
+                        onConfirm={handleReload}
+                        onCancel={handleExit}
+                        onRequestClose={handleCloseModal}
+                        numdId={3}
+                    />
+                </View>
+            </ImageBackground>
         </Animated.View>
     );
 };
