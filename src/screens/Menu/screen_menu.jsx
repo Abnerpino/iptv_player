@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
+import Icon5 from 'react-native-vector-icons/Ionicons';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
@@ -236,7 +237,7 @@ const Menu = ({ navigation }) => {
                             }}
                             onLongPress={() => showToast('Salir de la App')}
                         >
-                            <Icon3 name="exit-to-app" size={26} color="white" />
+                            <Icon5 name="exit-outline" size={26} color="white" />
                         </TouchableOpacity>
                     </View>
                 </View>
