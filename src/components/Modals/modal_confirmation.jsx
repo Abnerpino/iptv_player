@@ -2,26 +2,33 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ModalConfirmation = ({ visible, onConfirm, onCancel, numdId, itemName }) => {
+const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdId, itemName }) => {
+    const mensaje = 
+        numdId === 1 ? '¿Está seguro que desea salir de la aplicación?'
+        : numdId === 2 ? `¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`
+        : '¡Ocurrío un error mientras se cargaba la aplicación! Por favor, recargue la app o intente de nuevo más tarde. \n\nSi persiste el error, consulte a su Proveedor de Servicios.';
+
     return (
-        <Modal transparent visible={visible} onRequestClose={onCancel} animationType="fade">
+        <Modal transparent visible={visible} onRequestClose={onRequestClose || onCancel} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
-                        <Icon name={numdId === 1 ? "exit" : "warning"} size={27} color="#333" />
-                        <Text style={styles.title}>{numdId === 1 ? 'SALIR' : 'AVISO'}</Text>
+                        <Icon name="warning" size={27} color="#333" />
+                        <Text style={styles.title}>AVISO</Text>
                     </View>
-                    {numdId !== 1 && (
-                        <Text style={styles.textMessage}>{`¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`}</Text>
-                    )}
+                    <Text style={styles.textMessage}>{mensaje}</Text>
                     <View style={styles.buttonsContainer}>
                         <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'green' }]}>
-                            <Icon2 name="check" size={24} color="#FFF" />
-                            <Text style={styles.textButton}>Aceptar</Text>
+                            <Icon2 name={numdId === 3 ? "reload" : "check"} size={24} color="#FFF" />
+                            <Text style={styles.textButton}>{`${numdId === 3 ? 'Recargar' : 'Aceptar'}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'red' }]}>
-                            <Icon2 name="cancel" size={24} color="#FFF" />
-                            <Text style={styles.textButton}>Cancelar</Text>
+                            {numdId === 3 ? (
+                                <Icon name="exit-outline" size={24} color="#FFF" />
+                            ) : (
+                                <Icon2 name="cancel" size={24} color="#FFF" />
+                            )}
+                            <Text style={styles.textButton}>{`${numdId === 3 ? 'Salir' : 'Cancelar'}`}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -63,6 +70,7 @@ const styles = StyleSheet.create({
     },
     button: {
         flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 5,
         padding: 5,
         marginVertical: 10,
