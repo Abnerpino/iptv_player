@@ -48,7 +48,7 @@ const Inicio = ({ navigation }) => {
                     console.log('Tiempo existente');
                 } else {
                     const now = new Date().getTime();
-                    const newTime = now - 120000; // Se restan 2 minutos al tiempo actual para forzar la actualización la primera vez
+                    const newTime = now - 86400000; // Se restan 24 horas al tiempo actual para forzar la actualización la primera vez
                     await AsyncStorage.setItem('@last_update_time_iptv', newTime.toString());
                     console.log('Tiempo guardado');
                 }
