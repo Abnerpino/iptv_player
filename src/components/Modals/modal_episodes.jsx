@@ -1,12 +1,30 @@
-import { Modal, Text, TouchableOpacity, View, StyleSheet, FlatList } from "react-native";
+import React, { useEffect } from "react";
+import { Text, TouchableOpacity, View, StyleSheet, FlatList, BackHandler } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ItemEpisode from "../Items/item_episode";
 
 const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSelectEpisode }) => {
+    // useEffect para el manejo del botón físico "Atrás" de Android
+    useEffect(() => {
+        const onBackPress = () => {
+            if (openModal) {
+                handleCloseModal();
+                return true;
+            }
+            return false;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [openModal, handleCloseModal]);
+
+    // Si el modal no está abierto, no renderiza nada
+    if (!openModal) return null;
 
     return (
-        <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
-            <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <TouchableOpacity onPress={handleCloseModal}>
@@ -31,12 +49,16 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
                     </View>
                 </View>
             </View>
-        </Modal>
-    )
-}
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.75)",
         justifyContent: "center",

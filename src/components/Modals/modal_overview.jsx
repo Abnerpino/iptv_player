@@ -1,32 +1,54 @@
-import { Modal, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { Text, TouchableOpacity, View, ScrollView, StyleSheet, BackHandler } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ModalOverview = ({ openModal, handleCloseModal, overview }) => {
-    
-    return(
-        <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
-            <View style={styles.modalContainer}>
+    // useEffect para el manejo del botón físico "Atrás" de Android
+    useEffect(() => {
+        const onBackPress = () => {
+            if (openModal) {
+                handleCloseModal();
+                return true;
+            }
+            return false;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [openModal, handleCloseModal]);
+
+    // Si el modal no está abierto, no renderiza nada
+    if (!openModal) return null;
+
+    return (
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
-                            <Icon name="info-circle" size={27} color="#333"/>
+                            <Icon name="info-circle" size={27} color="#333" />
                             <Text style={styles.textHeader}>TRAMA</Text>
                         </View>
                         <TouchableOpacity onPress={handleCloseModal}>
-                            <Icon name="window-close" size={27} color="red"/>
+                            <Icon name="window-close" size={27} color="red" />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 20, paddingVertical: 10, maxHeight: '88%', }}>
+                    <ScrollView style={styles.content}>
                         <Text style={styles.text}>{overview}</Text>
-                    </View>
+                    </ScrollView>
                 </View>
             </View>
-        </Modal>
-    )
-}
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
@@ -45,6 +67,12 @@ const styles = StyleSheet.create({
         borderBottomColor: '#333',
         paddingVertical: 5,
         paddingHorizontal: 20,
+    },
+    content: {
+        paddingHorizontal: 20,
+        paddingTop: 5,
+        paddingBottom: 10,
+        maxHeight: '88%',
     },
     textHeader: {
         fontWeight: 'bold',

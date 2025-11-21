@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Modal, Animated, StyleSheet, View, Text } from 'react-native';
+import { Animated, StyleSheet, View, Text } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 const ModalLoading = ({ visible }) => {
@@ -55,9 +55,12 @@ const ModalLoading = ({ visible }) => {
         outputRange: ['0deg', '360deg'],
     });
 
+    // Si el modal no está abierto, no renderiza nada
+    if (!visible) return null;
+
     return (
-        <Modal transparent visible={visible} animationType="fade">
-            <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <Animated.View style={[styles.circleContainer, { transform: [{ rotate: spin }] }]}>
                     <Svg width={100} height={100} viewBox="0 0 100 100">
                         <Path
@@ -71,12 +74,16 @@ const ModalLoading = ({ visible }) => {
                 </Animated.View>
                 <Text style={styles.text}>Cargando{dots}</Text>
             </View>
-        </Modal>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.75)",
         justifyContent: 'center',

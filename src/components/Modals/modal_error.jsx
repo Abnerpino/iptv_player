@@ -1,7 +1,23 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ModalError = ({ visible, error, tiempo, onClose }) => {
+    // useEffect para el manejo del botón físico "Atrás" de Android
+    useEffect(() => {
+        const onBackPress = () => {
+            if (visible) {
+                onClose();
+                return true;
+            }
+            return false;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [visible, onClose]);
+
     const typesContent = {
         live: 'TV en directo',
         vod: 'Películas',
@@ -13,7 +29,7 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
         const mins = Math.floor((time % 3600) / 60);
         const secs = Math.floor(time % 60);
         let newTime = 'dentro de ';
-        
+
         if (hours > 0) {
             newTime += `${hours} ${hours > 1 ? 'horas' : 'hora'} ${mins > 0 ? 'y ' : ''}`;
         }
@@ -30,9 +46,12 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
         return newTime;
     };
 
+    // Si el modal no está abierto, no renderiza nada
+    if (!visible) return null;
+
     return (
-        <Modal transparent visible={visible} onRequestClose={onClose} animationType="fade">
-            <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <Icon name="report-gmailerrorred" size={27} color="red" />
@@ -61,12 +80,16 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
                     </View>
                 </View>
             </View>
-        </Modal>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",

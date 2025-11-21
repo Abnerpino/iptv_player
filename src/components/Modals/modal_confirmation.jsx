@@ -1,16 +1,39 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdId, itemName }) => {
-    const mensaje = 
+    // useEffect para el manejo del botón físico "Atrás" de Android
+    useEffect(() => {
+        const onBackPress = () => {
+            if (visible) {
+                if (onRequestClose) {
+                    onRequestClose();
+                } else {
+                    onCancel();
+                }
+                return true;
+            }
+            return false;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [visible, onRequestClose, onCancel]);
+
+    const mensaje =
         numdId === 1 ? '¿Está seguro que desea salir de la aplicación?'
-        : numdId === 2 ? `¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`
-        : '¡Ocurrío un error mientras se cargaba la aplicación! Por favor, recargue la app o intente de nuevo más tarde. \n\nSi persiste el error, consulte a su Proveedor de Servicios.';
+            : numdId === 2 ? `¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`
+                : '¡Ocurrió un error mientras se cargaba la aplicación! Por favor, recargue la app o intente de nuevo más tarde. \n\nSi persiste el error, consulte a su Proveedor de Servicios.';
+
+    // Si el modal no está abierto, no renderiza nada
+    if (!visible) return null;
 
     return (
-        <Modal transparent visible={visible} onRequestClose={onRequestClose || onCancel} animationType="fade">
-            <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <Icon name="warning" size={27} color="#333" />
@@ -33,12 +56,16 @@ const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdI
                     </View>
                 </View>
             </View>
-        </Modal>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",

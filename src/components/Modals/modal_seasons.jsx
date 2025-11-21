@@ -1,10 +1,29 @@
-import { Modal, Text, TouchableOpacity, View, StyleSheet, FlatList } from "react-native";
+import React, { useEffect } from "react";
+import { Text, TouchableOpacity, View, StyleSheet, FlatList, BackHandler } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) => {
+    // useEffect para el manejo del botón físico "Atrás" de Android
+    useEffect(() => {
+        const onBackPress = () => {
+            if (openModal) {
+                handleCloseModal();
+                return true;
+            }
+            return false;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [openModal, handleCloseModal]);
+
+    // Si el modal no está abierto, no renderiza nada
+    if (!openModal) return null;
+
     return (
-        <Modal transparent visible={openModal} onRequestClose={handleCloseModal} animationType="fade">
-            <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
@@ -15,7 +34,7 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                             <Icon name="window-close" size={27} color="red" />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 14, paddingVertical: 10, maxHeight: '88%', }}>
+                    <View style={styles.content}>
                         <FlatList
                             data={seasons}
                             numColumns={4}
@@ -35,12 +54,16 @@ const ModalSeasons = ({ openModal, handleCloseModal, seasons, onSelectSeason }) 
                     </View>
                 </View>
             </View>
-        </Modal>
-    )
-}
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    modalOverlay: {
+        zIndex: 9999, // Asegura que esté encima de todo
+        elevation: 9999,
+    },
+    touchableBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
@@ -59,6 +82,11 @@ const styles = StyleSheet.create({
         borderBottomColor: '#333',
         paddingVertical: 5,
         paddingHorizontal: 20,
+    },
+    content: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        maxHeight: '88%',
     },
     textHeader: {
         fontWeight: 'bold',
