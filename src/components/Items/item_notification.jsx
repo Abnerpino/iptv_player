@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ItemNotification = ({ notificacion, seleccionar, expiracion }) => {
+const ItemNotification = ({ notificacion, seleccionar, expiracion, flag }) => {
     // Reemplaza '{fecha_expiracion}' por la fecha de expiración del paquete contratado y agrega saltos de linea cuando encuentra '{salto_linea}' en el mensaje
     const mensaje = notificacion.message.replace("{fecha_expiracion}", expiracion).replace(/{salto_linea}/g, "\n");
 
@@ -27,6 +27,7 @@ const ItemNotification = ({ notificacion, seleccionar, expiracion }) => {
             style={[styles.notificactionConteiner, {
                 backgroundColor: notificacion.visto ? '#383838' : '#0A6522',
                 marginHorizontal: notificacion.visto ? 10 : 0,
+                marginBottom: flag ? 0 : 12.5
             }]}
             onPress={handleSelectNotification}
         >
@@ -44,7 +45,6 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         paddingHorizontal: 10,
         paddingVertical: 5,
-        marginBottom: 12.5
     },
     textMessage: {
         color: "#FFF",
