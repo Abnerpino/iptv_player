@@ -984,11 +984,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     </TouchableOpacity>
                                     <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                     <View style={styles.rightIcons}>
-                                        <TouchableOpacity
-                                            onLongPress={() => showToast('Transmitir', 2)}
-                                        >
-                                            <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
-                                        </TouchableOpacity>
+                                        <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
                                         <TouchableOpacity
                                             onPress={() => {
                                                 setIsScreenLock(true);
