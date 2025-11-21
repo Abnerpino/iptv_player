@@ -202,7 +202,7 @@ const Inicio = ({ navigation }) => {
                 }}
                 resizeMode='cover'
             >
-                <View>
+                <View style={{ flex: 1 }}>
                     <ModalConfirmation
                         visible={modalVisible}
                         onConfirm={handleReload}
