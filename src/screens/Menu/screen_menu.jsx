@@ -12,6 +12,7 @@ import Icon5 from 'react-native-vector-icons/Ionicons';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
+import ModalError from '../../components/Modals/modal_error';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Menu = ({ navigation }) => {
@@ -23,6 +24,9 @@ const Menu = ({ navigation }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [modalNVisible, setModalNVisible] = useState(false); //Estado para manejar el modal de notifiaciones
     const [modalCVisible, setModalCVisible] = useState(false); //Estado para manejar el modal de confirmación
+    const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de error
+    const [errores, setErrores] = useState([]); //Estado para almacenar los errores de actualización de cada Card
+    const [tiempo, setTiempo] = useState(); //Estado para almacenar el tiempo que falta la actualización automática
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
 
@@ -33,11 +37,26 @@ const Menu = ({ navigation }) => {
     const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
 
-    const updateLastUpdateTime = async () => {
-        const now = new Date().getTime();
+    const getSecondsSinceUpdate = async () => {
+        const now = new Date().getTime(); // Obtiene el tiempo actual en milisegundos
 
         try {
-            await AsyncStorage.setItem('@last_update_time_iptv', now.toString());
+            const savedTime = await AsyncStorage.getItem('@last_update_time_iptv'); // Obtiene el tiempo guardado en el almacenamiento asíncrono
+            const lastUpdate = savedTime ? parseInt(savedTime, 10) : 0; // Convierte 'savedTime' (string) en un número entero en base 10 (decimal)
+            const seconds = Math.floor((now - lastUpdate) / 1000); // Calcula la diferencia entre ambos tiempos (milisegundos), convierte el resultado a segundos y lo redondea hacia abajo
+            console.log(`Segundos desde la última actualización: ${seconds.toFixed(2)}`);
+            return seconds; // Retorna los segundos que han pasado desde la última actualización del contenido
+        } catch (e) {
+            console.error("Error al obtener los segundos desde la última actualización", e);
+            return 0;
+        }
+    };
+
+    const updateLastUpdateTime = async () => {
+        const now = new Date().getTime(); // Obtiene el tiempo actual en milisegundos
+
+        try {
+            await AsyncStorage.setItem('@last_update_time_iptv', now.toString()); // Guarda el tiempo como string en el almacenamiento asíncrono
             console.log('Tiempo actualizado');
         } catch (e) {
             console.error("Error al actualizar el tiempo de actualización", e);
@@ -46,27 +65,36 @@ const Menu = ({ navigation }) => {
 
     useEffect(() => {
         const checkAndUpdateContent = async () => {
-            try {
-                const savedTime = await AsyncStorage.getItem('@last_update_time_iptv');
-                const lastUpdate = savedTime ? parseInt(savedTime, 10) : null;
-                const now = new Date().getTime();
-                const secondsSinceUpdate = Math.floor((now - lastUpdate) / 1000);
-                console.log(`Segundos desde la última actualización: ${secondsSinceUpdate.toFixed(2)}`);
+            const localError = []; // Arreglo local para almacenar los tipos de multimedia que fallaron en la actualización
 
-                if (secondsSinceUpdate < 120) {
-                    console.log("Aún no pasan 2 minutos, no se descarga nada.");
-                    //return;
-                } else {
-                    handleStartLoading?.();
-                    await liveCardRef.current?.triggerUpdateEffects();
-                    await vodCardRef.current?.triggerUpdateEffects();
-                    await seriesCardRef.current?.triggerUpdateEffects();
-                    await updateLastUpdateTime();
-                    handleFinishLoading?.();
+            try {
+                const secondsSinceUpdate = await getSecondsSinceUpdate(); // Obtiene los segundos que han pasado desde la última actualización del contenido
+
+                // Si ya pasaron 24 horas...
+                if (secondsSinceUpdate > 86400) {
+                    handleStartLoading?.(); // Activa el modal de carga
+
+                    // Para cada tipo de Multimedia...
+                    for (const multimedia of tiposMultimedia) {
+                        try {
+                            await multimedia.referencia.current?.triggerUpdateEffects(); // Actualiza su contenido
+                        } catch (e) {
+                            console.log(`Error al actualizar ${multimedia.tipo}:`, e);
+                            localError.push(multimedia.tipo); // Agrega el tipo de multimedia que falló
+                        }
+                    }
+
+                    await updateLastUpdateTime(); // Actualiza el tiempo de la última actualización
                 }
             } catch (error) {
                 console.log('Ocurrió un error en el proceso de actualización: ', error);
-                handleFinishLoading?.();
+            } finally {
+                handleFinishLoading?.(); // Termina el modal de carga
+                // Si hubo por lo menos un error...
+                if (localError.length > 0) {
+                    setErrores(localError); // Actualiza los errores en el estado 
+                    setModalEVisible(true); // Muestra el modal de errores
+                }
             }
 
             // Si hay notificaciones...
@@ -102,6 +130,16 @@ const Menu = ({ navigation }) => {
     }, []);
 
     useEffect(() => {
+        const getSecondsToUpdate = async () => {
+            const secondsSinceUpdate = await getSecondsSinceUpdate(); // Obtiene los segundos que han pasado desde la última actualización del contenido
+            const secondsToUpdate = 86400 - secondsSinceUpdate; // Calcula la diferencia entre 84600 segundos (24 horas) y los segundos desde la última actualización
+            setTiempo(secondsToUpdate); // Actualiza el tiempo en el estado
+        };
+
+        getSecondsToUpdate();
+    }, [errores]);
+
+    useEffect(() => {
         if (notificaciones.length === 0) return; //Si no hay ninguna notificación, no hace nada
 
         const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
@@ -127,16 +165,9 @@ const Menu = ({ navigation }) => {
         }, [])
     );
 
-    const handleCloseModal = () => {
-        setModalNVisible(false);
-    };
-
-    const handleConfirmExit = () => {
-        BackHandler.exitApp(); // Cerrar la aplicación
-    };
-
-    const handleCancelExit = () => {
-        setModalCVisible(false);
+    const handleManualError = (tipoError) => {
+        setErrores([tipoError]); // Crea un array con el único error
+        setModalEVisible(true);  // Muestra el modal
     };
 
     const showToast = (mensaje) => {
@@ -253,6 +284,7 @@ const Menu = ({ navigation }) => {
                             fondo={multimedia.fondo}
                             onStartLoading={handleStartLoading}
                             onFinishLoading={handleFinishLoading}
+                            onUpdateError={handleManualError}
                             username={usuario[0]?.username}
                         />
                     ))}
@@ -277,17 +309,26 @@ const Menu = ({ navigation }) => {
                     </View>
                 </View>
 
-                <ModalNotifications
-                    notificaciones={notificaciones}
-                    openModal={modalNVisible}
-                    handleCloseModal={handleCloseModal}
-                    expiracion={usuario[0]?.expiration_date}
+                <ModalError
+                    visible={modalEVisible}
+                    error={errores}
+                    tiempo={tiempo}
+                    onClose={() => setModalEVisible(false)}
                 />
+
+                {!modalEVisible && (
+                    <ModalNotifications
+                        notificaciones={notificaciones}
+                        openModal={modalNVisible}
+                        handleCloseModal={() => setModalNVisible(false)}
+                        expiracion={usuario[0]?.expiration_date}
+                    />
+                )}
 
                 <ModalConfirmation
                     visible={modalCVisible}
-                    onConfirm={handleConfirmExit}
-                    onCancel={handleCancelExit}
+                    onConfirm={() => BackHandler.exitApp()}
+                    onCancel={() => setModalCVisible(false)}
                     numdId={1}
                 />
 
