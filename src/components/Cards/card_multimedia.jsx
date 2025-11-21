@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useXtream } from '../../services/hooks/useXtream';
 
-const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading, username }, ref) => {
+const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading, onUpdateError, username }, ref) => {
     const { getStreamingByType } = useXtream();
     const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
@@ -84,38 +84,54 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
         progressAnim.setValue(0);
         if (flag) onStartLoading?.();
 
-        // Inicia la primera animación
-        Animated.timing(progressAnim, {
-            toValue: 0.5,
-            duration: 1000,
-            useNativeDriver: false,
-        }).start();
-
-        // Espera a que la descarga de datos termine
-        await getStreamingByType(tipo);
-
-        // Envuelve la animación final en una Promesa explícita para garantizar la espera
-        await new Promise(resolve => {
-            Animated.timing(progressAnim, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: false,
-            }).start(result => {
-                if (result.finished) {
-                    resolve(); // Avisa que la animación terminó
-                }
-            });
-        });
-
-        // Se ejecutan las tareas finales despues de la animación
-        setIsLoading(false);
-        if (flag) onFinishLoading?.();
-        const now = new Date().getTime();
         try {
+            // Inicia la primera animación
+            Animated.timing(progressAnim, {
+                toValue: 0.5,
+                duration: 1000,
+                useNativeDriver: false,
+            }).start();
+
+            // Espera a que la descarga de datos termine
+            await getStreamingByType(tipo);
+
+            // Envuelve la animación final en una Promesa explícita para garantizar la espera
+            await new Promise((resolve, reject) => {
+                Animated.timing(progressAnim, {
+                    toValue: 1,
+                    duration: 500,
+                    useNativeDriver: false,
+                }).start(result => {
+                    if (result.finished) {
+                        resolve(); // Avisa que la animación terminó
+                    } else {
+                        // si la animación se interrumpe
+                        resolve();
+                    }
+                });
+            });
+
+            // Se ejecutan las tareas finales despues de la animación
+            setIsLoading(false);
+            if (flag) onFinishLoading?.();
+            const now = new Date().getTime();
             await AsyncStorage.setItem(`@last_update_time_${tipo}`, now.toString());
             setLastUpdateTime(now);
-        } catch (e) {
-            console.error("Error al guardar el tiempo de actualización", e);
+        } catch (error) {
+            // Detiene la carga y resetea la animación
+            console.log(`Error local en card ${tipo}:`, error);
+            setIsLoading(false);
+            progressAnim.setValue(0); // Regresa la barra a 0
+            if (flag) onFinishLoading?.(); // Cierra modal de carga global si estaba abierto
+
+            // Decisión de Propagación
+            if (flag) {
+                // CASO MANUAL (Botón): Notifica al padre explícitamente para que abra el ModalError
+                onUpdateError?.(tipo);
+            } else {
+                // CASO AUTOMÁTICO (Ref): "Relanza" el error para que el try/catch del Menú lo capture y pueda continuar con el siguiente item del bucle
+                throw error;
+            }
         }
     };
 
