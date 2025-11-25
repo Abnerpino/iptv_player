@@ -7,7 +7,6 @@ import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/FontAwesome5';
 import GoogleCast, { CastButton, useCastState, useRemoteMediaClient, useMediaStatus } from 'react-native-google-cast';
-import Orientation from 'react-native-orientation-locker';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalEpisodes from '../Modals/modal_episodes';
@@ -72,26 +71,18 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const customUserAgent = `IPTV_Player-${username}`;
     const idKey = tipo === 'vod' ? 'stream_id' : 'episode_id';
 
-    // useEffect para guardar el tiempo de reproducción al salir del reproductor
+    // useEffect para guardar el tiempo de reproducción y limpiar todos los Timeouts e Intervals al salir del reproductor
     useEffect(() => {
         // La función de limpieza se ejecuta solo cuando el componente se desmonta
         return () => {
             savePlaybackTime(latestTime.current);
+
             clearTimeout(liveVistoTimer.current);
             clearInterval(countdownTimer.current);
             clearTimeout(bufferTimeout.current);
-        };
-    }, [savePlaybackTime]);
-
-    useEffect(() => {
-        Orientation.lockToLandscape();
-        return () => {
-            Orientation.unlockAllOrientations();
             clearTimeout(controlTimeout.current);
             clearTimeout(remoteControlTimeout.current);
             clearTimeout(lockTimeout.current);
-            clearInterval(countdownTimer.current);
-            clearTimeout(bufferTimeout.current);
         };
     }, []);
 
