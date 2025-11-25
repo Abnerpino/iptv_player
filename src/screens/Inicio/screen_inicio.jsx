@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, ImageBackground, View, BackHandler } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
+import NetInfo from '@react-native-community/netinfo';
 import RNRestart from 'react-native-restart';
 import RNExitApp from 'react-native-exit-app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,9 +18,28 @@ const Inicio = ({ navigation }) => {
     const { createUser, upsertNotifications, updateUserProps } = useStreaming();
     const usuario = useQuery('Usuario');
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de confirmación
+    const [errorId, setErrorId] = useState(3); //Estado para manejar el tipo de error (por defecto 3)
 
     // Valor de animación de opacidad, comienza en 0 (transparente)
     const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    // Función auxiliar para verificar la conexión a internet
+    const checkInternetConnection = async () => {
+        // Primer intento
+        let netState = await NetInfo.fetch();
+
+        // Si el valor es null (desconocido), reintenta unas cuantas veces
+        let intentos = 0;
+        while (netState.isInternetReachable === null && intentos < 5) {
+            // Esperam 200ms entre intentos (máximo 1 segundo total)
+            await new Promise(resolve => setTimeout(resolve, 200));
+            netState = await NetInfo.fetch();
+            intentos++;
+        }
+
+        // Devuelve el estado final
+        return netState.isConnected && (netState.isInternetReachable ?? false);
+    };
 
     useEffect(() => {
         // Inicia animación de opacidad (fade-in) al montar el componente
@@ -60,9 +80,20 @@ const Inicio = ({ navigation }) => {
 
         saveLastUpdateTime();
 
-        // Ejecuta la petición asincrónica
+        // Ejecuta la petición asíncrona
         const request = async () => {
             try {
+                // Verifica primero si hay conexión a internet antes de realizar la petición
+                const hasInternet = await checkInternetConnection();
+
+                // Si no hay internet, define numId en 0 y sale
+                if (!hasInternet) {
+                    result = { numId: 0, data: null };
+                    isRequestDone = true;
+                    return;
+                }
+
+                // Si hay internet, procede con la lógica normal
                 const deviceId = await DeviceInfo.getUniqueId();
                 console.log('deviceId: ', deviceId);
                 const response = await hostingController.verificarCliente(deviceId);
@@ -158,8 +189,13 @@ const Inicio = ({ navigation }) => {
                 case 3:
                     navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
                     break;
+                case 0:
+                    setErrorId(4); // Caso especifico sin internet
+                    setModalVisible(true); // Muestra el modal para recargar la aplicación o salir
+                    break;
                 default:
-                    setModalVisible(true); // Muestre el modal para recargar la aplicación
+                    setErrorId(3); // Error genérico
+                    setModalVisible(true); // Muestra el modal para recargar la aplicación o salir
                     break;
             }
         };
@@ -187,11 +223,11 @@ const Inicio = ({ navigation }) => {
     const handleExit = () => {
         RNExitApp.exitApp(); // Cierra la aplicación
     };
-    
+
     const handleCloseModal = () => {
         setModalVisible(false);
     };
-    
+
     return (
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
             <ImageBackground
@@ -209,7 +245,7 @@ const Inicio = ({ navigation }) => {
                         onConfirm={handleReload}
                         onCancel={handleExit}
                         onRequestClose={handleCloseModal}
-                        numdId={3}
+                        numdId={errorId}
                     />
                 </View>
             </ImageBackground>
