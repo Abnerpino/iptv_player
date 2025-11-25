@@ -27,6 +27,7 @@ const Canal = ({ navigation, route }) => {
     const [selectedChannelIndex, setSelectedChannelIndex] = useState(initialChannelIndex); //Estado para manejar el indice del canal seleccionado
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
+    const [reproductorHeight, setReproductorHeight] = useState(null); //Estado para guardar la altura dinámica del reproductor
     const flatListRef = useRef(null);
 
     const handleToggleWatched = () => {
@@ -261,7 +262,18 @@ const Canal = ({ navigation, route }) => {
                                 </View>
                             </View>
                         )}
-                        <View style={!isFullScreen ? styles.reproductor : { flex: 1 }}>
+                        <View
+                            style={[
+                                !isFullScreen ? styles.reproductor : { flex: 1 },
+                                (!isFullScreen && reproductorHeight) ? { height: reproductorHeight, flex: 0 } : {}
+                            ]}
+                            onLayout={(event) => {
+                                if (!isFullScreen && !reproductorHeight) {
+                                    const { height } = event.nativeEvent.layout;
+                                    setReproductorHeight(height);
+                                }
+                            }}
+                        >
                             <Reproductor
                                 tipo={'live'}
                                 fullScreen={isFullScreen}
