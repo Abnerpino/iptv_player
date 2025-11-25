@@ -559,11 +559,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         let startTime = 0; // Variable para el tiempo de inicio
 
         if (data.duration <= 0) {
-            console.log('Duración desconocida detectada. Activando cronómetro interno.');
             const duracion = tipo !== 'live' ? (data.duration > 0 ? data.duration : Number(tipo === 'vod' ? (contenido.episode_run_time * 60) : contenido.episode_run_time)) : 0;
             setDuration(duracion);
-            setCurrentTime(0); // Inicia el cronómetro en 0
-            setUseInternalTimer(true); // Activa el timer del useEffect
+            if (tipo !== 'live') {
+                console.log('Duración desconocida detectada. Activando cronómetro interno.');
+                setCurrentTime(0); // Inicia el cronómetro en 0
+                setUseInternalTimer(true); // Activa el timer del useEffect
+            }
         } else {
             setUseInternalTimer(false); // Desactiva el timer del useEffect
 
