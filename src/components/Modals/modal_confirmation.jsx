@@ -23,10 +23,28 @@ const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdI
         return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
     }, [visible, onRequestClose, onCancel]);
 
-    const mensaje =
-        numdId === 1 ? '¿Está seguro que desea salir de la aplicación?'
-            : numdId === 2 ? `¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`
-                : '¡Ocurrió un error mientras se cargaba la aplicación! Por favor, recargue la app o intente de nuevo más tarde. \n\nSi persiste el error, consulte a su Proveedor de Servicios.';
+    const assignMessage = () => {
+        let mensaje = '';
+
+        switch (numdId) {
+            case 1:
+                mensaje = '¿Está seguro que desea salir de la aplicación?';
+                break;
+            case 2:
+                mensaje = `¿Está seguro que desea eliminar "${itemName}" del Historial de Reproducción?`;
+                break;
+            case 3:
+                mensaje = '¡Ocurrió un error mientras se cargaba la aplicación!\nPor favor, recargue la app o intente de nuevo más tarde.\n\nSi persiste el error, consulte a su Proveedor de Servicios.';
+                break;
+            case 4:
+                mensaje = '¡No está conectado a Internet!\nEs necesario que su dispositivo cuente con una conexión a Internet para que la app se pueda cargar.\n\nRevise su conexión y recargue la app o intente de nuevo más tarde.';
+                break;
+            default:
+                mensaje = '';
+        }
+
+        return mensaje;
+    };
 
     // Si el modal no está abierto, no renderiza nada
     if (!visible) return null;
@@ -39,19 +57,19 @@ const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdI
                         <Icon name="warning" size={27} color="#333" />
                         <Text style={styles.title}>AVISO</Text>
                     </View>
-                    <Text style={styles.textMessage}>{mensaje}</Text>
+                    <Text style={styles.textMessage}>{assignMessage()}</Text>
                     <View style={styles.buttonsContainer}>
                         <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'green' }]}>
-                            <Icon2 name={numdId === 3 ? "reload" : "check"} size={24} color="#FFF" />
-                            <Text style={styles.textButton}>{`${numdId === 3 ? 'Recargar' : 'Aceptar'}`}</Text>
+                            <Icon2 name={numdId >= 3 ? "reload" : "check"} size={24} color="#FFF" />
+                            <Text style={styles.textButton}>{`${numdId >= 3 ? 'Recargar' : 'Aceptar'}`}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'red' }]}>
-                            {numdId === 3 ? (
+                            {numdId >= 3 ? (
                                 <Icon name="exit-outline" size={24} color="#FFF" />
                             ) : (
                                 <Icon2 name="cancel" size={24} color="#FFF" />
                             )}
-                            <Text style={styles.textButton}>{`${numdId === 3 ? 'Salir' : 'Cancelar'}`}</Text>
+                            <Text style={styles.textButton}>{`${numdId >= 3 ? 'Salir' : 'Cancelar'}`}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
