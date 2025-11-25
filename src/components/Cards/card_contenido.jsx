@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
-import FastImage from 'react-native-fast-image';
+import React, { useState, useCallback } from 'react';
+import { View, Image, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
@@ -122,14 +121,14 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
             onPress={handleNavigateToScreen}
             onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}
         >
-            <FastImage
+            <Image
                 style={styles.image}
                 source={imagen && !error ? { uri: imagen } : require('../../assets/not_image.png')}
                 onError={() => setError(true)}
                 resizeMode={imagen && !error ? "cover" : "contain"}
             />
             {tipo !== 'live' && idCategory === '0.2' && (
-                <FastImage source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
+                <Image source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
             )}
             <View style={[styles.topOverlay, { justifyContent: tipo !== 'live' && item.rating > 0 ? 'space-between' : 'flex-end', }]}>
                 {tipo !== 'live' && (tipo === 'vod' || idCategory !== '0.2') && item.rating > 0 && (

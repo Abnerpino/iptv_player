@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { View, Image, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
 import Video from 'react-native-video';
 import { Slider } from '@miblanchard/react-native-slider';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -1040,7 +1039,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 <View>
                                     {tipo === 'live' ? (
                                         <View style={styles.bottomControlsLive}>
-                                            <FastImage
+                                            <Image
                                                 style={styles.imagen}
                                                 source={{ uri: contenido.stream_icon }}
                                                 resizeMode="contain"
