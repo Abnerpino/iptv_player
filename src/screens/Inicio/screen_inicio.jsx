@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, ImageBackground, View, BackHandler } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNRestart from 'react-native-restart';
+import RNExitApp from 'react-native-exit-app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import HostingController from '../../services/controllers/hostingController';
@@ -184,7 +185,7 @@ const Inicio = ({ navigation }) => {
     };
 
     const handleExit = () => {
-        BackHandler.exitApp(); // Cierra la aplicación
+        RNExitApp.exitApp(); // Cierra la aplicación
     };
     
     const handleCloseModal = () => {

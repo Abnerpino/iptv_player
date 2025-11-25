@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBack
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
+import RNExitApp from 'react-native-exit-app';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
@@ -327,7 +328,7 @@ const Menu = ({ navigation }) => {
 
                 <ModalConfirmation
                     visible={modalCVisible}
-                    onConfirm={() => BackHandler.exitApp()}
+                    onConfirm={() => RNExitApp.exitApp()}
                     onCancel={() => setModalCVisible(false)}
                     numdId={1}
                 />
