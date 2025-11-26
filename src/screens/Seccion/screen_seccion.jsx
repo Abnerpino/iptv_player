@@ -24,7 +24,7 @@ const Seccion = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const flatListRef = useRef(null);   //Referencia al FlatList del contenido
 
-    const { getModelName, getWatchedItems, getFavoriteItems, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
+    const { getModelName, getWatchedItems, getFavoriteItems, getLastPlayedEpisode, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
     const categoryModel = getModelName(type, true);
     const categories = useQuery(categoryModel);
 
@@ -39,6 +39,11 @@ const Seccion = ({ navigation, route }) => {
             setCategory(categories[3]);
         }
     }, [type, categories]);
+
+    // Memo para guardar y mantener actualizado el contenido de la categoría de Favoritos
+    const favoritos = useMemo(() => {
+        return categories.find(c => c.category_id === '0.3');
+    }, [categories]);
 
     // Memo para guardar y mantener actualizado el contenido de las categorías
     const contentToShow = useMemo(() => {
@@ -105,6 +110,19 @@ const Seccion = ({ navigation, route }) => {
         }
     }
 
+    //Obtiene el último episodio reproducido de una serie
+    const ultimoEpisodioReproducido = (item) => {
+        if (tipo === 'series' && category.category_id === '0.2' && item.visto) {
+            const episodio = getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]);
+            return {
+                duration_secs: episodio.duration_secs,
+                playback_time: episodio.playback_time
+            }
+        } else {
+            return null;
+        }
+    };
+
     const handleBack = () => {
         hideMessage();
         navigation.goBack();
@@ -149,6 +167,12 @@ const Seccion = ({ navigation, route }) => {
         setShowModal(false);
         setConfirmationResult(false);
     };
+
+    const getItemLayout = useCallback((data, index) => ({
+        length: type === 'live' ? 100 : 160,
+        offset: (type === 'live' ? 100 : 160) * index,
+        index,
+    }), [type]);
 
     const showToast = (mensaje, numStyle) => {
         Vibration.vibrate();
@@ -275,7 +299,12 @@ const Seccion = ({ navigation, route }) => {
                                         navigation={navigation}
                                         tipo={type}
                                         item={item}
+                                        favoritos={{
+                                            category_id: favoritos.category_id,
+                                            total: favoritos.total
+                                        }}
                                         idCategory={category.category_id}
+                                        episodio={() => ultimoEpisodioReproducido(item)}
                                         onStartLoading={handleStartLoading}
                                         onFinishLoading={handleFinishLoading}
                                         hideMessage={() => hideMessage()}
@@ -283,6 +312,7 @@ const Seccion = ({ navigation, route }) => {
                                         username={username}
                                     />
                                 )}
+                                getItemLayout={getItemLayout}
                                 keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
                                 initialNumToRender={20}
                                 maxToRenderPerBatch={10}
