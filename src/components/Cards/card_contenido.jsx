@@ -1,27 +1,21 @@
 import React, { useState, useCallback } from 'react';
-import { View, Image, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
+import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { useQuery } from '@realm/react';
 import ProgressBar from '../ProgressBar/progress_bar';
 import TMDBController from "../../services/controllers/tmdbController";
 
 const tmdbController = new TMDBController;
 
-const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onFinishLoading, hideMessage, showModal, username }) => {
+const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio, onStartLoading, onFinishLoading, hideMessage, showModal, username }) => {
     const { getEpisodes } = useXtream();
-    const { getModelName, getLastPlayedEpisode, updateProps } = useStreaming();
+    const { updateProps } = useStreaming();
     const [error, setError] = useState(false);
-
-    // Obtiene las categorías correctas según el tipo
-    const categoryModel = getModelName(tipo, true);
-    const categories = useQuery(categoryModel);
-    const favoritos = categories.find(categoria => categoria.category_id === '0.3');
 
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
     const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
-    const episodio = (tipo === 'series' && item.visto) ? getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]) : null;
 
     const handleNavigateToScreen = useCallback(async () => {
         hideMessage();
@@ -113,7 +107,7 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
 
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
-    }, [tipo, item]);
+    }, [tipo, item, favoritos]);
 
     return (
         <TouchableOpacity
@@ -121,14 +115,21 @@ const CardContenido = ({ navigation, tipo, item, idCategory, onStartLoading, onF
             onPress={handleNavigateToScreen}
             onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}
         >
-            <Image
+            <FastImage
                 style={styles.image}
-                source={imagen && !error ? { uri: imagen } : require('../../assets/not_image.png')}
+                source={imagen && !error ? {
+                    uri: imagen,
+                    priority: FastImage.priority.normal
+                } : require('../../assets/not_image.png')}
+                resizeMode={imagen && !error ? FastImage.resizeMode.cover : FastImage.resizeMode.contain}
                 onError={() => setError(true)}
-                resizeMode={imagen && !error ? "cover" : "contain"}
             />
             {tipo !== 'live' && idCategory === '0.2' && (
-                <Image source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
+                <FastImage
+                    style={styles.iconPlay}
+                    source={require('../../assets/icono_play.png')}
+                    resizeMode={FastImage.resizeMode.contain}
+                />
             )}
             <View style={[styles.topOverlay, { justifyContent: tipo !== 'live' && item.rating > 0 ? 'space-between' : 'flex-end', }]}>
                 {tipo !== 'live' && (tipo === 'vod' || idCategory !== '0.2') && item.rating > 0 && (
@@ -225,4 +226,27 @@ const styles = StyleSheet.create({
     },
 });
 
-export default React.memo(CardContenido);
+// Función para comparar si las props cambiaron realmente
+const arePropsEqual = (prevProps, nextProps) => {
+    // Si cambia el ID, significa que es otro item y debe renderizar de nuevo
+    const isSameId = prevProps.item.stream_id === nextProps.item.stream_id ||
+        prevProps.item.series_id === nextProps.item.series_id;
+
+    if (!isSameId) return false;
+
+    // Si 'favorito' o 'visto' cambian, renderiza
+    const isSameStatus =
+        prevProps.item.favorito === nextProps.item.favorito &&
+        prevProps.item.visto === nextProps.item.visto;
+
+    // Compára también si el ultimo episodio reproducido (en caso de ser serie) ha cambiado
+    const prevEpId = prevProps.episodio ? prevProps.episodio.id : null;
+    const nextEpId = nextProps.episodio ? nextProps.episodio.id : null;
+    const isSameEpisode = prevEpId === nextEpId;
+
+    // Retorna TRUE si son iguales (NO renderizar)
+    // Retorna FALSE si algo cambió (SÍ renderizar)
+    return isSameStatus && isSameEpisode;
+};
+
+export default React.memo(CardContenido, arePropsEqual);
