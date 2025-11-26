@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, Text, Image, } from 'react-native';
+import { View, Text } from 'react-native';
+import FastImage from 'react-native-fast-image';
 
-const CardActor = ({ navigation, imagen, nombre }) => {
+const CardActor = ({ imagen, nombre }) => {
     return (
         <View style={{ position: 'relative', }}>
-            <Image
-                source={{ uri: imagen }} // URL de la imagen
+            <FastImage
+                source={{
+                    uri: imagen,
+                    priority: FastImage.priority.normal
+                }} // URL de la imagen
                 style={{
                     width: 100,
                     height: 150,
@@ -14,7 +18,7 @@ const CardActor = ({ navigation, imagen, nombre }) => {
                     borderColor: '#fff',
                     borderWidth: 0.5
                 }}
-                resizeMode='cover'
+                resizeMode={FastImage.resizeMode.cover}
             />
             <View style={{
                 position: 'absolute', // Permite posicionar el texto sobre la imagen

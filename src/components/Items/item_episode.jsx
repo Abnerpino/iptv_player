@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import ProgressBar from '../ProgressBar/progress_bar';
 import StarRating from '../StarRating';
@@ -16,12 +17,19 @@ const ItemEpisode = ({ episode, onSelectEpisode }) => {
         >
             <View style={{ flex: 0.25, }}>
                 {imagen ? (
-                    <Image source={{ uri: imagen }} style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]} resizeMode='cover' />
+                    <FastImage
+                        style={[styles.image, { opacity: episode.visto ? 0.5 : 1 }]}
+                        source={{
+                            uri: imagen,
+                            priority: FastImage.priority.normal
+                        }}
+                        resizeMode={FastImage.resizeMode.cover}
+                    />
                 ) : <View style={styles.notImage} />}
                 {reproducido > 0 && (
                     <ProgressBar isVod={false} duration={duracion} playback={reproducido} />
                 )}
-                <Image source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode='contain' />
+                <FastImage source={require('../../assets/icono_play.png')} style={styles.iconPlay} resizeMode={FastImage.resizeMode.contain} />
             </View>
             <View style={styles.details}>
                 {episode.visto && (

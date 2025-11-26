@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Image, Text, TouchableHighlight, StyleSheet, Vibration } from 'react-native';
+import { View, Text, TouchableHighlight, StyleSheet, Vibration } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
@@ -38,10 +39,13 @@ const ItemChannel = ({ canal, seleccionado, seleccionar, isOnReproductor }) => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.textoNum}>{canal.num}</Text>
                 <View style={styles.imageContainer}>
-                    <Image
+                    <FastImage
                         style={styles.imagen}
-                        source={{ uri: canal.stream_icon }}
-                        resizeMode="contain"
+                        source={{
+                            uri: canal.stream_icon,
+                            priority: FastImage.priority.normal
+                        }}
+                        resizeMode={FastImage.resizeMode.contain}
                     />
                 </View>
                 <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
