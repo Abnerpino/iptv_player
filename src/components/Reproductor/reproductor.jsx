@@ -963,139 +963,149 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             </View>
                         )}
 
-                        {/* Muestra los controles solo si la pantalla está completa, no está bloqueada y no se muestra el panel de 'Siguiente Episodio'*/}
-                        {fullScreen && showControls && !isScreenLock && !showNextEpisode && (
-                            <View style={styles.overlay}>
+                        {/* Entra al bloque solo si la pantalla está completa, si se muestran los controles o está cargando el contendio o no se puede reproducir o está pausado, no está bloqueada y no se muestra el panel de 'Siguiente Episodio'*/}
+                        {fullScreen && (showControls || isLoading|| isCannotReproduce || paused) && !isScreenLock && !showNextEpisode && (
+                            <View style={[styles.overlay, !showControls && { justifyContent: 'center' }]}>
                                 {/* Top */}
-                                <View style={styles.topControls}>
-                                    <TouchableOpacity
-                                        onPress={handleBack}
-                                        onLongPress={() => showToast('Regresar', 1)}
-                                    >
-                                        <Icon name="arrow-circle-left" size={26} color="#fff" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
-                                    <View style={styles.rightIcons}>
-                                        <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
+                                {showControls && (
+                                    <View style={styles.topControls}>
                                         <TouchableOpacity
-                                            onPress={() => {
-                                                setIsScreenLock(true);
-                                                toggleIconLock();
-                                            }}
-                                            onLongPress={() => showToast('Bloquear Pantalla', 2)}
+                                            onPress={handleBack}
+                                            onLongPress={() => showToast('Regresar', 1)}
                                         >
-                                            <Icon name="unlock-alt" size={26} color="#fff" />
+                                            <Icon name="arrow-circle-left" size={26} color="#fff" />
                                         </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                setShowControls(false);
-                                                setShowSettings(true);
-                                            }}
-                                            onLongPress={() => showToast('Ajustes', 2)}
-                                        >
-                                            <Icon2 name="cog-outline" size={26} color="#fff" />
-                                        </TouchableOpacity>
+                                        <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
+                                        <View style={styles.rightIcons}>
+                                            <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    setIsScreenLock(true);
+                                                    toggleIconLock();
+                                                }}
+                                                onLongPress={() => showToast('Bloquear Pantalla', 2)}
+                                            >
+                                                <Icon name="unlock-alt" size={26} color="#fff" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    setShowControls(false);
+                                                    setShowSettings(true);
+                                                }}
+                                                onLongPress={() => showToast('Ajustes', 2)}
+                                            >
+                                                <Icon2 name="cog-outline" size={26} color="#fff" />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
-                                </View>
+                                )}
 
                                 {/* Middle */}
                                 <View style={styles.middleControls}>
                                     {/* Botón para ir al canal anterior / retroceder 10 segundos */}
-                                    <TouchableOpacity
-                                        style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                        onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
-                                        disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
-                                    >
-                                        <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
-                                    </TouchableOpacity>
+                                    {showControls && (
+                                        <TouchableOpacity
+                                            style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                            onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
+                                            disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
+                                        >
+                                            <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
+                                        </TouchableOpacity>
+                                    )}
+
                                     {/* Animación de carga, Icono de reproducción deshabilitada o Botón de play/pausa */}
                                     {isLoading ? (
                                         <ActivityIndicator size={50} color="#fff" />
                                     ) : isCannotReproduce ? (
                                         <Icon3 name='play-disabled' size={60} color="#fff" />
-                                    ) : (
-                                        <TouchableOpacity onPress={togglePlayPause}>
-                                            <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
+                                    ) : ((showControls || paused) && (
+                                            <TouchableOpacity onPress={togglePlayPause}>
+                                                <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
+                                            </TouchableOpacity>
+                                    ))}
+
+                                    {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
+                                    {showControls && (
+                                        <TouchableOpacity
+                                            style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                            onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
+                                            disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
+                                        >
+                                            <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
                                         </TouchableOpacity>
                                     )}
-                                    {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
-                                    <TouchableOpacity
-                                        style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                        onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
-                                        disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
-                                    >
-                                        <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
-                                    </TouchableOpacity>
                                 </View>
 
                                 {/* Bottom */}
-                                <View>
-                                    {tipo === 'live' ? (
-                                        <View style={styles.bottomControlsLive}>
-                                            <Image
-                                                style={styles.imagen}
-                                                source={{ uri: contenido.stream_icon }}
-                                                resizeMode="contain"
-                                            />
-                                            <View style={styles.barra} />
+                                {showControls && (
+                                    <View>
+                                        {tipo === 'live' ? (
+                                            <View style={styles.bottomControlsLive}>
+                                                <Image
+                                                    style={styles.imagen}
+                                                    source={{ uri: contenido.stream_icon }}
+                                                    resizeMode="contain"
+                                                />
+                                                <View style={styles.barra} />
+                                            </View>
+                                        ) : (
+                                            <View style={styles.bottomControls}>
+                                                <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                                <Slider
+                                                    value={currentTime}
+                                                    minimumValue={0}
+                                                    maximumValue={duration}
+                                                    disabled={useInternalTimer}
+                                                    onSlidingComplete={seekTo}
+                                                    trackStyle={styles.track}
+                                                    thumbStyle={styles.thumb}
+                                                    minimumTrackTintColor="#00c0fe"
+                                                    maximumTrackTintColor="#888"
+                                                    containerStyle={{ flex: 1 }}
+                                                />
+                                                <Text style={styles.time}>{formatTime(duration)}</Text>
+                                            </View>
+                                        )}
+                                        <View style={styles.bottomIcons}>
+                                            {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
+                                                <TouchableOpacity
+                                                    style={{ flexDirection: 'row', }}
+                                                    onPress={() => {
+                                                        setShowControls(false);
+                                                        if (tipo === 'live') {
+                                                            setShowChannels(true);
+                                                        } else {
+                                                            setModalVisible(true);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
+                                                    <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
+                                                <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
+                                                <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
+                                            </TouchableOpacity>
+                                            {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
+                                                <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
+                                                    <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
+                                                    <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            {tipo === 'series' && ( // Solo se muestra para episodios
+                                                <TouchableOpacity
+                                                    style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
+                                                    onPress={nextEpisode}
+                                                    disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                                >
+                                                    <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
+                                                    <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
-                                    ) : (
-                                        <View style={styles.bottomControls}>
-                                            <Text style={styles.time}>{formatTime(currentTime)}</Text>
-                                            <Slider
-                                                value={currentTime}
-                                                minimumValue={0}
-                                                maximumValue={duration}
-                                                disabled={useInternalTimer}
-                                                onSlidingComplete={seekTo}
-                                                trackStyle={styles.track}
-                                                thumbStyle={styles.thumb}
-                                                minimumTrackTintColor="#00c0fe"
-                                                maximumTrackTintColor="#888"
-                                                containerStyle={{ flex: 1 }}
-                                            />
-                                            <Text style={styles.time}>{formatTime(duration)}</Text>
-                                        </View>
-                                    )}
-                                    <View style={styles.bottomIcons}>
-                                        {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
-                                            <TouchableOpacity
-                                                style={{ flexDirection: 'row', }}
-                                                onPress={() => {
-                                                    setShowControls(false);
-                                                    if (tipo === 'live') {
-                                                        setShowChannels(true);
-                                                    } else {
-                                                        setModalVisible(true);
-                                                    }
-                                                }}
-                                            >
-                                                <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
-                                                <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                        <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
-                                            <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
-                                            <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
-                                        </TouchableOpacity>
-                                        {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
-                                            <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
-                                                <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
-                                                <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                        {tipo === 'series' && ( // Solo se muestra para episodios
-                                            <TouchableOpacity
-                                                style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
-                                                onPress={nextEpisode}
-                                                disabled={(idxEpisode + 1) < episodios.length ? false : true}
-                                            >
-                                                <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
-                                                <Text style={styles.textIcon}>Siguiente episodio</Text>
-                                            </TouchableOpacity>
-                                        )}
                                     </View>
-                                </View>
+                                )}
                             </View>
                         )}
 
@@ -1243,6 +1253,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingLeft: '0.75%',
+        paddingRight: '1%',
     },
     imagen: {
         width: 40,
