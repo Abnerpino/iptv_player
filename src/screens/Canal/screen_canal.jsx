@@ -313,6 +313,8 @@ const styles = StyleSheet.create({
     reproductorContainer: {
         flex: 6,
         flexDirection: 'column',
+        paddingLeft: '1.75%',
+        paddingRight: '2%',
     },
     fullScreenContainer: {
         position: 'absolute',

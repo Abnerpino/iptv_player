@@ -199,7 +199,7 @@ const Seccion = ({ navigation, route }) => {
         >
             <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0.5)' }}>
                 <View style={styles.container}>
-                    <View style={styles.menuContainer}>
+                    <View style={styles.categoriasContainer}>
                         <View style={{ flexDirection: 'row' }}>
                             <TouchableOpacity
                                 style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}
@@ -240,7 +240,7 @@ const Seccion = ({ navigation, route }) => {
                         )}
 
                     </View>
-                    <View style={styles.peliculasContainer}>
+                    <View style={styles.contenidoContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
                             <View style={{ flex: 1, alignItems: 'center', }}>
                                 {mostrarBusqueda ? (
@@ -343,11 +343,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flex: 1,
     },
-    menuContainer: {
+    categoriasContainer: {
         width: '25%',
     },
-    peliculasContainer: {
+    contenidoContainer: {
         width: '75%',
+        paddingLeft: '0.75%',
+        paddingRight: '1%',
     },
     sectionTitle: {
         color: '#FFF',
