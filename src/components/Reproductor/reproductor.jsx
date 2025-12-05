@@ -964,7 +964,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         )}
 
                         {/* Entra al bloque solo si la pantalla está completa, si se muestran los controles o está cargando el contendio o no se puede reproducir o está pausado, no está bloqueada y no se muestra el panel de 'Siguiente Episodio'*/}
-                        {fullScreen && (showControls || isLoading|| isCannotReproduce || paused) && !isScreenLock && !showNextEpisode && (
+                        {fullScreen && (showControls || isLoading || isCannotReproduce || paused) && !isScreenLock && !showNextEpisode && (
                             <View style={[styles.overlay, !showControls && { justifyContent: 'center' }]}>
                                 {/* Top */}
                                 {showControls && (
@@ -977,7 +977,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         </TouchableOpacity>
                                         <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                         <View style={styles.rightIcons}>
-                                            <CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />
+                                            {/* Boton de Cast */}
+                                            <TouchableOpacity
+                                                style={{ opacity: 0.5 }}
+                                                disabled={true}
+                                            >
+                                            {/*<CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />*/}
+                                                <Icon2 name="cast" size={26} color="#fff" />
+                                            </TouchableOpacity>
                                             <TouchableOpacity
                                                 onPress={() => {
                                                     setIsScreenLock(true);
@@ -1019,9 +1026,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     ) : isCannotReproduce ? (
                                         <Icon3 name='play-disabled' size={60} color="#fff" />
                                     ) : ((showControls || paused) && (
-                                            <TouchableOpacity onPress={togglePlayPause}>
-                                                <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
-                                            </TouchableOpacity>
+                                        <TouchableOpacity onPress={togglePlayPause}>
+                                            <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
+                                        </TouchableOpacity>
                                     ))}
 
                                     {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
