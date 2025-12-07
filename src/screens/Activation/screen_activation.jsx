@@ -16,7 +16,6 @@ import ModalLoading from '../../components/Modals/modal_loading';
 const hostingController = new HostingController();
 
 const Activation = ({ navigation, route }) => {
-  const usuarios = route.params.data; //Recupera la lista de usuarios existentes
   const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
   const usuario = useQuery('Usuario');
   const { upsertNotifications, updateUserProps } = useStreaming();
@@ -33,21 +32,19 @@ const Activation = ({ navigation, route }) => {
 
   // Maneja la validación del nombre de usuario (longitud minima y si ya existe)
   useEffect(() => {
-    if (!isWriting) return; // ← Evita validar al principio
+    if (!isWriting) return; // Evita validar al principio
 
     const validateUsername = () => {
       const filtered = localUsername.replace(/[^a-zA-Z0-9_\-.]/g, '');
       if (filtered.length < 4) {
         setError('La longitud mínima es de 4 caracteres');
-      } else if (usuarios.includes(filtered.toLowerCase())) {//(usuarios.some(usuario => usuario.toLowerCase().includes(filtered.toLowerCase()))) {
-        setError('¡Ya existe ese usuario! Ingrese uno diferente');
       } else {
         setError('');
       }
     };
 
     validateUsername();
-  }, [localUsername, isWriting]); // ← Se ejecuta cada vez que cambia el username
+  }, [localUsername, isWriting]); // Se ejecuta cada vez que cambia el username
 
   // Maneja el temporizador
   useEffect(() => {
@@ -75,9 +72,20 @@ const Activation = ({ navigation, route }) => {
 
   // Función para validar el registro
   const validateRegistration = async () => {
-    setError(''); //Borra el mensaje de error si es que hay
-    setVisible(false); //Cierra el tooltip si está abierto
+    if (error !== '') return; // Si ya hay error de formato, no continua
+
+    setVisible(false); // Cierra el tooltip si está abierto
     handleStartLoading?.(); // Inicia el modal de carga
+
+    // Verifica si el nombre de usuario existe en la Base de Datos de la Nube antes de intentar registrar
+    const usernameExists = await hostingController.validarUsername(localUsername.toLowerCase());
+
+    if (usernameExists) {
+      handleFinishLoading?.();
+      setError('¡Ya existe ese nombre de usuario! Ingrese uno diferente');
+      return; // Detiene el proceso aquí
+    }
+
     const response = await handleRegisterDevice();
     handleFinishLoading?.(); // Termina el modal de carga
 
@@ -98,6 +106,7 @@ const Activation = ({ navigation, route }) => {
       device_id: usuario[0]?.device_id,
       client_name: name.trim(),
       username: localUsername,
+      username_lower: localUsername.toLowerCase(),
       user: '',
       password: '',
       host: '',
@@ -132,7 +141,8 @@ const Activation = ({ navigation, route }) => {
           purchased_package: info.package
         });
         upsertNotifications(notifications);
-        navigation.replace('Menu');
+        // Envía 'true' al Menú para forzar la actualización del contenido en caso de que el contador del tiempo falle
+        navigation.replace('Menu', { updateNow: true });
       } else { //Si la cuenta no está activa...
         setTimer(60);
         setError('¡Su cuenta está inactiva!');
@@ -145,7 +155,7 @@ const Activation = ({ navigation, route }) => {
   const copyInfo = (numId) => {
     let message = '';
 
-    switch(numId) {
+    switch (numId) {
       case 1: // Nombre de usuario
         message = usuario[0]?.username;
         break;
@@ -216,7 +226,7 @@ const Activation = ({ navigation, route }) => {
           // Registro
           <View style={{ marginTop: 20, }}>
             <Text style={styles.indication}>¡Para comenzar a disfrutar de todo el contenido, el primer paso es registrarse! Llene los campos a continuación y después pulse el botón para finalizar el registro.</Text>
-            <View style={{ alignSelf: 'center', width: '35%', marginTop: 25, }}>
+            <View style={{ alignSelf: 'center', width: '32.5%', marginTop: 25, }}>
               <TextInput
                 style={[styles.input, { backgroundColor: '#FFF', }]}
                 placeholder='Ingrese su nombre y apellido'
@@ -339,8 +349,8 @@ const Activation = ({ navigation, route }) => {
             </View>
           </View>
         )}
-        <ModalLoading visible={loading} />
       </ScrollView>
+      <ModalLoading visible={loading} />
     </ImageBackground>
   );
 };
@@ -366,6 +376,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FFF',
     marginHorizontal: 25,
+    textAlign: 'center'
   },
   input: {
     color: '#000',
