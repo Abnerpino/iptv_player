@@ -120,6 +120,12 @@ const Inicio = ({ navigation }) => {
                     createUser(newUser);
                 }
 
+                // Si el usuario no existe en la nube...
+                if (response.numId === 1) {
+                    // Actualiza como 'no registrado' el dispositivo por si el usuario ya existiera localmente
+                    updateUserProps(deviceId, { is_registered: false });
+                }
+
                 // Si el usuario ya existe en la nube...
                 if (response.numId === 2) {
                     //await getInfoAccount();
@@ -181,10 +187,10 @@ const Inicio = ({ navigation }) => {
         const manejarResultado = (resultado) => {
             switch (resultado.numId) {
                 case 1:
-                    navigation.replace('Activation', { data: resultado.data }); // Ir a Activación
+                    navigation.replace('Activation', { reactivation: false }); // Ir a Activación
                     break;
                 case 2:
-                    navigation.replace('Menu'); // Ir a Menú
+                    navigation.replace('Menu', { updateNow: false }); // Ir a Menú
                     break;
                 case 3:
                     navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
