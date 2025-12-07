@@ -16,7 +16,8 @@ import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ModalError from '../../components/Modals/modal_error';
 import ModalLoading from '../../components/Modals/modal_loading';
 
-const Menu = ({ navigation }) => {
+const Menu = ({ navigation, route }) => {
+    const updateNow = route.params.updateNow; // Bandera que indica si se debe actualizar el contenido ahora o no
     const liveCardRef = useRef(null);
     const vodCardRef = useRef(null);
     const seriesCardRef = useRef(null);
@@ -71,8 +72,8 @@ const Menu = ({ navigation }) => {
             try {
                 const secondsSinceUpdate = await getSecondsSinceUpdate(); // Obtiene los segundos que han pasado desde la última actualización del contenido
 
-                // Si ya pasaron 24 horas...
-                if (secondsSinceUpdate > 86400) {
+                // Si la bandera de actualización está activa o ya pasaron 24 horas...
+                if (updateNow || secondsSinceUpdate > 86400) {
                     handleStartLoading?.(); // Activa el modal de carga
 
                     // Para cada tipo de Multimedia...
