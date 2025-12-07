@@ -1,9 +1,11 @@
-import pb from '../hosting/pocketbase';
+import { collection, addDoc, getDocs, query, where, limit } from '@react-native-firebase/firestore';
+import db from '../hosting/firebase';
 
 class HostingController {
+    // Función para registrar clientes en la Base de Datos de la Nube
     async registrarCliente(data) {
         try {
-            await pb.collection('clients').create(data);
+            await addDoc(collection(db, 'clients'), data);
             return true;
         } catch (error) {
             console.error("Error al registrar cliente: ", error);
@@ -11,38 +13,71 @@ class HostingController {
         }
     }
 
-    async verificarCliente(deviceId) {
+    // Función para validar si un username específico ya existe en la Base de Datos de la Nube
+    async validarUsername(username) {
         try {
-            const allRecords = await pb.collection('clients').getFullList(); //Obtiene la lista completa de los clientes
-            const result = allRecords.find(record => record.device_id === deviceId); //Busca si ya existe algún cliente con el id del dispositivo
+            const q = query(
+                collection(db, 'clients'),
+                where('username_lower', '==', username),
+                limit(1)
+            );
 
-            if (result) { //Si ya existe...
-                console.log("Ya existe el device_id");
-                return { numId: 2, data: result }; //Retorna toda la información del cliente
-            } else { //Si todavía no existe
-                const users = allRecords.map(record => record.username.toLowerCase()); //Genera un nuevo arreglo de solo nombres de usuario
-                return { numId: 1, data: users }; //Retorna los usuarios
-            }
+            const querySnapshot = await getDocs(q);
+                
+            return !querySnapshot.empty; // Retorna true si existe, false si está libre
         } catch (error) {
-            console.error("Error al obtener el ID del dispositivo: ", error);
-            return {numId: -1, data: null}; //Retorna null si falla la petición
+            console.error("Error al validar usuario: ", error);
+            return false; // En caso de error, asume que no existe
         }
     }
 
+    // Función para verificar (por el id del dispositivo) si un cliente ya existe en la Base de Datos de la Nube
+    async verificarCliente(deviceId) {
+        try {
+            const q = query(
+                collection(db, 'clients'),
+                where('device_id', '==', deviceId),
+                limit(1)
+            );
+
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) { 
+                // Si existe el cliente
+                const doc = querySnapshot.docs[0];
+                
+                const clientData = { id: doc.id, ...doc.data() };
+                
+                return { numId: 2, data: clientData }; 
+            } else { 
+                // Si no existe el cliente
+                return { numId: 1, data: [] }; 
+            }
+        } catch (error) {
+            console.error("Error al obtener el ID del dispositivo: ", error);
+            return { numId: -1, data: null };
+        }
+    }
+
+    // Función para obtener las notificaciones de la Base de Datos en la Nube
     async obtenerNotificaciones(id) {
         try {
-            //Obtiene todos los registros relacionados con el cliente
-            const allRecords = await pb.collection('notifications').getFullList({
-                filter: `client_id ~ "${id}"`
-            });
+            const q = query(
+                collection(db, 'notifications'),
+                where('clients_id', 'array-contains', id)
+            );
 
-            //Genera un nuevo arreglo de objetos para las notificaciones del cliente
-            const notifications = allRecords.map(record => ({
-                id: record.id,
-                message: record.message,
-                visto: false,
-                fecha: new Date()
-            }));
+            const querySnapshot = await getDocs(q);
+
+            const notifications = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    message: data.message,
+                    visto: false,
+                    fecha: new Date()
+                };
+            });
             
             return notifications;
         } catch (error) {
