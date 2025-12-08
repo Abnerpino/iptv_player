@@ -34,7 +34,12 @@ const App = () => {
   useEffect(() => {
     // Activa el modo inmersivo (oculta status bar y navigation bar)
     SystemNavigationBar.immersive();
-
+    /// Permite que el contenido de la app ocupe el espacio DETRÁS de la barra
+    SystemNavigationBar.setNavigationColor('transparent');
+    // Evita que Android ponga un fondo semitransparente oscuro automáticamente
+    SystemNavigationBar.setNavigationBarContrastEnforced(false);
+    // La barra estará oculta, pero cuando el teclado la fuerce a aparecer, será transparente
+    SystemNavigationBar.navigationHide();
     // Asegura que se mantenga oculta aunque se toque la pantalla (Sticky)
     SystemNavigationBar.stickyImmersive(); 
   }, []);
