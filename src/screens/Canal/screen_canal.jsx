@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground, Vibration, BackHandler } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
@@ -163,11 +163,15 @@ const Canal = ({ navigation, route }) => {
 
     // Función para actualiza el número y nombre del canal seleccionado
     function seleccionarCanal(category, channel) {
-        if (channel.num !== selectedChannel.num) { // Si es un canal diferente al que estaba seleccionado
+        if (channel.num !== selectedChannel.num) { // Si es un canal diferente al que estaba seleccionado...
             const newIndex = category.canales.findIndex(c => c.stream_id === channel.stream_id);
             setSelectedChannelIndex(newIndex);
             setSelectedChannel(channel); // Actualiza el nuevo canal seleccionado
             seleccionarCategoria(category); // Llama a la función para actualizar la categoría seleccionada
+        } else { // Si es el mismo canal que estaba seleccionado...
+            if (!isFullScreen) { // Si la pantalla no está completa...
+                setIsFullScreen(true); // Activa la pantalla completa
+            }
         }
     }
 
@@ -177,118 +181,125 @@ const Canal = ({ navigation, route }) => {
             style={styles.fondo}
             resizeMode='cover'
         >
-            <View style={styles.opacidad}>
-                <View style={styles.container}>
-                    {!isFullScreen && (
-                        <View style={styles.listaContainer}>
-                            <View style={{ flexDirection: 'row' }}>
-                                <TouchableOpacity
-                                    style={styles.flechaIcono}
-                                    onPress={handleBack}
-                                    onLongPress={() => showToast('Regresar')}
-                                >
-                                    <Icon name="arrow-circle-left" size={26} color="white" />
-                                </TouchableOpacity>
-                                <Image
-                                    source={require('../../assets/imagotipo_live.png')}
-                                    style={styles.imagotipo}
-                                />
-                            </View>
-                            <View style={styles.categoriaContanier}>
-                                <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
-                                    <Icon2 name="arrow-left" size={26} color="white" />
-                                </TouchableOpacity>
-                                <View style={{ flex: 1, alignItems: categories[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
-                                    <TextTicker
-                                        style={styles.categoryText}
-                                        duration={10000}
-                                        loop
-                                        bounce={false}
-                                        repeatSpacer={100}
-                                        marqueeDelay={250}
-                                    >
-                                        {categories[currentIndex].category_name}
-                                    </TextTicker>
-                                </View>
-                                <TouchableOpacity onPress={handleNext} style={{ paddingHorizontal: 5 }} >
-                                    <Icon2 name="arrow-right" size={26} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                            {contentToShow.length === 0 ? (
-                                <View style={{ padding: 10 }}>
-                                    <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
-                                        No se ha encontrado el canal
-                                    </Text>
-                                </View>
-                            ) : (
-                                <FlatList
-                                    ref={flatListRef}
-                                    data={contentToShow}
-                                    numColumns={1}
-                                    renderItem={({ item }) => (
-                                        <ItemChannel
-                                            canal={item}
-                                            seleccionado={selectedChannel.num}
-                                            seleccionar={(canal) => seleccionarCanal(categories[currentIndex], canal)}
-                                        />
-                                    )}
-                                    keyExtractor={item => item.num}
-                                    getItemLayout={getItemLayout}
-                                    initialNumToRender={15}
-                                />
-                            )}
-                        </View>
-                    )}
-                    <View style={isFullScreen ? styles.fullScreenContainer : styles.reproductorContainer}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={styles.opacidad}>
+                    <View style={styles.container}>
                         {!isFullScreen && (
-                            <View>
-                                <View style={styles.barraContainer}>
-                                    <View style={styles.busquedaContainer}>
-                                        <SearchBar message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
-                                    </View>
-                                    <Icon name='search' size={26} color="#FFF" style={{ marginLeft: 10 }} />
-                                </View>
-                                <View style={styles.textContainer}>
-                                    <TextTicker
-                                        style={styles.nameText}
-                                        duration={10000}
-                                        loop
-                                        bounce={false}
-                                        repeatSpacer={100}
-                                        marqueeDelay={250}
+                            <View style={styles.listaContainer}>
+                                <View style={{ flexDirection: 'row' }}>
+                                    <TouchableOpacity
+                                        style={styles.flechaIcono}
+                                        onPress={handleBack}
+                                        onLongPress={() => showToast('Regresar')}
                                     >
-                                        {selectedChannel.name}
-                                    </TextTicker>
+                                        <Icon name="arrow-circle-left" size={26} color="white" />
+                                    </TouchableOpacity>
+                                    <Image
+                                        source={require('../../assets/imagotipo_live.png')}
+                                        style={styles.imagotipo}
+                                    />
                                 </View>
+                                <View style={styles.categoriaContanier}>
+                                    <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
+                                        <Icon2 name="arrow-left" size={26} color="white" />
+                                    </TouchableOpacity>
+                                    <View style={{ flex: 1, alignItems: categories[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
+                                        <TextTicker
+                                            style={styles.categoryText}
+                                            duration={10000}
+                                            loop
+                                            bounce={false}
+                                            repeatSpacer={100}
+                                            marqueeDelay={250}
+                                        >
+                                            {categories[currentIndex].category_name}
+                                        </TextTicker>
+                                    </View>
+                                    <TouchableOpacity onPress={handleNext} style={{ paddingHorizontal: 5 }} >
+                                        <Icon2 name="arrow-right" size={26} color="white" />
+                                    </TouchableOpacity>
+                                </View>
+                                {contentToShow.length === 0 ? (
+                                    <View style={{ padding: 10 }}>
+                                        <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                            No se ha encontrado el canal
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <FlatList
+                                        ref={flatListRef}
+                                        data={contentToShow}
+                                        numColumns={1}
+                                        renderItem={({ item }) => (
+                                            <ItemChannel
+                                                canal={item}
+                                                seleccionado={selectedChannel.num}
+                                                seleccionar={(canal) => {
+                                                    Keyboard.dismiss(); // Si el teclado se está mostrando, lo oculta al seleccionar un canal
+                                                    seleccionarCanal(categories[currentIndex], canal);
+                                                }}
+                                            />
+                                        )}
+                                        keyExtractor={item => item.num}
+                                        getItemLayout={getItemLayout}
+                                        initialNumToRender={15}
+                                        keyboardShouldPersistTaps="handled"
+                                        keyboardDismissMode="on-drag"
+                                    />
+                                )}
                             </View>
                         )}
-                        <View
-                            style={[
-                                !isFullScreen ? styles.reproductor : { flex: 1 },
-                                (!isFullScreen && reproductorHeight) ? { height: reproductorHeight, flex: 0 } : {}
-                            ]}
-                            onLayout={(event) => {
-                                if (!isFullScreen && !reproductorHeight) {
-                                    const { height } = event.nativeEvent.layout;
-                                    setReproductorHeight(height);
-                                }
-                            }}
-                        >
-                            <Reproductor
-                                tipo={'live'}
-                                fullScreen={isFullScreen}
-                                setFullScreen={(value) => setIsFullScreen(value)}
-                                categoria={categories[selectedCategoryIndex]}
-                                channelIndex={selectedChannelIndex}
-                                contenido={selectedChannel}
-                                onContentChange={seleccionarCanal}
-                                markAsWatched={handleToggleWatched}
-                                username={username}
-                            />
+                        <View style={isFullScreen ? styles.fullScreenContainer : styles.reproductorContainer}>
+                            {!isFullScreen && (
+                                <View>
+                                    <View style={styles.barraContainer}>
+                                        <View style={styles.busquedaContainer}>
+                                            <SearchBar message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
+                                        </View>
+                                        <Icon name='search' size={26} color="#FFF" style={{ marginLeft: 10 }} />
+                                    </View>
+                                    <View style={styles.textContainer}>
+                                        <TextTicker
+                                            style={styles.nameText}
+                                            duration={10000}
+                                            loop
+                                            bounce={false}
+                                            repeatSpacer={100}
+                                            marqueeDelay={250}
+                                        >
+                                            {selectedChannel.name}
+                                        </TextTicker>
+                                    </View>
+                                </View>
+                            )}
+                            <View
+                                style={[
+                                    !isFullScreen ? styles.reproductor : { flex: 1 },
+                                    (!isFullScreen && reproductorHeight) ? { height: reproductorHeight, flex: 0 } : {}
+                                ]}
+                                onLayout={(event) => {
+                                    if (!isFullScreen && !reproductorHeight) {
+                                        const { height } = event.nativeEvent.layout;
+                                        setReproductorHeight(height);
+                                    }
+                                }}
+                            >
+                                <Reproductor
+                                    tipo={'live'}
+                                    fullScreen={isFullScreen}
+                                    setFullScreen={(value) => setIsFullScreen(value)}
+                                    categoria={categories[selectedCategoryIndex]}
+                                    channelIndex={selectedChannelIndex}
+                                    contenido={selectedChannel}
+                                    onContentChange={seleccionarCanal}
+                                    markAsWatched={handleToggleWatched}
+                                    username={username}
+                                />
+                            </View>
                         </View>
                     </View>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </ImageBackground>
     );
 };
