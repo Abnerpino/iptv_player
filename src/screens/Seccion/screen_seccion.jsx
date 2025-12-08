@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ImageBackground, Vibration, BackHandler } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
@@ -197,143 +197,150 @@ const Seccion = ({ navigation, route }) => {
             }}
             resizeMode='cover'
         >
-            <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0.5)' }}>
-                <View style={styles.container}>
-                    <View style={styles.categoriasContainer}>
-                        <View style={{ flexDirection: 'row' }}>
-                            <TouchableOpacity
-                                style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}
-                                onPress={handleBack}
-                                onLongPress={() => showToast('Regresar', 1)}
-                            >
-                                <Icon name="arrow-circle-left" size={26} color="white" />
-                            </TouchableOpacity>
-                            <Image
-                                source={require('../../assets/imagotipo.png')}
-                                style={{ height: '100%', width: '76%', resizeMode: 'contain', }}
-                            />
-                        </View>
-                        <SearchBar message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
-
-                        {filteredCategories.length === 0 ? (
-                            <View style={{ padding: 10 }}>
-                                <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>No se ha encontrado la categoría</Text>
-                            </View>
-                        ) : (
-                            <FlatList
-                                data={filteredCategories}
-                                numColumns={1}
-                                renderItem={({ item }) => (
-                                    <ItemCategory
-                                        categoria={item}
-                                        seleccionado={category?.category_id}
-                                        seleccionar={seleccionarCategoria}
-                                    />
-                                )}
-                                keyExtractor={item => item.category_id}
-                                initialNumToRender={20}
-                                maxToRenderPerBatch={10}
-                                windowSize={5}
-                                removeClippedSubviews={true}
-                                updateCellsBatchingPeriod={50}
-                            />
-                        )}
-
-                    </View>
-                    <View style={styles.contenidoContainer}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
-                            <View style={{ flex: 1, alignItems: 'center', }}>
-                                {mostrarBusqueda ? (
-                                    <SearchBar
-                                        message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`}
-                                        searchText={searchCont} setSearchText={setSearchCont}
-                                    />
-                                ) : (
-                                    <Text style={styles.sectionTitle}>{category?.category_name}</Text>
-                                )}
-                            </View>
-                            <TouchableOpacity
-                                style={{ marginLeft: 20, }}
-                                onPress={() => setMostrarBusqueda(prev => !prev)}
-                                onLongPress={() => showToast(mostrarBusqueda ? 'Ocultar Barra de Búsqueda' : 'Mostrar Barra de Búsqueda', 2)}
-                            >
-                                <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={26} color="#FFF" />
-                            </TouchableOpacity>
-                            {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0.5)' }}>
+                    <View style={styles.container}>
+                        <View style={styles.categoriasContainer}>
+                            <View style={{ flexDirection: 'row' }}>
                                 <TouchableOpacity
-                                    style={{ marginLeft: 20, opacity: category?.total > 0 ? 1 : 0.5 }}
-                                    onPress={handleUnmarkItems}
-                                    onLongPress={() => showToast(category?.category_id === '0.2' ? 'Eliminar Historial' : 'Quitar Favoritos', 2)}
-                                    disabled={category?.total > 0 ? false : true}
+                                    style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}
+                                    onPress={handleBack}
+                                    onLongPress={() => showToast('Regresar', 1)}
                                 >
-                                    <Icon2 name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'} size={26} color="#FFF" />
+                                    <Icon name="arrow-circle-left" size={26} color="white" />
                                 </TouchableOpacity>
+                                <Image
+                                    source={require('../../assets/imagotipo.png')}
+                                    style={{ height: '100%', width: '76%', resizeMode: 'contain', }}
+                                />
+                            </View>
+                            <SearchBar message={"Buscar categoría"} searchText={searchCat} setSearchText={setSearchCat} />
+
+                            {filteredCategories.length === 0 ? (
+                                <View style={{ padding: 10 }}>
+                                    <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>No se ha encontrado la categoría</Text>
+                                </View>
+                            ) : (
+                                <FlatList
+                                    data={filteredCategories}
+                                    numColumns={1}
+                                    renderItem={({ item }) => (
+                                        <ItemCategory
+                                            categoria={item}
+                                            seleccionado={category?.category_id}
+                                            seleccionar={seleccionarCategoria}
+                                        />
+                                    )}
+                                    keyExtractor={item => item.category_id}
+                                    initialNumToRender={20}
+                                    maxToRenderPerBatch={10}
+                                    windowSize={5}
+                                    removeClippedSubviews={true}
+                                    updateCellsBatchingPeriod={50}
+                                    keyboardShouldPersistTaps="handled"
+                                    keyboardDismissMode="on-drag"
+                                />
                             )}
                         </View>
+                        <View style={styles.contenidoContainer}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
+                                <View style={{ flexDirection: 'row', width: (category?.category_id === '0.2' || category?.category_id === '0.3') ? '12.5%' : '5%', justifyContent: 'space-between', }}>
+                                    {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
+                                        <TouchableOpacity
+                                            style={{ opacity: category?.total > 0 ? 1 : 0.5 }}
+                                            onPress={handleUnmarkItems}
+                                            onLongPress={() => showToast(category?.category_id === '0.2' ? 'Eliminar Historial' : 'Quitar Favoritos', 2)}
+                                            disabled={category?.total > 0 ? false : true}
+                                        >
+                                            <Icon2 name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'} size={26} color="#FFF" />
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity
+                                        style={{ paddingRight: 5 }}
+                                        onPress={() => setMostrarBusqueda(prev => !prev)}
+                                        onLongPress={() => showToast(mostrarBusqueda ? 'Ocultar Barra de Búsqueda' : 'Mostrar Barra de Búsqueda', 2)}
+                                    >
+                                        <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={26} color="#FFF" />
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'center', }}>
+                                    {mostrarBusqueda ? (
+                                        <SearchBar
+                                            message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`}
+                                            searchText={searchCont} setSearchText={setSearchCont}
+                                        />
+                                    ) : (
+                                        <Text style={styles.sectionTitle}>{category?.category_name}</Text>
+                                    )}
+                                </View>
+                            </View>
 
-                        {(category?.category_id === '0.3' && contentToShow.length === 0) ? (
-                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
-                                    {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
-                                </Text>
-                            </View>
-                        ) : (category?.category_id === '0.2' && contentToShow.length === 0) ? (
-                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                                <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
-                                    {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}
-                                </Text>
-                            </View>
-                        ) : contentToShow.length === 0 ? (
-                            <View style={{ padding: 10 }}>
-                                <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
-                                    No se ha encontrado {type === 'live' ? 'el canal' : (type === 'vod' ? 'la película' : 'la serie')}
-                                </Text>
-                            </View>
-                        ) : (
-                            <FlatList
-                                ref={flatListRef}
-                                data={contentToShow}
-                                numColumns={5}
-                                renderItem={({ item }) => (
-                                    <CardContenido
-                                        navigation={navigation}
-                                        tipo={type}
-                                        item={item}
-                                        favoritos={{
-                                            category_id: favoritos.category_id,
-                                            total: favoritos.total
-                                        }}
-                                        idCategory={category.category_id}
-                                        episodio={() => ultimoEpisodioReproducido(item)}
-                                        onStartLoading={handleStartLoading}
-                                        onFinishLoading={handleFinishLoading}
-                                        hideMessage={() => hideMessage()}
-                                        showModal={handleShowModal}
-                                        username={username}
-                                    />
-                                )}
-                                getItemLayout={getItemLayout}
-                                keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
-                                initialNumToRender={20}
-                                maxToRenderPerBatch={10}
-                                windowSize={5}
-                                removeClippedSubviews={true}
-                                updateCellsBatchingPeriod={50}
-                            />
-                        )}
+                            {(category?.category_id === '0.3' && contentToShow.length === 0) ? (
+                                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                                    <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
+                                        {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
+                                    </Text>
+                                </View>
+                            ) : (category?.category_id === '0.2' && contentToShow.length === 0) ? (
+                                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                                    <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
+                                        {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}
+                                    </Text>
+                                </View>
+                            ) : contentToShow.length === 0 ? (
+                                <View style={{ padding: 10 }}>
+                                    <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                        No se ha encontrado {type === 'live' ? 'el canal' : (type === 'vod' ? 'la película' : 'la serie')}
+                                    </Text>
+                                </View>
+                            ) : (
+                                <FlatList
+                                    ref={flatListRef}
+                                    data={contentToShow}
+                                    numColumns={5}
+                                    renderItem={({ item }) => (
+                                        <CardContenido
+                                            navigation={navigation}
+                                            tipo={type}
+                                            item={item}
+                                            favoritos={{
+                                                category_id: favoritos.category_id,
+                                                total: favoritos.total
+                                            }}
+                                            idCategory={category.category_id}
+                                            episodio={() => ultimoEpisodioReproducido(item)}
+                                            onStartLoading={handleStartLoading}
+                                            onFinishLoading={handleFinishLoading}
+                                            hideMessage={() => hideMessage()}
+                                            showModal={handleShowModal}
+                                            username={username}
+                                        />
+                                    )}
+                                    getItemLayout={getItemLayout}
+                                    keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
+                                    initialNumToRender={20}
+                                    maxToRenderPerBatch={10}
+                                    windowSize={5}
+                                    removeClippedSubviews={true}
+                                    updateCellsBatchingPeriod={50}
+                                    keyboardShouldPersistTaps="handled"
+                                    keyboardDismissMode="on-drag"
+                                />
+                            )}
+                        </View>
                     </View>
+
+                    <ModalConfirmation
+                        visible={showModal}
+                        onConfirm={handleAccept}
+                        onCancel={handleCancel}
+                        numdId={2}
+                        itemName={itemToDelete?.nombre}
+                    />
+
+                    <ModalLoading visible={loading} />
                 </View>
-
-                <ModalConfirmation
-                    visible={showModal}
-                    onConfirm={handleAccept}
-                    onCancel={handleCancel}
-                    numdId={2}
-                    itemName={itemToDelete?.nombre}
-                />
-
-                <ModalLoading visible={loading} />
-            </View>
+            </TouchableWithoutFeedback>
         </ImageBackground>
     );
 };
@@ -371,11 +378,11 @@ const styles = StyleSheet.create({
         width: '25%',
         borderRadius: 20,
         alignItems: 'center',
-        alignSelf: 'flex-end',
+        alignSelf: 'flex-start',
         paddingTop: 1,
         paddingBottom: 5,
         marginTop: '5%',
-        marginRight: 5
+        marginLeft: '25.5%'
     },
 });
 
