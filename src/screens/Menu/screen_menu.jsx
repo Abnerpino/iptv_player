@@ -109,8 +109,14 @@ const Menu = ({ navigation, route }) => {
             }
         };
 
-        checkAndUpdateContent();
-    }, []); // Se ejecuta solo cuando se monta el componente
+        // Da tiempo a que CardMultimedia se monte y asigne su ref
+        const timer = setTimeout(() => {
+            checkAndUpdateContent();
+        }, 100); // 100ms de retraso
+
+        // Limpia el timer si el componente se desmonta antes
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         // Función para actualizar la fecha y hora
