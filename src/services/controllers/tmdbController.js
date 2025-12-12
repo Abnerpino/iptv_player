@@ -1,3 +1,5 @@
+import ErrorLogger from "../logger/errorLogger";
+
 const apiKey = 'Aquí tu Key de la API TMDB';
 
 class TMDBController {
@@ -18,7 +20,8 @@ class TMDBController {
                 return null;
             }
         } catch (error) {
-            console.error('Error al obtener la pelicula: ', error);
+            ErrorLogger.log('TMDBController - getDataMovie', error);
+            //console.error('Error al obtener la pelicula: ', error);
         }
     }
 
@@ -38,7 +41,8 @@ class TMDBController {
                 cast: JSON.stringify(creditos)
             };
         } catch (error) {
-            console.error('Error al obtener la pelicula: ', error);
+            ErrorLogger.log('TMDBController - getDataMovieById', error);
+            //console.error('Error al obtener la pelicula: ', error);
         }
     }
 
@@ -59,7 +63,8 @@ class TMDBController {
                 return null;
             }
         } catch (error) {
-            console.error('Error al obtener la Serie: ', error);
+            ErrorLogger.log('TMDBController - getDataSerie', error);
+            //console.error('Error al obtener la Serie: ', error);
         }
     }
 
@@ -78,7 +83,8 @@ class TMDBController {
                 cast: JSON.stringify(creditos)
             };
         } catch (error) {
-            console.error('Error al obtener la Serie: ', error);
+            ErrorLogger.log('TMDBController - getDataSerieById', error);
+            //console.error('Error al obtener la Serie: ', error);
         }
     }
 
@@ -175,7 +181,8 @@ class TMDBController {
             };
             return details; //Se retorna el objeto con los detalles
         } catch (error) {
-            console.log('Error al obtener los detallaes de la pelicula: ', error);
+            ErrorLogger.log('TMDBController - getDetailsMovie', error);
+            //console.log('Error al obtener los detallaes de la pelicula: ', error);
         }
     }
 
@@ -198,7 +205,8 @@ class TMDBController {
             };
             return details; //Se retorna el objeto con los detalles
         } catch (error) {
-            console.log('Error al obtener los detallaes de la serie: ', error);
+            ErrorLogger.log('TMDBController - getDetailsSerie', error);
+            //console.log('Error al obtener los detallaes de la serie: ', error);
         }
     }
 
@@ -224,7 +232,8 @@ class TMDBController {
 
             return credits; //Se retorna el arreglo de objetos con los creditos
         } catch (error) {
-            console.log('Error al obtener los creditos de la pelicula: ', error);
+            ErrorLogger.log('TMDBController - getCreditsMovie', error);
+            //console.log('Error al obtener los creditos de la pelicula: ', error);
         }
     }
 
@@ -250,7 +259,8 @@ class TMDBController {
 
             return actores; //Se retorna el arreglo de objetos con los creditos
         } catch (error) {
-            console.log('Error al obtener los creditos de la serie: ', error);
+            ErrorLogger.log('TMDBController - getCreditsSerie', error);
+            //console.log('Error al obtener los creditos de la serie: ', error);
         }
     }
 }

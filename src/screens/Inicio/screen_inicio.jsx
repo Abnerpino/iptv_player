@@ -10,6 +10,7 @@ import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
+import ErrorLogger from '../../services/logger/errorLogger';
 
 const hostingController = new HostingController();
 
@@ -74,7 +75,8 @@ const Inicio = ({ navigation }) => {
                     console.log('Tiempo guardado');
                 }
             } catch (e) {
-                console.error("Error al guardar el tiempo de actualización", e);
+                ErrorLogger.log('Inicio - saveLastUpdateTime', e);
+                //console.error("Error al guardar el tiempo de actualización", e);
             }
         };
 
@@ -159,7 +161,8 @@ const Inicio = ({ navigation }) => {
                     }
                 }
             } catch (error) {
-                console.error('Error en la petición:', error);
+                ErrorLogger.log('Inicio - request', error);
+                //console.error('Error en la petición:', error);
             } finally {
                 isRequestDone = true;    // marca que la petición terminó
             }
@@ -196,10 +199,12 @@ const Inicio = ({ navigation }) => {
                     navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
                     break;
                 case 0:
+                    ErrorLogger.log('Inicio - manejarResultado (errorId: 4)', 'Sin conexión a Internet.');
                     setErrorId(4); // Caso especifico sin internet
                     setModalVisible(true); // Muestra el modal para recargar la aplicación o salir
                     break;
                 default:
+                    ErrorLogger.log('Inicio - manejarResultado (errorId: 3)', 'Error al cargar la aplicación (genérico).');
                     setErrorId(3); // Error genérico
                     setModalVisible(true); // Muestra el modal para recargar la aplicación o salir
                     break;

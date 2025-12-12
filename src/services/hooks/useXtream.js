@@ -1,5 +1,6 @@
 import { useRealm, useQuery } from '@realm/react';
 import { useStreaming } from './useStreaming';
+import ErrorLogger from '../logger/errorLogger';
 
 export const useXtream = () => {
     const realm = useRealm();
@@ -25,7 +26,8 @@ export const useXtream = () => {
             const info = await response.json();
             console.log(info.user_info.status);
         } catch (error) {
-            console.log('Error en la petición: ', error);
+            ErrorLogger.log('useXtream - getInfoAccount', error);
+            //console.log('Error en la petición: ', error);
         }
     };
 
@@ -85,9 +87,11 @@ export const useXtream = () => {
                 total: 0,
                 [contentField]: []
             }));
+
             return categorias;
         } catch (error) {
-            console.log('Error al obtener las categorias: ', error);
+            ErrorLogger.log('useXtream - getCategoriesByType', error);
+            //console.log('Error al obtener las categorias: ', error);
             return [];
         }
     };
@@ -95,7 +99,6 @@ export const useXtream = () => {
     const getLiveStream = async () => {
         const newLive = [];
         const newLink = `${url}&action=get_live_streams`;
-        //const live = getItems('live');
 
         try {
             const response = await fetch(newLink, {
@@ -124,7 +127,8 @@ export const useXtream = () => {
 
             return newLive;
         } catch (error) {
-            console.log(`Error al obtener el contenido de LIVE: ${error}`);
+            ErrorLogger.log('useXtream - getLiveStream', error);
+            //console.log(`Error al obtener el contenido de LIVE: ${error}`);
         }
     };
 
@@ -175,7 +179,8 @@ export const useXtream = () => {
 
             return newVod;
         } catch (error) {
-            console.log(`Error al obtener el contenido de VOD: ${error}`);
+            ErrorLogger.log('useXtream - getVodStream', error);
+            //console.log(`Error al obtener el contenido de VOD: ${error}`);
         }
     };
 
@@ -228,7 +233,8 @@ export const useXtream = () => {
 
             return newSeries;
         } catch (error) {
-            console.log(`Error al obtener el contenido de SERIES: ${error}`);
+            ErrorLogger.log('useXtream - getSeries', error);
+            //console.log(`Error al obtener el contenido de SERIES: ${error}`);
         }
     };
 
@@ -252,7 +258,8 @@ export const useXtream = () => {
                 return true;
             }
         } catch (error) {
-            console.log(`Error al obtener los episodios de la Serie con ID ${idSerie}: ${error}`);
+            ErrorLogger.log('useXtream - getEpisodes', error);
+            //console.log(`Error al obtener los episodios de la Serie con ID ${idSerie}: ${error}`);
         }
     };
 
@@ -286,7 +293,8 @@ export const useXtream = () => {
                     });
                 });
             } catch (error) {
-                console.log('transformEpisodes: ', error);
+                ErrorLogger.log('useXtream - transformEpisodes', error);
+                //console.log('transformEpisodes: ', error);
             }
         });
     };

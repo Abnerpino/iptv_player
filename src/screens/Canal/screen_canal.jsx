@@ -9,6 +9,7 @@ import { useStreaming } from '../../services/hooks/useStreaming';
 import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
+import ErrorLogger from '../../services/logger/errorLogger';
 
 const Canal = ({ navigation, route }) => {
     const { idContent, idCategory, username } = route.params;
@@ -97,7 +98,8 @@ const Canal = ({ navigation, route }) => {
                 }, 150);
             }
         } catch (error) {
-            console.warn("Error al intentar hacer scroll en FlatList:", error);
+            ErrorLogger.log('Canal - useEffect de scroll en FlaList', error);
+            //console.warn("Error al intentar hacer scroll en FlatList:", error);
         }
 
     }, [currentIndex, selectedCategoryIndex, contentToShow, selectedChannel, isFullScreen]);

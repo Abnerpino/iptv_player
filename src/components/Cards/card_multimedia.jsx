@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, Animated, ActivityIndi
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useXtream } from '../../services/hooks/useXtream';
+import ErrorLogger from '../../services/logger/errorLogger';
 
 const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading, onUpdateError, username }, ref) => {
     const { getStreamingByType } = useXtream();
@@ -24,7 +25,8 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                     setLastUpdateTime(parseInt(savedTime, 10));
                 }
             } catch (e) {
-                console.error("Error al cargar el tiempo de actualización", e);
+                ErrorLogger.log('CardMultimedia - loadLastUpdateTime', e);
+                //console.error("Error al cargar el tiempo de actualización", e);
             }
         };
 
@@ -119,7 +121,8 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
             setLastUpdateTime(now);
         } catch (error) {
             // Detiene la carga y resetea la animación
-            console.log(`Error local en card ${tipo}:`, error);
+            ErrorLogger.log(`CardMultimedia - handleUpdateStreaming (${tipo})`, error);
+            //console.log(`Error local en card ${tipo}:`, error);
             setIsLoading(false);
             progressAnim.setValue(0); // Regresa la barra a 0
             if (flag) onFinishLoading?.(); // Cierra modal de carga global si estaba abierto

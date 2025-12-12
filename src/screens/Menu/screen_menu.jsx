@@ -15,6 +15,7 @@ import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ModalError from '../../components/Modals/modal_error';
 import ModalLoading from '../../components/Modals/modal_loading';
+import ErrorLogger from '../../services/logger/errorLogger';
 
 const Menu = ({ navigation, route }) => {
     const updateNow = route.params.updateNow; // Bandera que indica si se debe actualizar el contenido ahora o no
@@ -49,7 +50,8 @@ const Menu = ({ navigation, route }) => {
             console.log(`Segundos desde la última actualización: ${seconds.toFixed(2)}`);
             return seconds; // Retorna los segundos que han pasado desde la última actualización del contenido
         } catch (e) {
-            console.error("Error al obtener los segundos desde la última actualización", e);
+            ErrorLogger.log('Menu - getSecondsSinceUpdate', e);
+            //console.error("Error al obtener los segundos desde la última actualización", e);
             return 0;
         }
     };
@@ -61,7 +63,8 @@ const Menu = ({ navigation, route }) => {
             await AsyncStorage.setItem('@last_update_time_iptv', now.toString()); // Guarda el tiempo como string en el almacenamiento asíncrono
             console.log('Tiempo actualizado');
         } catch (e) {
-            console.error("Error al actualizar el tiempo de actualización", e);
+            ErrorLogger.log('Menu - updateLastUpdateTime', e);
+            //console.error("Error al actualizar el tiempo de actualización", e);
         }
     };
 
@@ -81,7 +84,8 @@ const Menu = ({ navigation, route }) => {
                         try {
                             await multimedia.referencia.current?.triggerUpdateEffects(); // Actualiza su contenido
                         } catch (e) {
-                            console.log(`Error al actualizar ${multimedia.tipo}:`, e);
+                            ErrorLogger.log(`Menu - checkAndUpdateContent (${multimedia.tipo})`, e);
+                            //console.log(`Error al actualizar ${multimedia.tipo}:`, e);
                             localError.push(multimedia.tipo); // Agrega el tipo de multimedia que falló
                         }
                     }
@@ -89,7 +93,8 @@ const Menu = ({ navigation, route }) => {
                     await updateLastUpdateTime(); // Actualiza el tiempo de la última actualización
                 }
             } catch (error) {
-                console.log('Ocurrió un error en el proceso de actualización: ', error);
+                ErrorLogger.log('Menu - checkAndUpdateContent', error);
+                //console.log('Ocurrió un error en el proceso de actualización: ', error);
             } finally {
                 handleFinishLoading?.(); // Termina el modal de carga
                 // Si hubo por lo menos un error...

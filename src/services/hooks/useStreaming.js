@@ -1,4 +1,5 @@
 import { useRealm } from "@realm/react";
+import ErrorLogger from "../logger/errorLogger";
 
 export const useStreaming = () => {
     const realm = useRealm();
@@ -70,10 +71,10 @@ export const useStreaming = () => {
     const syncStreamingData = (type, categories, items) => {
         return new Promise((resolve, reject) => {
             try {
-                // 1. Guardar o actualizar todos los items de contenido (Canales, Películas, Series)
+                // Guarda o actualiza todos los items de contenido (Canales, Películas, Series)
                 upsertContentItems(type, items);
 
-                // 2. Guardar o actualizar las categorías y vincular su contenido
+                // Guarda o actualiza las categorías y vincula su contenido
                 const categoryModel = getModelName(type, true); // 'CatsLive', 'CatsVod', 'CatsSerie'
                 const contentModel = getModelName(type); // 'Canal', 'Pelicula', 'Serie'
                 const contentField = type === 'live' ? 'canales' : (type === 'vod' ? 'peliculas' : 'series');
@@ -85,7 +86,7 @@ export const useStreaming = () => {
                     realm.delete(missingCategories); //Elimina las categorias faltantes
 
                     categories.forEach(cat => {
-                        // Filtrar los items que pertenecen a esta categoría
+                        // Filtra los items que pertenecen a esta categoría
                         let itemsForThisCategory = [];
 
                         switch (cat.category_id) {
@@ -102,7 +103,7 @@ export const useStreaming = () => {
                                 itemsForThisCategory = realm.objects(contentModel).filtered('$0 IN category_ids', cat.category_id);
                         }
 
-                        // Crear o actualizar la categoría en Realm
+                        // Crea o actualiza la categoría en Realm
                         realm.create(categoryModel, {
                             category_id: cat.category_id,
                             category_name: cat.category_name,
@@ -114,7 +115,8 @@ export const useStreaming = () => {
 
                 resolve();
             } catch (error) {
-                console.log(`Error al sincronizar datos en Realm (${type}):`, error);
+                ErrorLogger.log('useStreaming - syncStreamingData', error);
+                //console.log(`Error al sincronizar datos en Realm (${type}):`, error);
                 reject(error);
             }
         });

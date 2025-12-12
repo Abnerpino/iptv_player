@@ -6,6 +6,7 @@ import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ProgressBar from '../ProgressBar/progress_bar';
 import TMDBController from "../../services/controllers/tmdbController";
+import ErrorLogger from '../../services/logger/errorLogger';
 
 const tmdbController = new TMDBController;
 
@@ -48,8 +49,8 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 }
                 navigation.navigate('Pelicula', { idContent: item.stream_id, username });
             } catch (error) {
-                //Mostrar mensaje de que no está disponible el contenido
-                console.log(error);
+                ErrorLogger.log(`CardContenido - handleNavigateToScreen (VOD_${item?.stream_id})`, error);
+                //console.log(error);
             } finally {
                 onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             }
@@ -81,8 +82,8 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 response ? console.log('Episodios agregados') : console.log('No se agregaron los episodios');
                 navigation.navigate('Serie', { idContent: item.series_id, username });
             } catch (error) {
-                //Mostrar mensaje de que no está disponible el contenido
-                console.log('CardContenido: ', error);
+                ErrorLogger.log(`CardContenido - handleNavigateToScreen (Series_${item?.series_id})`, error);
+                //console.log('CardContenido: ', error);
             } finally {
                 onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             }

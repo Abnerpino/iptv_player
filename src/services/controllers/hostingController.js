@@ -1,5 +1,6 @@
 import { collection, addDoc, getDocs, query, where, limit } from '@react-native-firebase/firestore';
 import db from '../hosting/firebase';
+import ErrorLogger from '../logger/errorLogger';
 
 class HostingController {
     // Función para registrar clientes en la Base de Datos de la Nube
@@ -8,7 +9,8 @@ class HostingController {
             await addDoc(collection(db, 'clients'), data);
             return true;
         } catch (error) {
-            console.error("Error al registrar cliente: ", error);
+            ErrorLogger.log('HostingController - registrarCliente', error);
+            //console.error("Error al registrar cliente: ", error);
             return null;
         }
     }
@@ -26,7 +28,8 @@ class HostingController {
                 
             return !querySnapshot.empty; // Retorna true si existe, false si está libre
         } catch (error) {
-            console.error("Error al validar usuario: ", error);
+            ErrorLogger.log('HostingController - validarUsername', error);
+            //console.error("Error al validar usuario: ", error);
             return false; // En caso de error, asume que no existe
         }
     }
@@ -54,7 +57,8 @@ class HostingController {
                 return { numId: 1, data: [] }; 
             }
         } catch (error) {
-            console.error("Error al obtener el ID del dispositivo: ", error);
+            ErrorLogger.log('HostingController - verificarCliente', error);
+            //console.error("Error al obtener el ID del dispositivo: ", error);
             return { numId: -1, data: null };
         }
     }
@@ -81,7 +85,8 @@ class HostingController {
             
             return notifications;
         } catch (error) {
-            console.log('Error al obtener las notificaciones: ', error);
+            ErrorLogger.log('HostingController - obtenerNotificaciones', error);
+            //console.log('Error al obtener las notificaciones: ', error);
             return null;
         }
     }
