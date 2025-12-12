@@ -273,6 +273,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, [contenido, tipo, updateEpisodeProps, updateProps]);
 
     const showTemporarilyControls = () => {
+        if (modalVisible || showSettings || showChannels || showNextEpisode) return;
+
         setShowControls(true);
         if (controlTimeout.current) clearTimeout(controlTimeout.current);
         controlTimeout.current = setTimeout(() => {
@@ -323,6 +325,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         setShowIconLock(true);
         if (lockTimeout.current) clearTimeout(lockTimeout.current);
         lockTimeout.current = setTimeout(() => setShowIconLock(false), 3000);
+    };
+
+    const showModalNetxEpisode = () => {
+        isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
+        setShowControls(false); // Oculta los controles
+        setCountdown(5); // Reinicia la cuenta regresiva a 5
+        setShowNextEpisode(true); // Muestra el panel
     };
 
     // Función para Play/Pause en el reproductor local
@@ -376,6 +385,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 setTimeout(() => {
                     setShowNotifactionMessage(false);
                 }, 4000);
+                if (tipo === 'series') {
+                    setTimeout(() => {
+                        showModalNetxEpisode();
+                    }, 100); // Muestra el modal de siguiente episodio con 100ms de retraso
+                }
                 return newCount; // Actualiza el estado al nuevo contador
 
             } else {
@@ -520,6 +534,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setTimeout(() => {
                 setShowNotifactionMessage(false);
             }, 4000);
+            if (tipo === 'series') {
+                setTimeout(() => {
+                    showModalNetxEpisode();
+                }, 100); // Muestra el modal de siguiente episodio con 100ms de retraso
+            }
         }
     };
 
@@ -655,10 +674,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
                 (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
             ) {
-                isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
-                setShowControls(false); // Oculta los controles
-                setCountdown(5); // Reinicia la cuenta regresiva a 5
-                setShowNextEpisode(true); // Muestra el panel
+                showModalNetxEpisode(); // Muestra el modal del siguiente episodio
             }
         }
 
@@ -931,7 +947,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             }}
                             style={styles.videoPlayer}
                             controls={false}
-                            paused={paused}
+                            paused={isCannotReproduce ? true : paused}
                             rate={playbackRate}
                             resizeMode={resizeMode.modo}
                             selectedAudioTrack={selectedAudioTrack}
@@ -1062,7 +1078,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                     value={currentTime}
                                                     minimumValue={0}
                                                     maximumValue={duration}
-                                                    disabled={useInternalTimer}
+                                                    disabled={isCannotReproduce || useInternalTimer}
                                                     onSlidingComplete={seekTo}
                                                     trackStyle={styles.track}
                                                     thumbStyle={styles.thumb}
