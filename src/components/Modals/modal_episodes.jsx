@@ -66,7 +66,8 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         width: "100%",
-        height: '100%'
+        height: '100%',
+        paddingRight: '2.5%'
     },
     header: {
         flexDirection: 'row',
