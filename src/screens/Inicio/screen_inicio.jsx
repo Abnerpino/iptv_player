@@ -6,13 +6,11 @@ import RNRestart from 'react-native-restart';
 import RNExitApp from 'react-native-exit-app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
-import HostingController from '../../services/controllers/hostingController';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import { verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ErrorLogger from '../../services/logger/errorLogger';
-
-const hostingController = new HostingController();
 
 const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
@@ -98,7 +96,7 @@ const Inicio = ({ navigation }) => {
                 // Si hay internet, procede con la lógica normal
                 const deviceId = await DeviceInfo.getUniqueId();
                 console.log('deviceId: ', deviceId);
-                const response = await hostingController.verificarCliente(deviceId);
+                const response = await verificarCliente(deviceId);
                 result = response; // guarda el resultado de la petición
 
                 // Si todavía no existe localmente el usuario, lo crea
@@ -134,7 +132,7 @@ const Inicio = ({ navigation }) => {
                     const info = response.data;
                     // Si la cuenta del usuario está activa...
                     if (info.active) {
-                        const notifications = await hostingController.obtenerNotificaciones(info.id);
+                        const notifications = await obtenerNotificaciones(info.id);
                         updateUserProps(deviceId, {
                             id: info.id,
                             client_name: info.client_name,

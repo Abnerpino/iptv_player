@@ -10,10 +10,8 @@ import { Linking } from 'react-native';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import HostingController from '../../services/controllers/hostingController';
+import { validarUsername, registrarCliente, verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
-
-const hostingController = new HostingController();
 
 const Activation = ({ navigation, route }) => {
   const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
@@ -96,7 +94,7 @@ const Activation = ({ navigation, route }) => {
     handleStartLoading?.(); // Inicia el modal de carga
 
     // Verifica si el nombre de usuario existe en la Base de Datos de la Nube antes de intentar registrar
-    const usernameExists = await hostingController.validarUsername(localUsername.toLowerCase());
+    const usernameExists = await validarUsername(localUsername.toLowerCase());
 
     if (usernameExists) {
       handleFinishLoading?.();
@@ -135,20 +133,20 @@ const Activation = ({ navigation, route }) => {
       android_version: usuario[0]?.android_version,
     };
 
-    const response = await hostingController.registrarCliente(info);
+    const response = await registrarCliente(info);
     return response;
   };
 
   const validateActivation = async () => {
     hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
-    const response = await hostingController.verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
+    const response = await verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response.numId === 2) { //Si devuelve una respuesta valida...
       const info = response.data;
       if (info.active) { //Si la cuenta ya está activa...
-        const notifications = await hostingController.obtenerNotificaciones(info.id);
+        const notifications = await obtenerNotificaciones(info.id);
         updateUserProps(usuario[0]?.device_id, {
           id: info.id,
           user: info.user,

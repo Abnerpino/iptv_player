@@ -5,10 +5,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ProgressBar from '../ProgressBar/progress_bar';
-import TMDBController from "../../services/controllers/tmdbController";
+import { getDataMovie, getDataSerie } from '../../services/controllers/tmdbController';
 import ErrorLogger from '../../services/logger/errorLogger';
-
-const tmdbController = new TMDBController;
 
 const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio, onStartLoading, onFinishLoading, hideMessage, showModal, username }) => {
     const { getEpisodes } = useXtream();
@@ -27,7 +25,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.tmdb_id) {
-                    const info = await tmdbController.getDataMovie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
+                    const info = await getDataMovie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
@@ -59,7 +57,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.saga && !item.tmdb_id) {
-                    const info = await tmdbController.getDataSerie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
+                    const info = await getDataSerie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
