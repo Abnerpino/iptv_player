@@ -185,39 +185,37 @@ const Serie = ({ navigation, route }) => {
             {!showReproductor ? (
                 <ImageBackground
                     source={background ? { uri: background } : require('../../assets/fondo.jpg')} //Imagen de fondo
-                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+                    style={styles.imageBackground}
                 >
-                    <View style={styles.container}>
+                    <View style={[styles.container, { backgroundColor: background ? 'rgba(16,16,16,0.9)' : 'rgba(16,16,16,0.5)' }]}>
                         {/* Vista principal en columna */}
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingVertical: 10
-                        }}>
+                        <View style={styles.containerBackButton}>
                             {/* Fila con el botón de regreso y el titulo de la serie */}
                             <TouchableOpacity
-                                style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}
+                                style={styles.backButton}
                                 onPress={handleBack}
                                 onLongPress={() => showToast('Regresar')}
                             >
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
-                            <View style={{ flex: 1, justifyContent: 'center' }}>
-                                <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{serie.name}</Text>
+                            <View style={styles.containerTitle}>
+                                <Text style={styles.title}>{serie.name}</Text>
                             </View>
                         </View>
 
                         {/* ScrollView para contenido desplazable */}
                         <ScrollView>
                             {/* Vista en fila dentro del ScrollView */}
-                            <View style={styles.row}>
-                                <Image
-                                    source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
-                                    style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5 }}
-                                    onError={() => setError(true)}
-                                    resizeMode='contain'
-                                />
-                                <View style={{ flexDirection: 'row', paddingLeft: 35, width: '100%', }}>
+                            <View style={styles.containerDetailsMovie}>
+                                <View style={styles.containerPoster}>
+                                    <Image
+                                        source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
+                                        style={styles.poster}
+                                        onError={() => setError(true)}
+                                        resizeMode='contain'
+                                    />
+                                </View>
+                                <View style={styles.details}>
                                     <View style={styles.column}>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
@@ -226,27 +224,27 @@ const Serie = ({ navigation, route }) => {
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Trama:</Text>
 
                                     </View>
-                                    <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75, paddingRight: '31%', }}>
+                                    <View style={[styles.column, { marginLeft: '18.5%', }]}>
                                         <Text style={styles.text}>{originalName ? originalName : 'N/A'}</Text>
                                         <Text style={styles.text}>{serie.release_date ? getDate(`${serie.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
                                         <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
                                         <StarRating rating={rating ? rating : 0} size={20} />
-                                        <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', paddingRight: 0, }} numberOfLines={2} >{overview ? overview : 'Trama no disponible'}</Text>
+                                        <Text style={styles.overview} numberOfLines={2} >{overview ? overview : 'Trama no disponible'}</Text>
                                         {overview ? (
                                             <TouchableOpacity onPress={() => setModalVisibleO(true)}>
-                                                <Text style={{ color: 'rgb(255,127,0)', fontSize: 14, fontWeight: 'bold' }}>Leer Más</Text>
+                                                <Text style={styles.readMore}>Leer Más</Text>
                                             </TouchableOpacity>
                                         ) : <Text>{'\n'}</Text>}
 
                                     </View>
                                 </View>
                             </View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 20, paddingBottom: 10 }}>
+                            <View style={styles.containerButtons}>
                                 <TouchableOpacity
-                                    style={[styles.button, { marginRight: 20 }]}
+                                    style={styles.button}
                                     onPress={() => setShowReproductor(true)}
                                 >
-                                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 5, }}>
+                                    <View style={styles.playButton}>
                                         <Icon name="play-circle-o" size={22} color="white" />
                                         <Text style={styles.textButton}>
                                             {`${parseFloat(selectedEpisode.playback_time) === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}: T${selectedSeason.numero}-E${selectedEpisode.episode_num}`}
@@ -256,11 +254,11 @@ const Serie = ({ navigation, route }) => {
                                         <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
                                     )}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, marginRight: 20 }]}>
+                                <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, styles.subStyleButton]}>
                                     <Icon name="list-alt" size={22} color="white" />
                                     <Text style={styles.textButton}>{`Temporada: ${selectedSeason.numero}`}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, }]}>
+                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, styles.subStyleButton]}>
                                     <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
                                     <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                                 </TouchableOpacity>
@@ -268,19 +266,13 @@ const Serie = ({ navigation, route }) => {
 
                             {selectedSeason && (
                                 <View style={{ paddingVertical: 10 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <View style={styles.containerFlatList}>
                                         {/* Botón EPISODIOS */}
                                         <TouchableOpacity
                                             onPress={() => setSelectedTab('episodios')}
-                                            style={{
-                                                paddingVertical: 6,
-                                                paddingHorizontal: 14,
-                                                borderRadius: 8,
-                                                backgroundColor: selectedTab === 'episodios' ? 'orange' : '#444',
-                                                marginRight: 10
-                                            }}
+                                            style={[styles.episodiosButton, { backgroundColor: selectedTab === 'episodios' ? 'orange' : '#444', }]}
                                         >
-                                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                                            <Text style={styles.titleEpisodios}>
                                                 EPISODIOS ({selectedSeason.episodios.length})
                                             </Text>
                                         </TouchableOpacity>
@@ -289,14 +281,9 @@ const Serie = ({ navigation, route }) => {
                                         {Array.isArray(cast) && cast.length > 0 && (
                                             <TouchableOpacity
                                                 onPress={() => setSelectedTab('reparto')}
-                                                style={{
-                                                    paddingVertical: 6,
-                                                    paddingHorizontal: 14,
-                                                    borderRadius: 8,
-                                                    backgroundColor: selectedTab === 'reparto' ? 'orange' : '#444'
-                                                }}
+                                                style={[styles.repartoButton, { backgroundColor: selectedTab === 'reparto' ? 'orange' : '#444' }]}
                                             >
-                                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                                                <Text style={styles.titleReparto}>
                                                     Reparto
                                                 </Text>
                                             </TouchableOpacity>
@@ -304,12 +291,7 @@ const Serie = ({ navigation, route }) => {
                                     </View>
 
                                     {/* Línea horizontal */}
-                                    <View style={{
-                                        height: 1,
-                                        backgroundColor: '#888',
-                                        marginVertical: 10,
-                                        width: '100%',
-                                    }} />
+                                    <View style={styles.horizontalLine} />
 
                                     {/* Contenido dinámico según pestaña seleccionada */}
                                     {selectedTab === 'episodios' ? (
@@ -397,15 +379,58 @@ const Serie = ({ navigation, route }) => {
 
 // Estilos para la aplicación
 const styles = StyleSheet.create({
+    imageBackground: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
     container: {
         flex: 1,
+        width: '100%',
         paddingHorizontal: 25,
-        backgroundColor: 'rgba(16,16,16,0.9)',
     },
-    row: {
+    containerBackButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+    },
+    backButton: {
+        marginHorizontal: -20,
+        paddingHorizontal: 20,
+        paddingVertical: 10
+    },
+    containerTitle: {
+        flex: 1,
+        justifyContent: 'center'
+    },
+    title: {
+        fontSize: 20,
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    containerDetailsMovie: {
         flexDirection: 'row',
         alignItems: 'stretch',
-
+    },
+    containerPoster: {
+        flex: 0.175,
+        height: '100%',
+    },
+    poster: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        borderRadius: 5,
+        borderColor: '#fff',
+        borderWidth: 0.5,
+        backgroundColor: '#201F29'
+    },
+    details: {
+        flexDirection: 'row',
+        paddingLeft: '7.5%',
+        paddingVertical: 6,
+        flex: 0.825,
     },
     column: {
         flexDirection: 'column',
@@ -414,7 +439,24 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 16,
         color: '#CCC',
-        marginVertical: 5,
+        marginVertical: 6.5,
+    },
+    overview: {
+        fontSize: 16,
+        textAlign: 'justify',
+        color: '#CCC',
+        paddingRight: '21%',
+    },
+    readMore: {
+        color: 'rgb(255,127,0)',
+        fontSize: 14,
+        fontWeight: 'bold'
+    },
+    containerButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly',
+        paddingTop: 20,
+        paddingBottom: 10,
     },
     button: {
         width: '25%',
@@ -422,12 +464,52 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
+    subStyleButton: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
+    playButton: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
     textButton: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
         paddingLeft: 5
+    },
+    containerFlatList: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    episodiosButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+        marginRight: 10
+    },
+    titleEpisodios: {
+        color: '#fff',
+        fontWeight: 'bold'
+    },
+    repartoButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+    },
+    titleReparto: {
+        color: '#fff',
+        fontWeight: 'bold'
+    },
+    horizontalLine: {
+        height: 1,
+        backgroundColor: '#888',
+        marginVertical: 10,
+        width: '100%',
     },
     flashMessage: {
         width: '12.5%',

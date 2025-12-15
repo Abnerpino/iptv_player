@@ -133,35 +133,37 @@ const Pelicula = ({ navigation, route }) => {
             {!showReproductor ? (
                 <ImageBackground
                     source={background ? { uri: `https://image.tmdb.org/t/p/original${background}` } : require('../../assets/fondo.jpg')} //Imagen de fondo
-                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+                    style={styles.imageBackground}
                 >
                     <View style={[styles.container, { backgroundColor: background ? 'rgba(16,16,16,0.9)' : 'rgba(16,16,16,0.5)' }]}>
                         {/* Vista principal en columna */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
+                        <View style={styles.containerBackButton}>
                             {/* Fila con textos */}
                             <TouchableOpacity
-                                style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingVertical: 10 }}
+                                style={styles.backButton}
                                 onPress={handleBack}
                                 onLongPress={() => showToast('Regresar')}
                             >
                                 <Icon name="arrow-circle-left" size={26} color="white" />
                             </TouchableOpacity>
-                            <View style={{ flex: 1, justifyContent: 'center' }}>
-                                <Text style={{ fontSize: 20, color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>{pelicula.name}</Text>
+                            <View style={styles.containerTitle}>
+                                <Text style={styles.title}>{pelicula.name}</Text>
                             </View>
                         </View>
 
                         {/* ScrollView para contenido desplazable */}
                         <ScrollView>
                             {/* Vista en fila dentro del ScrollView */}
-                            <View style={styles.row}>
-                                <Image
-                                    source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
-                                    style={{ width: '15.5%', borderRadius: 5, borderColor: '#fff', borderWidth: 0.5, backgroundColor: '#201F29' }}
-                                    onError={() => setError(true)}
-                                    resizeMode='contain'
-                                />
-                                <View style={{ flexDirection: 'row', paddingLeft: 35, paddingVertical: 7.5, width: '100%', }}>
+                            <View style={styles.containerDetailsMovie}>
+                                <View style={styles.containerPoster}>
+                                    <Image
+                                        source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
+                                        style={styles.poster}
+                                        onError={() => setError(true)}
+                                        resizeMode='contain'
+                                    />
+                                </View>
+                                <View style={styles.details}>
                                     <View style={styles.column}>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Lanzamiento:</Text>
@@ -169,21 +171,21 @@ const Pelicula = ({ navigation, route }) => {
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Género:</Text>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
                                     </View>
-                                    <View style={{ flexDirection: "column", alignItems: "flex-start", marginLeft: 75 }}>
+                                    <View style={[styles.column, { marginLeft: '18.5%', }]}>
                                         <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
                                         <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
-                                        <Text style={[styles.text, { backgroundColor: 'rgba(80,80,100,0.5)', paddingHorizontal: 10, paddingBottom: 2, borderRadius: 5 }]}>{convertDuration(runtime)}</Text>
+                                        <Text style={[styles.text, styles.runtime]}>{convertDuration(runtime)}</Text>
                                         <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
                                         <StarRating rating={rating ? rating : 0} size={20} />
                                     </View>
                                 </View>
                             </View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 10 }}>
+                            <View style={styles.containerButtons}>
                                 <TouchableOpacity
                                     style={styles.button}
                                     onPress={() => setShowReproductor(true)}
                                 >
-                                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 5, }}>
+                                    <View style={styles.playButton}>
                                         <Icon name="play-circle-o" size={22} color="white" />
                                         <Text style={styles.textButton}>{playbackTime === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}</Text>
                                     </View>
@@ -191,17 +193,17 @@ const Pelicula = ({ navigation, route }) => {
                                         <ProgressBar isVod={true} duration={runtime} playback={playbackTime} />
                                     )}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 5, marginLeft: 20 }]}>
+                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, styles.favoriteButton]}>
                                     <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
                                     <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
                                 </TouchableOpacity>
                             </View>
-                            <View style={{ paddingVertical: 10 }}>
-                                <Text style={{ fontSize: 16, textAlign: 'justify', color: '#CCC', }}>{overview ? overview : 'Sinopsis no disponible'}</Text>
+                            <View style={{ paddingVertical: 10, }}>
+                                <Text style={styles.overview}>{overview ? overview : 'Sinopsis no disponible'}</Text>
                             </View>
                             {/* Vista en columna con texto y FlatList */}
                             {Array.isArray(cast) && cast.length > 0 ? (
-                                <View style={{ paddingHorizontal: 5, paddingBottom: 5 }}>
+                                <View style={styles.containerFlatList}>
                                     <FlatList
                                         data={cast}
                                         horizontal
@@ -216,7 +218,6 @@ const Pelicula = ({ navigation, route }) => {
                                     />
                                 </View>
                             ) : null}
-
                         </ScrollView>
                     </View>
                 </ImageBackground>
@@ -236,13 +237,58 @@ const Pelicula = ({ navigation, route }) => {
 
 // Estilos para la aplicación
 const styles = StyleSheet.create({
+    imageBackground: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
     container: {
         flex: 1,
+        width: '100%',
         paddingHorizontal: 25,
     },
-    row: {
+    containerBackButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10, 
+    },
+    backButton: {
+        marginHorizontal: -20,
+        paddingHorizontal: 20,
+        paddingVertical: 10
+    },
+    containerTitle: {
+        flex: 1,
+        justifyContent: 'center'
+    },
+    title: {
+        fontSize: 20,
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    containerDetailsMovie: {
         flexDirection: 'row',
         alignItems: 'stretch',
+    },
+    containerPoster: {
+        flex: 0.175,
+        height: '100%',
+    },
+    poster: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        borderRadius: 5,
+        borderColor: '#fff',
+        borderWidth: 0.5,
+        backgroundColor: '#201F29'
+    },
+    details: {
+        flexDirection: 'row',
+        paddingLeft: '7.5%',
+        paddingVertical: 10,
+        flex: 0.825,
     },
     column: {
         flexDirection: 'column',
@@ -251,7 +297,18 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 16,
         color: '#CCC',
-        marginVertical: 6.5,
+        marginVertical: 8,
+    },
+    runtime: {
+        backgroundColor: 'rgba(80,80,100,0.5)',
+        paddingHorizontal: 10,
+        paddingBottom: 2,
+        borderRadius: 5
+    },
+    containerButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly',
+        paddingTop: 10,
     },
     button: {
         width: '25%',
@@ -259,12 +316,32 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         backgroundColor: 'rgb(80,80,100)',
     },
+    playButton: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
+    favoriteButton: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
     textButton: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
         paddingLeft: 5
+    },
+    overview: {
+        fontSize: 16,
+        textAlign: 'justify',
+        color: '#CCC',
+    },
+    containerFlatList: {
+        paddingHorizontal: 5,
+        paddingBottom: 5,
     },
     flashMessage: {
         width: '12.5%',
