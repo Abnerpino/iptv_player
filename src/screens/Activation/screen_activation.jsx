@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, ToastAndroid, Vibration, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
@@ -19,7 +19,6 @@ const Activation = ({ navigation, route }) => {
   const { upsertNotifications, updateUserProps } = useStreaming();
   const [name, setName] = useState(''); // Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); // Estado para manejar el nombre de usuario ingresado
-  const [visible, setVisible] = useState(false); // Estado para manejar la visibilidad del tooltip
   const [error, setError] = useState(''); // Estado para el manejo de los mensajes de error
   const [isWriting, setIsWriting] = useState(false); // Estado para el manejo de cuando se escriba por primera vez
   const [timer, setTimer] = useState(0); // Estado para manejar el temporizador
@@ -90,7 +89,7 @@ const Activation = ({ navigation, route }) => {
   const validateRegistration = async () => {
     if (error !== '') return; // Si ya hay error de formato, no continua
 
-    setVisible(false); // Cierra el tooltip si está abierto
+    hideMessage(); // Oculta el mensaje de notificación si se está mostrando
     handleStartLoading?.(); // Inicia el modal de carga
 
     // Verifica si el nombre de usuario existe en la Base de Datos de la Nube antes de intentar registrar
@@ -193,7 +192,7 @@ const Activation = ({ navigation, route }) => {
     }
 
     Clipboard.setString(message); // Copia el mensaje al portapapeles
-    ToastAndroid.show('Información copiada al portapapeles!', ToastAndroid.SHORT);
+    showToast(2, '¡Información copiada al portapapeles!');
   };
 
   const openWhatsApp = async () => {
@@ -202,20 +201,22 @@ const Activation = ({ navigation, route }) => {
     let url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 
     Linking.openURL(url)
-      .catch(() => ToastAndroid.show('No se pudo abrir WhatsApp', ToastAndroid.SHORT));
+      .catch(() => showToast(2, 'No se pudo abrir WhatsApp'));
   };
 
-  const showToast = (mensaje) => {
-    Vibration.vibrate();
+  const showToast = (numId, mensaje) => {
+    if (numId > 2) {
+      Vibration.vibrate();
+    }
 
     showMessage({
       message: mensaje,
       type: 'default',
-      duration: 1000,
+      duration: numId === 1 ? 5000 : 1000,
       position: 'bottom',
       backgroundColor: '#EEE',
       color: '#000',
-      style: styles.flashMessage,
+      style: [styles.flashMessage, { width: numId === 1 ? '65%' : numId === 2 ? '30.5%' : '20%' }],
     });
   };
 
@@ -251,6 +252,7 @@ const Activation = ({ navigation, route }) => {
                   value={name}
                   disableFullscreenUI={true}
                   onChangeText={(text) => setName(filterName(text))}
+                  onPressIn={() => hideMessage()}
                 />
                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 5, marginBottom: 20 }}>
                   <TextInput
@@ -260,14 +262,11 @@ const Activation = ({ navigation, route }) => {
                     value={localUsername}
                     disableFullscreenUI={true}
                     onChangeText={filterUsername}
-                    onPressIn={() => setVisible(false)}
+                    onPressIn={() => hideMessage()}
                   />
-                  <TouchableOpacity onPress={() => setVisible(!visible)} style={{ marginLeft: 8 }}>
+                  <TouchableOpacity onPress={() => showToast(1, 'Longitud mínima de 4 caracteres, se permiten letras, números, guiones y puntos.')} style={{ marginLeft: 8 }}>
                     <Icon name="question-circle" size={18} color="rgb(80,80,100)" />
                   </TouchableOpacity>
-                  {visible && (
-                    <Text style={styles.tooltip}>Longitud mínima de 4 caracteres, se permiten letras, números, guiones y puntos.</Text>
-                  )}
                 </View>
                 {error.length > 0 && (
                   <View style={{ flexDirection: 'row', marginTop: -15, marginBottom: 20, }}>
@@ -299,32 +298,32 @@ const Activation = ({ navigation, route }) => {
                   <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Su cuenta se encuentra desactivada! Siga las siguientes instrucciones para reactivarla:</Text>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Realice el pago correspondiente por transferencia a la siguiente cuenta.</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="credit-card-alt" size={22} color="#FFF" />
                       <Text style={styles.info}>4152 3143 7092 2968</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="bank" size={22} color="#FFF" />
                       <Text style={styles.info}>BBVA</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="vcard" size={22} color="#FFF" />
                       <Text style={styles.info}>Abner Pino Federico</Text>
                     </Pressable>
                   </View>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>2. En el concepto (o motivo) del pago, escriba su nombre de usuario o su nombre completo.</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(1)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(1)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon4 name="user" size={22} color="#FFF" />
                       <Text style={styles.info}>{usuario[0]?.username}</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(5)} onLongPress={() => showToast('Presione para copiar')}>
+                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(5)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="vcard" size={22} color="#FFF" />
                       <Text style={styles.info}>{usuario[0]?.client_name}</Text>
                     </Pressable>
                   </View>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Tome captura del comprobante de pago y envíela al siguiente número de WhatsApp:</Text>
-                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para abrir')}>
+                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
                     <Icon name="whatsapp" size={22} color="#FFF" />
                     <Text style={styles.info}>(+52) 742 113 2908</Text>
                   </Pressable>
@@ -335,12 +334,12 @@ const Activation = ({ navigation, route }) => {
                 <>
                   <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:</Text>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Copie su nombre de usuario (pulse para copiarlo al portapapeles).</Text>
-                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo()} onLongPress={() => showToast('Presione para copiar')}>
+                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo()} onLongPress={() => showToast(3, 'Presione para copiar')}>
                     <Icon4 name="user" size={22} color="#FFF" />
                     <Text style={styles.info}>{usuario[0]?.username}</Text>
                   </Pressable>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíelo al siguiente WhatsApp (pulse para abrir el chat) y siga las indicaciones que se le den.</Text>
-                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast('Presione para abrir')}>
+                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
                     <Icon name="whatsapp" size={22} color="#FFF" />
                     <Text style={styles.info}>(+52) 742 113 2908</Text>
                   </Pressable>
@@ -404,16 +403,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20
   },
-  tooltip: {
-    color: '#FFF',
-    fontSize: 12,
-    textAlign: 'justify',
-    borderRadius: 5,
-    borderColor: '#FFF',
-    borderWidth: 0.5,
-    marginLeft: 15,
-    padding: 5,
-  },
   error: {
     fontSize: 12,
     color: 'red',
@@ -455,13 +444,12 @@ const styles = StyleSheet.create({
     marginLeft: 5
   },
   flashMessage: {
-    width: '20%',
     borderRadius: 20,
     alignItems: 'center',
     alignSelf: 'center',
     paddingTop: 2.5,
     paddingBottom: 1,
-    marginBottom: '2%',
+    marginBottom: '1%',
   },
 });
 
