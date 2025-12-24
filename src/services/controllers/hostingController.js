@@ -1,6 +1,7 @@
-import { collection, addDoc, getDocs, query, where, limit } from '@react-native-firebase/firestore';
+import { collection, addDoc, updateDoc, getDocs, query, where, limit, doc } from '@react-native-firebase/firestore';
 import db from '../hosting/firebase';
 import ErrorLogger from '../logger/errorLogger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Función para registrar clientes en la Base de Datos de la Nube
 export const registrarCliente = async (data) => {
@@ -11,6 +12,17 @@ export const registrarCliente = async (data) => {
         ErrorLogger.log('HostingController - registrarCliente', error);
         //console.error("Error al registrar cliente: ", error);
         return null;
+    }
+};
+
+// Función para actualizar campos de un cliente en la Base de Datos de la Nube
+export const actualizarCliente = async (id, data) => {
+    try {
+        const docRef = doc(db, 'clients', id);
+        await updateDoc(docRef, data);
+    } catch (error) {
+        ErrorLogger.log('HostingController - actualizarCliente', error);
+        //console.log('Error al actualizar los siguientes campos: ', data);
     }
 };
 
@@ -34,8 +46,18 @@ export const validarUsername = async (username) => {
 };
 
 // Función para verificar (por el id del dispositivo) si un cliente ya existe en la Base de Datos de la Nube
-export const verificarCliente = async (deviceId) => {
+export const verificarCliente = async (deviceId, forceUpdate = false) => {
     try {
+        const lastUpdate = await AsyncStorage.getItem('last_user_sync'); // Verifica cuándo fue la última actualización
+        const cleanUser = await AsyncStorage.getItem('account_deleted'); // Verifica si el usuario no ha sido borrado en la nube
+        const now = new Date().getTime();
+
+        // Si existe un registro de tiempo, no hay indicación para borrar usuario, no fuerza actualización y el tiempo no ha expirado (3 días)...
+        if (lastUpdate && !cleanUser && !forceUpdate && (now - parseInt(lastUpdate) < 259200000)) {
+            return { numId: 2, data: { sync: false } }; // Termina aquí la función y marca como desactivada la bandera de sincronización
+        }
+
+        // Si el tiempo expiró o es la primera vez, consulta en FireStore
         const q = query(
             collection(db, 'clients'),
             where('device_id', '==', deviceId),
@@ -44,15 +66,16 @@ export const verificarCliente = async (deviceId) => {
 
         const querySnapshot = await getDocs(q);
 
+        // Si existe el cliente...
         if (!querySnapshot.empty) {
-            // Si existe el cliente
             const doc = querySnapshot.docs[0];
+            const clientData = { id: doc.id, sync: true, ...doc.data() }; // Activa la bandera de sincronización y la agrega a la info del cliente
 
-            const clientData = { id: doc.id, ...doc.data() };
+            // Guarda la nueva fecha de actualización
+            await AsyncStorage.setItem('last_user_sync', now.toString());
 
             return { numId: 2, data: clientData };
-        } else {
-            // Si no existe el cliente
+        } else { // Si no existe el cliente...
             return { numId: 1, data: [] };
         }
     } catch (error) {
