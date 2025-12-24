@@ -53,6 +53,8 @@ const Activation = ({ navigation, route }) => {
       const filtered = localUsername.replace(/[^a-zA-Z0-9_\-.]/g, '');
       if (filtered.length < 4) {
         setError('La longitud mínima es de 4 caracteres');
+      } else if (filtered.length > 12) {
+        setError('La longitud máxima es de 12 caracteres');
       } else {
         setError('');
       }
@@ -79,7 +81,7 @@ const Activation = ({ navigation, route }) => {
 
   // Función para filtrar caracteres especiales en el nombre de usuario
   const filterUsername = (input) => {
-    if (!isWriting) setIsWriting(true); // ← Marca que el usuario ya escribió en el input
+    if (!isWriting) setIsWriting(true); // Marca que el usuario ya escribió en el input
 
     const filtered = input.replace(/[^a-zA-Z0-9_\-.]/g, ''); // Reemplaza todo lo que no sea letra o espacios o guiones o puntos, por vacío
     setLocalUsername(filtered); // Solo se actualiza, la validación ahora está en el useEffect
@@ -126,6 +128,8 @@ const Activation = ({ navigation, route }) => {
       password: '',
       host: '',
       active: false,
+      force_update: false,
+      fcm_token: usuario[0]?.fcm_token,
       expiration: '',
       package: '',
       device_model: usuario[0]?.device_model,
@@ -139,7 +143,7 @@ const Activation = ({ navigation, route }) => {
   const validateActivation = async () => {
     hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
-    const response = await verificarCliente(usuario[0]?.device_id); //Consultamos la información del cliente para verficar su activación
+    const response = await verificarCliente(usuario[0]?.device_id, true); //Consultamos la información del cliente para verficar su activación
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response.numId === 2) { //Si devuelve una respuesta valida...
@@ -216,7 +220,7 @@ const Activation = ({ navigation, route }) => {
       position: 'bottom',
       backgroundColor: '#EEE',
       color: '#000',
-      style: [styles.flashMessage, { width: numId === 1 ? '65%' : numId === 2 ? '30.5%' : '20%' }],
+      style: [styles.flashMessage, { width: numId === 1 ? '75%' : numId === 2 ? '30.5%' : '20%' }],
     });
   };
 
@@ -264,7 +268,7 @@ const Activation = ({ navigation, route }) => {
                     onChangeText={filterUsername}
                     onPressIn={() => hideMessage()}
                   />
-                  <TouchableOpacity onPress={() => showToast(1, 'Longitud mínima de 4 caracteres, se permiten letras, números, guiones y puntos.')} style={{ marginLeft: 8 }}>
+                  <TouchableOpacity onPress={() => showToast(1, 'Longitud mínima de 4 caracteres y máxima de 12, se permiten letras, números, guiones y puntos.')} style={{ marginLeft: 8 }}>
                     <Icon name="question-circle" size={18} color="rgb(80,80,100)" />
                   </TouchableOpacity>
                 </View>
