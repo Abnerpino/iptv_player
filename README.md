@@ -57,7 +57,7 @@ This is one way to run your app — you can also run it directly from within And
 
 ### IMPORTANT NOTE
 
-You must create your project in Firebase (and your database in FireStore) and link it to this project for it to work:
+You must create your project in Firebase (and your database in Firestore) and link it to this project for it to work:
 
 => Database: 'default'
 
@@ -66,3 +66,7 @@ You must create your project in Firebase (and your database in FireStore) and li
 => Fields: The 'clients' fields are specified in the 'handleRegisterDevice' function of 'screen_activation.jsx'. The 'notifications' fields are two: 'clients_id' (to store the IDs of the clients to whom you want to show the notification), of type Array of Strings, and 'message' (to store the notification message), of type String.
 
 You must download the 'google-services.json' file generated with your FireStore configurations and add it to the 'android/app/' folder of your project.
+
+Cloud Run Functions (2nd Generation) must also be implemented, which can be found in the following project:
+
+Link => [Firebase-Functions](https://github.com/Abnerpino/firebase-functions)
