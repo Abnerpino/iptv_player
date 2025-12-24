@@ -216,6 +216,7 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para desmarcar como visto un item
     const unmarkItemsAsWatched = (type) => {
         const items = getWatchedItems(type);
         realm.write(() => {
@@ -230,6 +231,7 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para desmarcar como favorito un item
     const unmarkItemsAsFavorite = (type) => {
         const items = getFavoriteItems(type);
         realm.write(() => {
@@ -237,6 +239,15 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para eliminar usuarios
+    const deleteUser = (deviceId) => {
+        realm.write(() => {
+            const usuario = realm.objectForPrimaryKey('Usuario', deviceId); // Obtiene el usuario por el id del dispositivo
+            realm.delete(usuario); // Elimina el usuario de la Base de Datos
+        });
+    };
+
+    // Método para obtener el nombre del modelo (contenido y categorías)
     const getModelName = (type, forCategory = false) => {
         if (forCategory) {
             if (type === 'live') return 'CatsLive';
@@ -262,6 +273,7 @@ export const useStreaming = () => {
         markNotification,
         unmarkItemsAsWatched,
         unmarkItemsAsFavorite,
+        deleteUser,
         getModelName,
     };
 };
