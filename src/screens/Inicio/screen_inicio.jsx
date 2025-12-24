@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import { verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ErrorLogger from '../../services/logger/errorLogger';
@@ -16,6 +17,7 @@ const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
     const { createUser, upsertNotifications, updateUserProps } = useStreaming();
     const usuario = useQuery('Usuario');
+    const messaging = getMessaging();
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de confirmación
     const [errorId, setErrorId] = useState(3); //Estado para manejar el tipo de error (por defecto 3)
 
@@ -101,9 +103,12 @@ const Inicio = ({ navigation }) => {
 
                 // Si todavía no existe localmente el usuario, lo crea
                 if (!usuario[0]) {
+                    const token = await getToken(messaging); // Obtiene el token FCM
+
                     const newUser = {
                         id: '',
                         device_id: deviceId,
+                        fcm_token: token,
                         client_name: '',
                         username: '',
                         user: '',
@@ -130,6 +135,11 @@ const Inicio = ({ navigation }) => {
                 if (response.numId === 2) {
                     //await getInfoAccount();
                     const info = response.data;
+                    // Si la bandera de sincronización no está activa...
+                    if (!info.sync) {
+                        result = { numId: 2, data: null };
+                        return;
+                    }
                     // Si la cuenta del usuario está activa...
                     if (info.active) {
                         const notifications = await obtenerNotificaciones(info.id);
@@ -146,8 +156,7 @@ const Inicio = ({ navigation }) => {
                             purchased_package: info.package
                         });
                         upsertNotifications(notifications);
-                        result = { numId: response.numId, data: null };
-                        //Agregar alguna condición para que haga la petición automatica cada 48h
+                        result = { numId: 2, data: null };
                     } else { // Si la cuenta del usuario está inactiva...
                         updateUserProps(deviceId, {
                             client_name: info.client_name,
