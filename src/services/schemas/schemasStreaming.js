@@ -4,6 +4,7 @@ export const UsuarioSchema = {
     properties: {
         id: 'string?',
         device_id: 'string',
+        fcm_token: 'string',
         client_name: 'string?',
         username: 'string?',
         user: 'string?',
