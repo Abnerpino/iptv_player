@@ -23,6 +23,7 @@ import Serie from "./screens/Serie";
 import {
   UsuarioSchema,
   NotificacionSchema,
+  ResellerSchema,
   CanalSchema,
   PeliculaSchema,
   SerieSchema,
@@ -186,6 +187,7 @@ const App = () => {
       schema={[
         UsuarioSchema,
         NotificacionSchema,
+        ResellerSchema,
         CanalSchema,
         PeliculaSchema,
         SerieSchema,
