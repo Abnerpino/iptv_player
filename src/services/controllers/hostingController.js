@@ -48,12 +48,13 @@ export const validarUsername = async (username) => {
 // Función para verificar (por el id del dispositivo) si un cliente ya existe en la Base de Datos de la Nube
 export const verificarCliente = async (deviceId, forceUpdate = false) => {
     try {
+        const isActive = await AsyncStorage.getItem('is_active'); // Verifica que la cuenta del usuario ya esté activa
         const lastUpdate = await AsyncStorage.getItem('last_user_sync'); // Verifica cuándo fue la última actualización
         const cleanUser = await AsyncStorage.getItem('account_deleted'); // Verifica si el usuario no ha sido borrado en la nube
         const now = new Date().getTime();
 
-        // Si existe un registro de tiempo, no hay indicación para borrar usuario, no fuerza actualización y el tiempo no ha expirado (3 días)...
-        if (lastUpdate && !cleanUser && !forceUpdate && (now - parseInt(lastUpdate) < 259200000)) {
+        // Si el usuario está activo, existe un registro de tiempo, no hay indicación para borrar usuario, no fuerza actualización y el tiempo no ha expirado (3 días)...
+        if (isActive && lastUpdate && !cleanUser && !forceUpdate && (now - parseInt(lastUpdate) < 259200000)) {
             return { numId: 2, data: { sync: false } }; // Termina aquí la función y marca como desactivada la bandera de sincronización
         }
 
@@ -109,6 +110,32 @@ export const obtenerNotificaciones = async (id) => {
     } catch (error) {
         ErrorLogger.log('HostingController - obtenerNotificaciones', error);
         //console.log('Error al obtener las notificaciones: ', error);
+        return null;
+    }
+};
+
+export const obtenerRevendedores = async () => {
+    try {
+        const q = query(collection(db, 'resellers'));
+
+        const querySnapshot = await getDocs(q);
+
+        const resellers = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                bank: data.bank,
+                country_code: data.country_code,
+                email: data.email,
+                name: data.name,
+                number_card: data.number_card,
+                whatsapp: data.whatsapp
+            };
+        });
+
+        return resellers;
+    } catch (error) {
+        console.log('Error al obtener los revendedores: ', error);
         return null;
     }
 };
