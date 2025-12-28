@@ -11,7 +11,6 @@ export const UsuarioSchema = {
         password: 'string?',
         host: 'string?',
         is_registered: 'bool',
-        is_active: 'bool',
         expiration_date: 'string?',
         purchased_package: 'string?',
         device_model: 'string?',
@@ -27,6 +26,20 @@ export const NotificacionSchema = {
         message: 'string',
         visto: 'bool',
         fecha: 'date',
+    },
+};
+
+export const ResellerSchema = {
+    name: 'Reseller',
+    primaryKey: 'id',
+    properties: {
+        id: 'string',
+        bank: 'string',
+        country_code: 'string',
+        email: 'string',
+        name: 'string',
+        number_card: 'string',
+        whatsapp: 'string',
     },
 };
 
