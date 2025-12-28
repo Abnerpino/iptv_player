@@ -185,13 +185,13 @@ const Activation = ({ navigation, route }) => {
         message = usuario[0]?.username;
         break;
       case 2: // Número de tarjeta del proveedor
-        message = selectedReseller.number_card;
+        message = selectedReseller?.number_card;
         break;
       case 3: // Banco del proveedor
-        message = selectedReseller.bank;
+        message = selectedReseller?.bank;
         break;
       case 4: // Nombre del proveedor
-        message = selectedReseller.name;
+        message = selectedReseller?.name;
         break;
       case 5: // Nombre del cliente
         message = usuario[0]?.client_name;
@@ -206,15 +206,15 @@ const Activation = ({ navigation, route }) => {
   };
 
   const getWhatsApp = () => {
-    const code = selectedReseller.country_code;
-    const number = selectedReseller.whatsapp;
-    const formatedNumber = number.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+    const code = selectedReseller?.country_code;
+    const number = selectedReseller?.whatsapp;
+    const formatedNumber = number?.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
     const whatsapp = `(+${code}) ${formatedNumber}`;
     return whatsapp;
   };
 
   const openWhatsApp = async () => {
-    let number = `+${selectedReseller.country_code}${selectedReseller.whatsapp}`;
+    let number = `+${selectedReseller?.country_code}${selectedReseller?.whatsapp}`;
     let message = `${isReactivation ? 'REACTIVACIÓN' : 'ACTIVACIÓN'} DE CUENTA IPTV PLAYER\n\nUsuario: *${usuario[0]?.username}*`;
     let url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 
@@ -318,11 +318,11 @@ const Activation = ({ navigation, route }) => {
                   <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-evenly' }}>
                     <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="credit-card-alt" size={22} color="#FFF" />
-                      <Text style={styles.info}>{selectedReseller.number_card.match(/.{1,4}/g).join(" ")}</Text>
+                      <Text style={styles.info}>{selectedReseller?.number_card.match(/.{1,4}/g).join(" ")}</Text>
                     </Pressable>
                     <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="bank" size={22} color="#FFF" />
-                      <Text style={styles.info}>{selectedReseller.bank}</Text>
+                      <Text style={styles.info}>{selectedReseller?.bank}</Text>
                     </Pressable>
                     {resellers.length > 1 ? (
                       <Dropdown
@@ -339,7 +339,7 @@ const Activation = ({ navigation, route }) => {
                         labelField="name"
                         valueField="id"
                         placeholder='Selecciona un Reseller'
-                        value={selectedReseller.id}
+                        value={selectedReseller?.id}
                         onChange={item => {
                           setSelectedReseller(item);
                         }}
@@ -347,7 +347,7 @@ const Activation = ({ navigation, route }) => {
                     ) : (
                       <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                         <Icon name="vcard" size={22} color="#FFF" />
-                        <Text style={styles.info}>{selectedReseller.name}</Text>
+                        <Text style={styles.info}>{selectedReseller?.name}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -395,7 +395,7 @@ const Activation = ({ navigation, route }) => {
                         labelField="name"
                         valueField="id"
                         placeholder='Selecciona un Reseller'
-                        value={selectedReseller.id}
+                        value={selectedReseller?.id}
                         onChange={item => {
                           setSelectedReseller(item);
                         }}
@@ -403,7 +403,7 @@ const Activation = ({ navigation, route }) => {
                     ) : (
                       <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                         <Icon name="vcard" size={22} color="#FFF" />
-                        <Text style={styles.info}>{selectedReseller.name}</Text>
+                        <Text style={styles.info}>{selectedReseller?.name}</Text>
                       </Pressable>
                     )}
                     <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
