@@ -6,17 +6,20 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
 import Icon5 from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
+import { Dropdown } from 'react-native-element-dropdown';
 import { Linking } from 'react-native';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useQuery } from '@realm/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { validarUsername, registrarCliente, verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
+import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Activation = ({ navigation, route }) => {
   const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
   const usuario = useQuery('Usuario');
-  const { upsertNotifications, updateUserProps } = useStreaming();
+  const { upsertNotifications, updateUserProps, getResellers } = useStreaming();
+  const resellers = getResellers();
   const [name, setName] = useState(''); // Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); // Estado para manejar el nombre de usuario ingresado
   const [error, setError] = useState(''); // Estado para el manejo de los mensajes de error
@@ -24,6 +27,7 @@ const Activation = ({ navigation, route }) => {
   const [timer, setTimer] = useState(0); // Estado para manejar el temporizador
   const [loading, setLoading] = useState(false); // Estado para manejar el modal de carga
   const [keyboardPadding, setKeyboardPadding] = useState(0); // Estado para manejar el valor del padding cuando se muestra/oculta el teclado
+  const [selectedReseller, setSelectedReseller] = useState(resellers[0]); // Estado para manejar el reseller seleccionado
 
   const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
   const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
@@ -128,6 +132,7 @@ const Activation = ({ navigation, route }) => {
       password: '',
       host: '',
       active: false,
+      reactivation: false,
       force_update: false,
       fcm_token: usuario[0]?.fcm_token,
       expiration: '',
@@ -149,17 +154,18 @@ const Activation = ({ navigation, route }) => {
     if (response.numId === 2) { //Si devuelve una respuesta valida...
       const info = response.data;
       if (info.active) { //Si la cuenta ya está activa...
+        await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
         const notifications = await obtenerNotificaciones(info.id);
         updateUserProps(usuario[0]?.device_id, {
           id: info.id,
           user: info.user,
           password: info.password,
           host: info.host,
-          is_active: info.active,
           expiration_date: info.expiration,
           purchased_package: info.package
         });
         upsertNotifications(notifications);
+        actualizarCliente(info.id, { reactivation: true }); // Marca la reactivación como verdadera para la siguiente consulta en la nube
         // Envía 'true' al Menú para forzar la actualización del contenido en caso de que el contador del tiempo falle
         navigation.replace('Menu', { updateNow: true });
       } else { //Si la cuenta no está activa...
@@ -179,13 +185,13 @@ const Activation = ({ navigation, route }) => {
         message = usuario[0]?.username;
         break;
       case 2: // Número de tarjeta del proveedor
-        message = '4152314370922968';
+        message = selectedReseller.number_card;
         break;
       case 3: // Banco del proveedor
-        message = 'BBVA';
+        message = selectedReseller.bank;
         break;
       case 4: // Nombre del proveedor
-        message = 'Abner Pino Federico';
+        message = selectedReseller.name;
         break;
       case 5: // Nombre del cliente
         message = usuario[0]?.client_name;
@@ -199,8 +205,16 @@ const Activation = ({ navigation, route }) => {
     showToast(2, '¡Información copiada al portapapeles!');
   };
 
+  const getWhatsApp = () => {
+    const code = selectedReseller.country_code;
+    const number = selectedReseller.whatsapp;
+    const formatedNumber = number.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+    const whatsapp = `(+${code}) ${formatedNumber}`;
+    return whatsapp;
+  };
+
   const openWhatsApp = async () => {
-    let number = '+527421132908';
+    let number = `+${selectedReseller.country_code}${selectedReseller.whatsapp}`;
     let message = `${isReactivation ? 'REACTIVACIÓN' : 'ACTIVACIÓN'} DE CUENTA IPTV PLAYER\n\nUsuario: *${usuario[0]?.username}*`;
     let url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 
@@ -301,19 +315,41 @@ const Activation = ({ navigation, route }) => {
                 <>
                   <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Su cuenta se encuentra desactivada! Siga las siguientes instrucciones para reactivarla:</Text>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Realice el pago correspondiente por transferencia a la siguiente cuenta.</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                  <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-evenly' }}>
                     <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="credit-card-alt" size={22} color="#FFF" />
-                      <Text style={styles.info}>4152 3143 7092 2968</Text>
+                      <Text style={styles.info}>{selectedReseller.number_card.match(/.{1,4}/g).join(" ")}</Text>
                     </Pressable>
                     <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast(3, 'Presione para copiar')}>
                       <Icon name="bank" size={22} color="#FFF" />
-                      <Text style={styles.info}>BBVA</Text>
+                      <Text style={styles.info}>{selectedReseller.bank}</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
-                      <Icon name="vcard" size={22} color="#FFF" />
-                      <Text style={styles.info}>Abner Pino Federico</Text>
-                    </Pressable>
+                    {resellers.length > 1 ? (
+                      <Dropdown
+                        style={styles.dropdown}
+                        selectedTextStyle={styles.info}
+                        selectedTextProps={{ numberOfLines: 1 }}
+                        containerStyle={{ borderRadius: 5 }}
+                        itemTextStyle={{ color: 'black' }}
+                        activeColor='rgba(0,255,255,0.25)'
+                        renderLeftIcon={() => (
+                          <Icon name="vcard" size={22} color="#FFF" />
+                        )}
+                        data={resellers}
+                        labelField="name"
+                        valueField="id"
+                        placeholder='Selecciona un Reseller'
+                        value={selectedReseller.id}
+                        onChange={item => {
+                          setSelectedReseller(item);
+                        }}
+                      />
+                    ) : (
+                      <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                        <Icon name="vcard" size={22} color="#FFF" />
+                        <Text style={styles.info}>{selectedReseller.name}</Text>
+                      </Pressable>
+                    )}
                   </View>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>2. En el concepto (o motivo) del pago, escriba su nombre de usuario o su nombre completo.</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
@@ -329,7 +365,7 @@ const Activation = ({ navigation, route }) => {
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Tome captura del comprobante de pago y envíela al siguiente número de WhatsApp:</Text>
                   <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
                     <Icon name="whatsapp" size={22} color="#FFF" />
-                    <Text style={styles.info}>(+52) 742 113 2908</Text>
+                    <Text style={styles.info}>{getWhatsApp()}</Text>
                   </Pressable>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>4. Una vez que se le indique que su cuenta fue reactivada, pulse el botón 'Continuar'.</Text>
                 </>
@@ -343,10 +379,38 @@ const Activation = ({ navigation, route }) => {
                     <Text style={styles.info}>{usuario[0]?.username}</Text>
                   </Pressable>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíelo al siguiente WhatsApp (pulse para abrir el chat) y siga las indicaciones que se le den.</Text>
-                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
-                    <Icon name="whatsapp" size={22} color="#FFF" />
-                    <Text style={styles.info}>(+52) 742 113 2908</Text>
-                  </Pressable>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                    {resellers.length > 1 ? (
+                      <Dropdown
+                        style={styles.dropdown}
+                        selectedTextStyle={styles.info}
+                        selectedTextProps={{ numberOfLines: 1 }}
+                        containerStyle={{ borderRadius: 5 }}
+                        itemTextStyle={{ color: 'black' }}
+                        activeColor='rgba(0,255,255,0.25)'
+                        renderLeftIcon={() => (
+                          <Icon name="vcard" size={22} color="#FFF" />
+                        )}
+                        data={resellers}
+                        labelField="name"
+                        valueField="id"
+                        placeholder='Selecciona un Reseller'
+                        value={selectedReseller.id}
+                        onChange={item => {
+                          setSelectedReseller(item);
+                        }}
+                      />
+                    ) : (
+                      <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                        <Icon name="vcard" size={22} color="#FFF" />
+                        <Text style={styles.info}>{selectedReseller.name}</Text>
+                      </Pressable>
+                    )}
+                    <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
+                      <Icon name="whatsapp" size={22} color="#FFF" />
+                      <Text style={styles.info}>{getWhatsApp()}</Text>
+                    </Pressable>
+                  </View>
                   <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Una vez que se le indique que su cuenta fue activada, pulse el botón 'Continuar'.</Text>
                 </>
               )}
@@ -440,6 +504,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 5,
+  },
+  dropdown: {
+    width: '30%',
+    borderWidth: 3,
+    borderRadius: 7.5,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(80,80,100,0.5)'
   },
   info: {
     fontSize: 18,
