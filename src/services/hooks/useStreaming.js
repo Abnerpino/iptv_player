@@ -34,6 +34,20 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para crear/actualizar resellers
+    const upsertResellers = (newResellers) => {
+        realm.write(() => {
+            const allReseller = realm.objects('Reseller');
+            const newResellersIds = newResellers.map(item => item.id); // Genere un nuevo arreglo de solo los id´s de los nuevos resellers
+            const missingResellers = allReseller.filtered(`NOT (id IN $0)`, newResellersIds); // Filtra los resellers actuales que ya no se encuentran en los nuevos resellers
+            realm.delete(missingResellers); // Elimina los resellers faltantes
+
+            newResellers.forEach(item => {
+                realm.create('Reseller', item, 'modified');
+            });
+        });
+    };
+
     // Método para crear/actualizar items de contenido
     const upsertContentItems = (type, newItems) => {
         const model = getModelName(type);
@@ -129,7 +143,7 @@ export const useStreaming = () => {
         return items.filtered('visto == true');
     };
 
-    // Método para obtener los items vistos de una colección, ordenados por la propiedad 'num
+    // Método para obtener los items vistos de una colección, ordenados por la propiedad 'num'
     const getFavoriteItems = (type) => {
         const model = getModelName(type);
         const items = realm.objects(model).sorted('num');
@@ -141,6 +155,12 @@ export const useStreaming = () => {
         const model = getModelName('Serie');
         const serie = realm.objectForPrimaryKey(model, idSerie);
         return serie.temporadas[idxSeason].episodios[idxEpisode];
+    };
+
+    // Método para obtener los resellers, ordenados por la propiedad 'name'
+    const getResellers = () => {
+        const resellers = realm.objects('Reseller').sorted('name');
+        return resellers;
     };
 
     // Método para actualizar las propiedades del usuario
@@ -262,10 +282,12 @@ export const useStreaming = () => {
     return {
         createUser,
         upsertNotifications,
+        upsertResellers,
         syncStreamingData,
         getWatchedItems,
         getFavoriteItems,
         getLastPlayedEpisode,
+        getResellers,
         updateUserProps,
         updateProps,
         updateSeasonProps,
