@@ -9,13 +9,13 @@ import { useQuery } from '@realm/react';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { getMessaging, getToken } from '@react-native-firebase/messaging';
-import { verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
+import { verificarCliente, actualizarCliente, obtenerNotificaciones, obtenerRevendedores } from '../../services/controllers/hostingController';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ErrorLogger from '../../services/logger/errorLogger';
 
 const Inicio = ({ navigation }) => {
     const { getInfoAccount } = useXtream();
-    const { createUser, upsertNotifications, updateUserProps } = useStreaming();
+    const { createUser, upsertNotifications, upsertResellers, updateUserProps } = useStreaming();
     const usuario = useQuery('Usuario');
     const messaging = getMessaging();
     const [modalVisible, setModalVisible] = useState(false); //Estado para manejar el modal de confirmación
@@ -96,15 +96,17 @@ const Inicio = ({ navigation }) => {
                 }
 
                 // Si hay internet, procede con la lógica normal
-                const deviceId = await DeviceInfo.getUniqueId();
+                const deviceId = await DeviceInfo.getUniqueId(); // Obtiene el ID unico del dispositivo
                 console.log('deviceId: ', deviceId);
-                const response = await verificarCliente(deviceId);
-                result = response; // guarda el resultado de la petición
+                const response = await verificarCliente(deviceId); // Verifica si existe el cliente en la base de datos de la nube
+                result = response; // Guarda el resultado de la petición
 
-                // Si todavía no existe localmente el usuario, lo crea
+                // Si todavía no existe localmente el usuario...
                 if (!usuario[0]) {
                     const token = await getToken(messaging); // Obtiene el token FCM
+                    const resellers = await obtenerRevendedores(); // Obtiene los resellers de la base de datos en la nube
 
+                    // Genera el objeto con la información del usuario
                     const newUser = {
                         id: '',
                         device_id: deviceId,
@@ -115,14 +117,20 @@ const Inicio = ({ navigation }) => {
                         password: '',
                         host: '',
                         is_registered: false,
-                        is_active: false,
                         expiration_date: '',
                         purchased_package: '',
                         device_model: DeviceInfo.getModel(),
                         android_version: DeviceInfo.getSystemVersion()
                     }
 
-                    createUser(newUser);
+                    createUser(newUser); // Crea el usuario
+                    upsertResellers(resellers); // Crea los resellers
+
+                    // Si el usuario ya existe en la nube...
+                    if (response.numId === 2) {
+                        // Actualiza su token FCM
+                        actualizarCliente(response.data.id, { fcm_token: token });
+                    }
                 }
 
                 // Si el usuario no existe en la nube...
@@ -134,15 +142,17 @@ const Inicio = ({ navigation }) => {
                 // Si el usuario ya existe en la nube...
                 if (response.numId === 2) {
                     //await getInfoAccount();
-                    const info = response.data;
-                    // Si la bandera de sincronización no está activa...
+                    const info = response.data; // Obtiene la información del usuario
+                    // Si la bandera de sincronización no está activa, ya existe el usuario localmente y está registrado...
                     if (!info.sync) {
-                        result = { numId: 2, data: null };
-                        return;
+                        result = { numId: 2, data: null }; // Actualiza el resultado
+                        return; // Sale de la función
                     }
                     // Si la cuenta del usuario está activa...
                     if (info.active) {
-                        const notifications = await obtenerNotificaciones(info.id);
+                        await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
+                        const notifications = await obtenerNotificaciones(info.id); // Obtiene las notificaciones de la base de datos en la nube
+                        // Actualiza las propiedades del usuario en la base de datos local
                         updateUserProps(deviceId, {
                             id: info.id,
                             client_name: info.client_name,
@@ -151,20 +161,28 @@ const Inicio = ({ navigation }) => {
                             password: info.password,
                             host: info.host,
                             is_registered: true,
-                            is_active: info.active,
                             expiration_date: info.expiration,
                             purchased_package: info.package
                         });
-                        upsertNotifications(notifications);
-                        result = { numId: 2, data: null };
+                        upsertNotifications(notifications); // Actualiza las notificaciones en la base de datos local 
+                        result = { numId: 2, data: null }; // Actualiza el resultado
                     } else { // Si la cuenta del usuario está inactiva...
+                        await AsyncStorage.removeItem('is_active'); // Borra la activación del usuario
+                        const resellers = await obtenerRevendedores(); // Obtiene los resellers de la base de datos en la nube
+                        // Actualiza las propiedades del usuario en la base de datos local
                         updateUserProps(deviceId, {
                             client_name: info.client_name,
                             username: info.username,
                             is_registered: true,
-                            is_active: info.active,
                         });
-                        result = { numId: 3, data: null };
+                        upsertResellers(resellers); // Actualiza los resellers en la base de datos local
+                        // Actualiza el resultado
+                        result = {
+                            numId: 3,
+                            data: {
+                                reactivation: info.reactivation
+                            }
+                        };
                     }
                 }
             } catch (error) {
@@ -203,7 +221,7 @@ const Inicio = ({ navigation }) => {
                     navigation.replace('Menu', { updateNow: false }); // Ir a Menú
                     break;
                 case 3:
-                    navigation.replace('Activation', { reactivation: true }); // Ir a Activación para 'reactivar'
+                    navigation.replace('Activation', { reactivation: resultado.data.reactivation }); // Ir a Activación para 'activar' o 'reactivar', según sea el caso
                     break;
                 case 0:
                     ErrorLogger.log('Inicio - manejarResultado (errorId: 4)', 'Sin conexión a Internet.');
