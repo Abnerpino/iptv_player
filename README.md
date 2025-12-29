@@ -61,9 +61,9 @@ You must create your project in Firebase (and your database in Firestore) and li
 
 => Database: 'default'
 
-=> Collections: 'clients', 'notifications'and 'resellers'
+=> Collections: 'clients', 'notifications', 'resellers' and 'keys'.
 
-=> Fields: The 'clients' fields are specified in the 'handleRegisterDevice' function of 'screen_activation.jsx' (the 'force_update' field triggers a 'silent notification' that forces the update of client information). The 'notifications' fields are two: 'clients_id' (to store the IDs of the clients to whom you want to show the notification), of type Array of Strings, and 'message' (to store the notification message), of type String. The 'resellers' fields are six: 'bank', 'country_code', 'email', 'name', 'number_card' and 'whatsapp', all of type String.
+=> Fields: The 'clients' fields are specified in the 'handleRegisterDevice' function of 'screen_activation.jsx' (the 'force_update' field triggers a 'silent notification' that forces the update of client information). The 'notifications' fields are two: 'clients_id' (to store the IDs of the clients to whom you want to show the notification), of type Array of Strings, and 'message' (to store the notification message), of type String. The 'resellers' fields are six: 'bank', 'country_code', 'email', 'name', 'number_card' and 'whatsapp', all of type String. The 'keys' fields are two: 'key' and 'type' ('TMDB' for example), both of type String.
 
 You must download the 'google-services.json' file generated with your FireStore configurations and add it to the 'android/app/' folder of your project.
 
