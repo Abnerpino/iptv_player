@@ -114,6 +114,7 @@ export const obtenerNotificaciones = async (id) => {
     }
 };
 
+// Función para obtener los revendedores de la Base de Datos en la Nube
 export const obtenerRevendedores = async () => {
     try {
         const q = query(collection(db, 'resellers'));
@@ -135,7 +136,31 @@ export const obtenerRevendedores = async () => {
 
         return resellers;
     } catch (error) {
-        console.log('Error al obtener los revendedores: ', error);
+        ErrorLogger.log('HostingController - obtenerRevendedores', error);
+        //console.log('Error al obtener los revendedores: ', error);
+        return null;
+    }
+};
+
+// Función para obtener las keys (TMDB API) de la Base de Datos en la Nube
+export const obtenerKeys = async (type) => {
+    try {
+        const q = query(
+            collection(db, 'keys'),
+            where('type', '==', type)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        const keys = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return data.key;
+        });
+
+        return keys;
+    } catch (error) {
+        ErrorLogger.log('HostingController - obtenerKeys', error);
+        //console.log('Error al obtener las keys:', error);
         return null;
     }
 };
