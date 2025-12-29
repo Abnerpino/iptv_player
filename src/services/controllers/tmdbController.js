@@ -1,9 +1,7 @@
 import ErrorLogger from "../logger/errorLogger";
 
-const apiKey = 'Aquí tu Key de la API TMDB';
-
 //Obtiene la informacion de una pelicula
-export const getDataMovie = async (title, year, release) => {
+export const getDataMovie = async (apiKey, title, year, poster, release) => {
     const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
 
     try {
@@ -11,9 +9,10 @@ export const getDataMovie = async (title, year, release) => {
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
-        const movie = searchData.results.find(result => release === result.release_date); //Selecciona la que coincida con la fecha de estreno
+        //Selecciona la que coincida con el poster o la fecha de estreno
+        const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date);
         if (movie) {
-            const info = await getDataMovieById(movie.id);
+            const info = await getDataMovieById(movie.id, apiKey);
             return info;
         } else {
             return null;
@@ -24,10 +23,10 @@ export const getDataMovie = async (title, year, release) => {
     }
 };
 
-const getDataMovieById = async (tmdbID) => {
+const getDataMovieById = async (tmdbID, apiKey) => {
     try {
-        const detalles = await getDetailsMovie(tmdbID); //Obtiene solo los detalles necesarios
-        const creditos = await getCreditsMovie(tmdbID); //Obtiene solo los creditos necesarios
+        const detalles = await getDetailsMovie(tmdbID, apiKey); //Obtiene solo los detalles necesarios
+        const creditos = await getCreditsMovie(tmdbID, apiKey); //Obtiene solo los creditos necesarios
         return {
             tmdb_id: detalles.tmdb_id,
             backdrop_path: detalles.backdrop_path,
@@ -46,7 +45,7 @@ const getDataMovieById = async (tmdbID) => {
 };
 
 //Obtiene la informacion de una serie
-export const getDataSerie = async (title, year, release) => {
+export const getDataSerie = async (apiKey, title, year, release) => {
     const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
 
     try {
@@ -56,7 +55,7 @@ export const getDataSerie = async (title, year, release) => {
 
         const serie = searchData.results.find(result => release === result.first_air_date); //Selecciona la que coincida con la fecha de estreno
         if (serie) {
-            const info = await getDataSerieById(serie.id);
+            const info = await getDataSerieById(serie.id, apiKey);
             return info;
         } else {
             return null;
@@ -67,10 +66,10 @@ export const getDataSerie = async (title, year, release) => {
     }
 };
 
-const getDataSerieById = async (tmdbID) => {
+const getDataSerieById = async (tmdbID, apiKey) => {
     try {
-        const detalles = await getDetailsSerie(tmdbID); //Obtiene solo los detalles necesarios
-        const creditos = await getCreditsSerie(tmdbID); //Obtiene solo los creditos necesarios
+        const detalles = await getDetailsSerie(tmdbID, apiKey); //Obtiene solo los detalles necesarios
+        const creditos = await getCreditsSerie(tmdbID, apiKey); //Obtiene solo los creditos necesarios
         return {
             tmdb_id: detalles.tmdb_id,
             original_name: detalles.original_name,
@@ -88,7 +87,7 @@ const getDataSerieById = async (tmdbID) => {
 };
 
 //Se buscan los detalles de la pelicula por su id
-const getDetailsMovie = async (id) => {
+const getDetailsMovie = async (id, apiKey) => {
     const detailsUrl = `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=es-MX`;
 
     try {
@@ -113,7 +112,7 @@ const getDetailsMovie = async (id) => {
 };
 
 //Se buscan los detalles de la serie por su id
-const getDetailsSerie = async (id) => {
+const getDetailsSerie = async (id, apiKey) => {
     const detailsUrl = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
 
     try {
@@ -137,7 +136,7 @@ const getDetailsSerie = async (id) => {
 };
 
 //Se buscan los creditos de la pelicula por su id
-const getCreditsMovie = async (id) => {
+const getCreditsMovie = async (id, apiKey) => {
     const creditsUrl = `https://api.themoviedb.org/3/movie/${id}/credits?api_key=${apiKey}&language=es-MX`;
 
     try {
@@ -164,7 +163,7 @@ const getCreditsMovie = async (id) => {
 };
 
 //Se buscan los creditos de la serie por su id
-const getCreditsSerie = async (id) => {
+const getCreditsSerie = async (id, apiKey) => {
     const creditsUrl = `https://api.themoviedb.org/3/tv/${id}/credits?api_key=${apiKey}&language=es-MX`;
 
     try {
