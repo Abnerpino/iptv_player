@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
@@ -257,6 +258,7 @@ const Serie = ({ navigation, route }) => {
                                 <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, styles.subStyleButton]}>
                                     <Icon name="list-alt" size={22} color="white" />
                                     <Text style={styles.textButton}>{`Temporada: ${selectedSeason.numero}`}</Text>
+                                    <Icon2 name='keyboard-arrow-down' size={22} color="white" />
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, styles.subStyleButton]}>
                                     <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
@@ -480,7 +482,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
-        paddingLeft: 5
+        paddingHorizontal: 5
     },
     containerFlatList: {
         flexDirection: 'row',
