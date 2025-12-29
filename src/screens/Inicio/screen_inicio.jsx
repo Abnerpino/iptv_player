@@ -9,7 +9,7 @@ import { useQuery } from '@realm/react';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { getMessaging, getToken } from '@react-native-firebase/messaging';
-import { verificarCliente, actualizarCliente, obtenerNotificaciones, obtenerRevendedores } from '../../services/controllers/hostingController';
+import { verificarCliente, actualizarCliente, obtenerNotificaciones, obtenerRevendedores, obtenerKeys } from '../../services/controllers/hostingController';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ErrorLogger from '../../services/logger/errorLogger';
 
@@ -105,6 +105,7 @@ const Inicio = ({ navigation }) => {
                 if (!usuario[0]) {
                     const token = await getToken(messaging); // Obtiene el token FCM
                     const resellers = await obtenerRevendedores(); // Obtiene los resellers de la base de datos en la nube
+                    const keys = await obtenerKeys('TMDB'); // Obtiene las keys de la API de TMDB en la base de datos de la nube
 
                     // Genera el objeto con la información del usuario
                     const newUser = {
@@ -125,6 +126,11 @@ const Inicio = ({ navigation }) => {
 
                     createUser(newUser); // Crea el usuario
                     upsertResellers(resellers); // Crea los resellers
+
+                    // Si hay al menos una key en el arreglo...
+                    if (keys.length > 0) {
+                        await AsyncStorage.setItem('key_tmdb_api', keys[0]); // Guarda la primera key en el almacenamiento asíncrono
+                    }
 
                     // Si el usuario ya existe en la nube...
                     if (response.numId === 2) {
