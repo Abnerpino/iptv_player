@@ -104,10 +104,11 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start'
     },
     overview: {
+        height: 40,
         color: '#ddd',
         fontSize: 14,
         textAlign: 'justify',
-        paddingTop: 5
+        textAlignVertical: 'center',
     }
 });
 
