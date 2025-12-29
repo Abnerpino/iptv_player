@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ProgressBar from '../ProgressBar/progress_bar';
@@ -18,6 +19,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
 
     const handleNavigateToScreen = useCallback(async () => {
         hideMessage();
+        const apiKey = await AsyncStorage.getItem('key_tmdb_api'); // Obtiene la key de la API de TMDB del almacenamiento asíncrono
         if (tipo === 'live') {
             navigation.navigate('Canal', { idContent: item.stream_id, idCategory, username });
         }
@@ -25,7 +27,8 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.tmdb_id) {
-                    const info = await getDataMovie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
+                    const poster = item.stream_icon.split('/').pop(); // Obtiene la última parte de la url del poster
+                    const info = await getDataMovie(apiKey, item.title, item.year, `/${poster}`, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
@@ -57,7 +60,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.saga && !item.tmdb_id) {
-                    const info = await getDataSerie(item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
+                    const info = await getDataSerie(apiKey, item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
