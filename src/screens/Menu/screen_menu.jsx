@@ -16,6 +16,7 @@ import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ModalError from '../../components/Modals/modal_error';
 import ModalLoading from '../../components/Modals/modal_loading';
 import ErrorLogger from '../../services/logger/errorLogger';
+import { removerClienteDeNotificaciones } from '../../services/controllers/hostingController';
 
 const Menu = ({ navigation, route }) => {
     const updateNow = route.params.updateNow; // Bandera que indica si se debe actualizar el contenido ahora o no
@@ -333,7 +334,14 @@ const Menu = ({ navigation, route }) => {
                     <ModalNotifications
                         notificaciones={notificaciones}
                         openModal={modalNVisible}
-                        handleCloseModal={() => setModalNVisible(false)}
+                        handleCloseModal={async (idsMarcados) => {
+                            // Si alguna notificación fue marcada como vista...
+                            if (idsMarcados && idsMarcados.length > 0) {
+                                // Elimina el id del cliente de la notificación en la nube
+                                await removerClienteDeNotificaciones(idsMarcados, usuario[0]?.id);
+                            }
+                            setModalNVisible(false); // Oculta el modal
+                        }}
                         expiracion={usuario[0]?.expiration_date}
                     />
                 )}
