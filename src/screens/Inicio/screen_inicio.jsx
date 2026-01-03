@@ -148,6 +148,12 @@ const Inicio = ({ navigation }) => {
                 // Si el usuario ya existe en la nube...
                 if (response.numId === 2) {
                     //await getInfoAccount();
+                    const id = usuario[0].id || await AsyncStorage.getItem('firestore_client_id'); // Obtiene el id del cliente en la nube
+                    // Si existe el id...
+                    if (id) {
+                        const notifications = await obtenerNotificaciones(id, 'other'); // Obtiene las notificaciones de la base de datos en la nube
+                        upsertNotifications(notifications); // Actualiza las notificaciones en la base de datos local
+                    }
                     const info = response.data; // Obtiene la información del usuario
                     // Si la bandera de sincronización no está activa, ya existe el usuario localmente y está registrado...
                     if (!info.sync) {
@@ -157,7 +163,6 @@ const Inicio = ({ navigation }) => {
                     // Si la cuenta del usuario está activa...
                     if (info.active) {
                         await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
-                        const notifications = await obtenerNotificaciones(info.id); // Obtiene las notificaciones de la base de datos en la nube
                         // Actualiza las propiedades del usuario en la base de datos local
                         updateUserProps(deviceId, {
                             id: info.id,
@@ -170,7 +175,6 @@ const Inicio = ({ navigation }) => {
                             expiration_date: info.expiration,
                             purchased_package: info.package
                         });
-                        upsertNotifications(notifications); // Actualiza las notificaciones en la base de datos local 
                         result = { numId: 2, data: null }; // Actualiza el resultado
                     } else { // Si la cuenta del usuario está inactiva...
                         await AsyncStorage.removeItem('is_active'); // Borra la activación del usuario
