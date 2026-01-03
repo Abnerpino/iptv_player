@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, getDocs, query, where, limit, doc } from '@react-native-firebase/firestore';
+import { collection, addDoc, updateDoc, getDocs, query, where, limit, doc, arrayUnion, arrayRemove } from '@react-native-firebase/firestore';
 import db from '../hosting/firebase';
 import ErrorLogger from '../logger/errorLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,11 +86,61 @@ export const verificarCliente = async (deviceId, forceUpdate = false) => {
     }
 };
 
-// Función para obtener las notificaciones de la Base de Datos en la Nube
-export const obtenerNotificaciones = async (id) => {
+// Función para agregar clientes (por su id) a las notificaciones según su tipo
+export const agregarClienteANotificaciones = async (type, clientId) => {
     try {
         const q = query(
             collection(db, 'notifications'),
+            where('type', '==', type)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        const notificationsIds = querySnapshot.docs.map(doc => {
+            return doc.id;
+        });
+
+        for (const notificationId of notificationsIds) {
+            const docRef = doc(db, 'notifications', notificationId);
+            await updateDoc(docRef, {
+                clients_id: arrayUnion(clientId)
+            });
+        }
+    } catch (error) {
+        ErrorLogger.log('HostingController - agregarClienteANotificaciones', error);
+        //console.log('Error al agregar cliente a las notificaciones:', error);
+    }
+};
+
+// Función para remover clientes (por su id) de las notificaciones
+export const removerClienteDeNotificaciones = async (notificationsIds, clientId) => {
+    try {
+        for (const notificationId of notificationsIds) {
+            const docRef = doc(db, 'notifications', notificationId);
+            await updateDoc(docRef, {
+                clients_id: arrayRemove(clientId)
+            });
+        }
+    } catch (error) {
+        ErrorLogger.log('HostingController - removerClienteDeNotificaciones', error);
+        //console.log('Error al remover cleinte de las notificaciones:', error);
+    }
+};
+
+// Función para obtener las notificaciones de la Base de Datos en la Nube
+export const obtenerNotificaciones = async (id, type) => {
+    try {
+        const lastUpdate = await AsyncStorage.getItem('last_notifications_sync'); // Verifica cuándo fue la última actualización de notificaciones
+        const now = new Date().getTime();
+
+        // Si no son notificaciones iniciales, existe un registro de tiempo y el tiempo no ha expirado (3 días)...
+        if (type !== 'initial' && lastUpdate && (now - parseInt(lastUpdate) < 259200000)) {
+            return []; // Termina aquí la función y devuelve un array vacío
+        }
+
+        const q = query(
+            collection(db, 'notifications'),
+            where('type', '==', type),
             where('clients_id', 'array-contains', id)
         );
 
@@ -102,9 +152,13 @@ export const obtenerNotificaciones = async (id) => {
                 id: doc.id,
                 message: data.message,
                 visto: false,
-                fecha: new Date()
+                fecha: new Date(),
+                fecha_visto: null
             };
         });
+
+        // Guarda la nueva fecha de actualización
+        await AsyncStorage.setItem('last_notifications_sync', now.toString());
 
         return notifications;
     } catch (error) {
