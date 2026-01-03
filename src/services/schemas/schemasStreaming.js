@@ -26,6 +26,7 @@ export const NotificacionSchema = {
         message: 'string',
         visto: 'bool',
         fecha: 'date',
+        timestamp: 'string?',
     },
 };
 
