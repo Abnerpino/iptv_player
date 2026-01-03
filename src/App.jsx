@@ -112,13 +112,22 @@ const AppContent = () => {
         const reason = remoteMessage.data?.reason;
 
         switch (action) {
+          case 'create_client_account':
+            await AsyncStorage.setItem('firestore_client_id', reason);
+            console.log('Id del cliente recibido por solicitud remota.');
+            break;
           case 'refresh_user_data': // Si recibe el aviso de que se actualizó la información del usuario en la nube...
             await AsyncStorage.removeItem('last_user_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
             console.log('Caché invalidada por solicitud remota.');
             break;
           case 'erase_user_data': // Si recibe el aviso de que se eliminó la información del usuario en la nube...
             await AsyncStorage.setItem('account_deleted', reason); // Establece la "razón" para que la proxima vez que se inicie la app, se elimine el usuario
-            console.log(`Razón "${reason}" establecida por solicitud remota.`)
+            console.log(`Razón "${reason}" establecida por solicitud remota.`);
+            break;
+          case 'refresh_user_notifications': // Si recibe el aviso de que se actualizaron las notificaiones del usuario en la nube...
+            await AsyncStorage.removeItem('last_notifications_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
+            console.log('Caché de Notificaciones invalidada por solicitud remota.');
+            break;
           default:
             break;
         }
