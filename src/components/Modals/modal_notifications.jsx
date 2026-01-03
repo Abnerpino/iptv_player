@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useStreaming } from '../../services/hooks/useStreaming';
@@ -6,12 +6,27 @@ import ItemNotification from '../Items/item_notification';
 
 const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expiracion }) => {
     const { markNotification } = useStreaming();
+    // Referencia para almacenar los IDs marcados en esta sesión
+    const markedIdsRef = useRef([]);
+
+    // Reinicia el array cada vez que se abre el modal
+    useEffect(() => {
+        if (openModal) {
+            markedIdsRef.current = [];
+        }
+    }, [openModal]);
+
+    // Función interna para cerrar el modal y pasar los IDs al Menú
+    const onClose = () => {
+        // Ejecuta la función del Menú pasando el array de IDs (vacío o con datos)
+        handleCloseModal(markedIdsRef.current);
+    };
 
     // useEffect para el manejo del botón físico "Atrás" de Android
     useEffect(() => {
         const onBackPress = () => {
             if (openModal) {
-                handleCloseModal();
+                onClose();
                 return true;
             }
             return false;
@@ -22,9 +37,10 @@ const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expir
         return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
     }, [openModal, handleCloseModal]);
 
-    // Funcion para controlar las notificaciones que ya han sido vistas (se debe de presionar sobre la notificación para que se considere vista)
+    // Funcion para manejar las notificaciones que ya han sido vistas (se debe de presionar sobre la notificación para que se considere vista)
     function verNotificacion(idNotificacion) {
-        markNotification(idNotificacion);
+        markedIdsRef.current.push(idNotificacion); // Agrega el id al array temporal
+        markNotification(idNotificacion); // Marca la notificación como vista en la base de datos local
     }
 
     // Si el modal no está abierto, no renderiza nada
@@ -32,14 +48,14 @@ const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expir
 
     return (
         <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground} activeOpacity={1} onPressOut={handleCloseModal}>
+            <View style={styles.touchableBackground}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
                             <Icon name="list-alt" size={27} color="#333" />
                             <Text style={styles.textHeader}>NOTIFICACIONES</Text>
                         </View>
-                        <TouchableOpacity onPress={handleCloseModal}>
+                        <TouchableOpacity onPress={onClose}>
                             <Icon name="window-close" size={27} color="red" />
                         </TouchableOpacity>
                     </View>
