@@ -14,22 +14,20 @@ export const useStreaming = () => {
     // Método para crear/actualizar notificaciones
     const upsertNotifications = (newNotifications) => {
         realm.write(() => {
-            const allNotifications = realm.objects('Notificacion');
-            const newNotificationsIds = newNotifications.map(item => item.id); // Genere un nuevo arreglo de solo los id´s de las nuevas notificaciones
-            const missingNotifications = allNotifications.filtered(`NOT (id IN $0)`, newNotificationsIds); // Filtra las notificaciones actuales que ya no se encuentran en las nuevas notificaciones
-            realm.delete(missingNotifications); // Elimina las notificaciones faltantes
+            const allNotifications = realm.objects('Notificacion'); // Obtiene todas las notificaciones
+            const now = new Date().getTime(); // Marca de tiempo actual
+            // Genera un nuevo arreglo de solo los id´s de las notificaciones expiradas 
+            const expiredNotificationsIds = allNotifications.map(item => {
+                // Si la notificación fue vista hace más de 3 días...
+                if (item.visto && (now - parseInt(item.timestamp) > 259200000)) {
+                    return item.id; // Regresa solo el id de la notificación
+                }
+            });
+            const expiredNotifications = allNotifications.filtered('id IN $0', expiredNotificationsIds); // Filtra las notificaciones expiradas del resto de notificaciones
+            realm.delete(expiredNotifications); // Elimina las notificaciones expiradas
 
             newNotifications.forEach(item => {
-                const oldNotification = realm.objectForPrimaryKey('Notificacion', item.id);
-                let dataToSave = { ...item };
-
-                // Preserva la propiedad 'visto' y 'fecha' de la notificación solo si el mensaje es el mismo
-                if (oldNotification && dataToSave.message === oldNotification.message) {
-                    dataToSave.visto = oldNotification.visto;
-                    dataToSave.fecha = oldNotification.fecha;
-                }
-
-                realm.create('Notificacion', dataToSave, 'modified');
+                realm.create('Notificacion', item, 'modified'); // Actualiza la notificación si existe, si no, crea la notificación
             });
         });
     };
@@ -232,6 +230,7 @@ export const useStreaming = () => {
             const item = realm.objectForPrimaryKey('Notificacion', id);
             if (item) {
                 item.visto = true;
+                item.timestamp = new Date().getTime().toString();
             }
         });
     };
