@@ -12,7 +12,7 @@ import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useQuery } from '@realm/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, obtenerNotificaciones } from '../../services/controllers/hostingController';
+import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, agregarClienteANotificaciones, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
 
 const Activation = ({ navigation, route }) => {
@@ -148,14 +148,15 @@ const Activation = ({ navigation, route }) => {
   const validateActivation = async () => {
     hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
-    const response = await verificarCliente(usuario[0]?.device_id, true); //Consultamos la información del cliente para verficar su activación
+    const response = await verificarCliente(usuario[0]?.device_id, true); //Consulta la información del cliente para verficar su activación
     handleFinishLoading?.(); // Termina el modal de carga
 
     if (response.numId === 2) { //Si devuelve una respuesta valida...
       const info = response.data;
       if (info.active) { //Si la cuenta ya está activa...
         await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
-        const notifications = await obtenerNotificaciones(info.id);
+        await agregarClienteANotificaciones('initial', info.id); // Agrega en la nube el id del cliente a todas las notificaciones iniciales
+        const notifications = await obtenerNotificaciones(info.id, 'initial'); // Obtiene todas las notificaciones iniciales
         updateUserProps(usuario[0]?.device_id, {
           id: info.id,
           user: info.user,
