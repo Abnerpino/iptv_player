@@ -63,8 +63,9 @@ const AppContent = () => {
           // Si existe la indicación...
           if (cleanUser) {
             deleteUser(usuario[0]?.device_id); // Elimina el usuario
-            AsyncStorage.removeItem('account_deleted'); // Invalida la indicación que borra el usuario
-            AsyncStorage.removeItem('last_user_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
+            await AsyncStorage.removeItem('last_user_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
+            await AsyncStorage.removeItem('account_deleted'); // Invalída la indicación que borra el usuario
+            await AsyncStorage.removeItem('is_active'); // Invalída la activación del usuario
           } else { // Si no existe la indicación...
             // Obtiene el token FCM guardado localmente
             const savedToken = usuario[0]?.fcm_token;
@@ -87,8 +88,9 @@ const AppContent = () => {
             // Si existe la indicación...
             if (cleanUser) {
               deleteUser(usuario[0]?.device_id); // Elimina el usuario
-              AsyncStorage.removeItem('account_deleted'); // Invalida la indicación que borra el usuario
-              AsyncStorage.removeItem('last_user_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
+              await AsyncStorage.removeItem('last_user_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
+              await AsyncStorage.removeItem('account_deleted'); // Invalída la indicación que borra el usuario
+              await AsyncStorage.removeItem('is_active'); // Invalída la activación del usuario
             } else { // Si no existe la indicación...
               // Obtiene el token FCM guardado localmente
               const savedToken = usuario[0]?.fcm_token;
