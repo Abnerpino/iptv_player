@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, getDocs, query, where, limit, doc, arrayUnion, arrayRemove } from '@react-native-firebase/firestore';
+import { collection, addDoc, updateDoc, getDocs, query, where, limit, doc, arrayUnion, arrayRemove, orderBy } from '@react-native-firebase/firestore';
 import db from '../hosting/firebase';
 import ErrorLogger from '../logger/errorLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -171,7 +171,10 @@ export const obtenerNotificaciones = async (id, type) => {
 // Función para obtener los revendedores de la Base de Datos en la Nube
 export const obtenerRevendedores = async () => {
     try {
-        const q = query(collection(db, 'resellers'));
+        const q = query(
+            collection(db, 'resellers'),
+            orderBy('name')
+        );
 
         const querySnapshot = await getDocs(q);
 
