@@ -71,7 +71,7 @@ const About = ({ navigation }) => {
                             <Pressable onPress={handlePress} onLongPress={handleLongPress}>
                                 <Text style={styles.email}>{email}</Text>
                             </Pressable>
-                            <Text style={[styles.info, { marginTop: 10 }]}>2025</Text>
+                            <Text style={[styles.info, { marginTop: 10 }]}>2026</Text>
                         </View>
                     </View>
                     <TouchableOpacity
