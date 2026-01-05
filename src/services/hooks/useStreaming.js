@@ -266,6 +266,14 @@ export const useStreaming = () => {
         });
     };
 
+    // Método para eliminar las notificaciones
+    const deleteNotifications = () => {
+        const notificaciones = realm.objects('Notificacion');
+        realm.write(() => {
+            realm.delete(notificaciones);
+        });
+    };
+
     // Método para obtener el nombre del modelo (contenido y categorías)
     const getModelName = (type, forCategory = false) => {
         if (forCategory) {
@@ -295,6 +303,7 @@ export const useStreaming = () => {
         unmarkItemsAsWatched,
         unmarkItemsAsFavorite,
         deleteUser,
+        deleteNotifications,
         getModelName,
     };
 };
