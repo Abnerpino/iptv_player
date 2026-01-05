@@ -160,8 +160,8 @@ const Inicio = ({ navigation }) => {
                         result = { numId: 2, data: null }; // Actualiza el resultado
                         return; // Sale de la función
                     }
-                    // Si la cuenta del usuario está activa...
-                    if (info.active) {
+                    // Si la cuenta del usuario está activa y ya ha sido marcada como 'reactivación'...
+                    if (info.active && info.reactivation) {
                         await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
                         // Actualiza las propiedades del usuario en la base de datos local
                         updateUserProps(deviceId, {
@@ -176,7 +176,7 @@ const Inicio = ({ navigation }) => {
                             purchased_package: info.package
                         });
                         result = { numId: 2, data: null }; // Actualiza el resultado
-                    } else { // Si la cuenta del usuario está inactiva...
+                    } else { // Si la cuenta del usuario está inactiva y/o no ha sido marcada como 'reactivación...
                         await AsyncStorage.removeItem('is_active'); // Borra la activación del usuario
                         const resellers = await obtenerRevendedores(); // Obtiene los resellers de la base de datos en la nube
                         // Actualiza las propiedades del usuario en la base de datos local
