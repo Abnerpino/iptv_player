@@ -9,7 +9,7 @@ import { getMessaging, onMessage, requestPermission, getToken, onTokenRefresh } 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RNRestart from 'react-native-restart';
 import { useStreaming } from "./services/hooks/useStreaming"
-import { actualizarCliente } from "./services/controllers/hostingController";
+import { actualizarCliente, obtenerNotificaciones } from "./services/controllers/hostingController";
 import ErrorLogger from "./services/logger/errorLogger";
 import Inicio from "./screens/Inicio";
 import Activation from "./screens/Activation";
@@ -39,7 +39,7 @@ const Stack = createNativeStackNavigator();
 // Componente hijo que tiene acceso a Realm
 const AppContent = () => {
   const usuario = useQuery('Usuario');
-  const { updateUserProps, deleteUser, deleteNotifications } = useStreaming();
+  const { upsertNotifications, updateUserProps, deleteUser, deleteNotifications } = useStreaming();
 
   // Configuración del 'Listener' de solicitudes remotas
   useEffect(() => {
@@ -131,6 +131,15 @@ const AppContent = () => {
           case 'refresh_user_notifications': // Si recibe el aviso de que se actualizaron las notificaiones del usuario en la nube...
             await AsyncStorage.removeItem('last_notifications_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
             console.log('Caché de Notificaciones invalidada por solicitud remota.');
+            try {
+              // Si existe el id del usuario...
+              if (usuario[0]?.id) {
+                const notifications = await obtenerNotificaciones(usuario[0].id, 'other'); // Obtiene las notificaciones de la base de datos en la nube
+                upsertNotifications(notifications); // Actualiza las notificaciones en la base de datos local
+              }
+            } catch (error) {
+              ErrorLogger.log('App - unsubscribeOnMessage', error);
+            }
             break;
           default:
             break;
