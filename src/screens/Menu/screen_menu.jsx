@@ -30,6 +30,7 @@ const Menu = ({ navigation, route }) => {
     const [modalCVisible, setModalCVisible] = useState(false); //Estado para manejar el modal de confirmación
     const [modalEVisible, setModalEVisible] = useState(false); //Estado para manejar el modal de error
     const [errores, setErrores] = useState([]); //Estado para almacenar los errores de actualización de cada Card
+    const [idsMarcados, setIdsMarcados] = useState([]); //Estado para almacenar los ids de las notificaciones marcadas como vistas
     const [tiempo, setTiempo] = useState(); //Estado para almacenar el tiempo que falta la actualización automática
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
@@ -166,6 +167,23 @@ const Menu = ({ navigation, route }) => {
             setAllSeenNotifications(true);
         }
     }, [notificaciones]);
+
+    useEffect(() => {
+        // Si no hay ningún id, no hace nada
+        if (idsMarcados.length < 1) return;
+
+        // Función para procesar los ids de las notificaciones marcadas como vistas
+        const procesarIds = async () => {
+            const clientId = usuario[0].id || await AsyncStorage.getItem('firestore_client_id'); // Obtiene el id del cliente en la nube
+
+            // Si no existe el id del cliente, no hace nada
+            if (!clientId) return;
+
+            await removerClienteDeNotificaciones(idsMarcados, clientId); // Elimina el id del cliente de las notificaciones en la nube
+        };
+
+        procesarIds();
+    }, [idsMarcados]);
 
     /*Se ejecuta solo cuando la pantalla Menú está enfocada (es decir, solo cuando nos encontramos en Menú) y previene que,
     si se presiona el botón "Regresar" de Android en otra pantalla, no se active el modal para salir de la app*/
@@ -337,12 +355,8 @@ const Menu = ({ navigation, route }) => {
                     <ModalNotifications
                         notificaciones={notificaciones}
                         openModal={modalNVisible}
-                        handleCloseModal={async (idsMarcados) => {
-                            // Si alguna notificación fue marcada como vista...
-                            if (idsMarcados && idsMarcados.length > 0) {
-                                // Elimina el id del cliente de la notificación en la nube
-                                await removerClienteDeNotificaciones(idsMarcados, usuario[0]?.id);
-                            }
+                        handleCloseModal={(notificationsIds) => {
+                            setIdsMarcados(notificationsIds); // Guarda los ids de las notificaciones marcadas como vistas
                             setModalNVisible(false); // Oculta el modal
                         }}
                         expiracion={usuario[0]?.expiration_date}
