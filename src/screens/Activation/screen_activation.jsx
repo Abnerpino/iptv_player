@@ -18,8 +18,8 @@ import ModalLoading from '../../components/Modals/modal_loading';
 const Activation = ({ navigation, route }) => {
   const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
   const usuario = useQuery('Usuario');
-  const { upsertNotifications, updateUserProps } = useStreaming();
-  const resellers = useQuery('Reseller');
+  const { upsertNotifications, updateUserProps, getResellers } = useStreaming();
+  const resellers = getResellers();
   const [name, setName] = useState(''); // Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); // Estado para manejar el nombre de usuario ingresado
   const [error, setError] = useState(''); // Estado para el manejo de los mensajes de error

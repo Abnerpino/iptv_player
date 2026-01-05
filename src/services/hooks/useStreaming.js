@@ -155,6 +155,12 @@ export const useStreaming = () => {
         return serie.temporadas[idxSeason].episodios[idxEpisode];
     };
 
+    // Método para obtener los resellers, ordenados por la propiedad 'name'
+    const getResellers = () => {
+        const resellers = realm.objects('Reseller').sorted('name');
+        return resellers;
+    };
+
     // Método para actualizar las propiedades del usuario
     const updateUserProps = (deviceId, changes) => {
         realm.write(() => {
