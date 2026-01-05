@@ -19,7 +19,6 @@ export const getDataMovie = async (apiKey, title, year, poster, release) => {
         }
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataMovie', error);
-        //console.error('Error al obtener la pelicula: ', error);
     }
 };
 
@@ -40,7 +39,6 @@ const getDataMovieById = async (tmdbID, apiKey) => {
         };
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataMovieById', error);
-        //console.error('Error al obtener la pelicula: ', error);
     }
 };
 
@@ -62,7 +60,6 @@ export const getDataSerie = async (apiKey, title, year, release) => {
         }
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataSerie', error);
-        //console.error('Error al obtener la Serie: ', error);
     }
 };
 
@@ -82,7 +79,6 @@ const getDataSerieById = async (tmdbID, apiKey) => {
         };
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataSerieById', error);
-        //console.error('Error al obtener la Serie: ', error);
     }
 };
 
@@ -107,7 +103,6 @@ const getDetailsMovie = async (id, apiKey) => {
         return details; //Se retorna el objeto con los detalles
     } catch (error) {
         ErrorLogger.log('TMDBController - getDetailsMovie', error);
-        //console.log('Error al obtener los detallaes de la pelicula: ', error);
     }
 };
 
@@ -131,7 +126,6 @@ const getDetailsSerie = async (id, apiKey) => {
         return details; //Se retorna el objeto con los detalles
     } catch (error) {
         ErrorLogger.log('TMDBController - getDetailsSerie', error);
-        //console.log('Error al obtener los detallaes de la serie: ', error);
     }
 };
 
@@ -158,7 +152,6 @@ const getCreditsMovie = async (id, apiKey) => {
         return credits; //Se retorna el arreglo de objetos con los creditos
     } catch (error) {
         ErrorLogger.log('TMDBController - getCreditsMovie', error);
-        //console.log('Error al obtener los creditos de la pelicula: ', error);
     }
 };
 
@@ -185,6 +178,5 @@ const getCreditsSerie = async (id, apiKey) => {
         return actores; //Se retorna el arreglo de objetos con los creditos
     } catch (error) {
         ErrorLogger.log('TMDBController - getCreditsSerie', error);
-        //console.log('Error al obtener los creditos de la serie: ', error);
     }
 };

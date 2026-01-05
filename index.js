@@ -36,7 +36,7 @@ setBackgroundMessageHandler(messaging, async (remoteMessage) => {
             console.log('Id del cliente recibido por solicitud remota.');
             break;
         case 'refresh_user_data': // Si recibe el aviso de que se actualizó la información del usuario en la nube...
-            await AsyncStorage.removeItem('last_user_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
+            await AsyncStorage.removeItem('last_user_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
             console.log('Caché invalidada por solicitud remota.');
             break;
         case 'erase_user_data': // Si recibe el aviso de que se eliminó la información del usuario en la nube...
@@ -44,7 +44,7 @@ setBackgroundMessageHandler(messaging, async (remoteMessage) => {
             console.log(`Razón "${reason}" establecida por solicitud remota.`);
             break;
         case 'refresh_user_notifications': // Si recibe el aviso de que se actualizaron las notificaiones del usuario en la nube...
-            await AsyncStorage.removeItem('last_notifications_sync'); // Invalida la caché para que la proxima vez que se inicie la app, cosulte la nube
+            await AsyncStorage.removeItem('last_notifications_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
             console.log('Caché de Notificaciones invalidada por solicitud remota.');
             break;
         default:

@@ -128,7 +128,6 @@ export const useStreaming = () => {
                 resolve();
             } catch (error) {
                 ErrorLogger.log('useStreaming - syncStreamingData', error);
-                //console.log(`Error al sincronizar datos en Realm (${type}):`, error);
                 reject(error);
             }
         });

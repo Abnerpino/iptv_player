@@ -99,7 +99,6 @@ const Canal = ({ navigation, route }) => {
             }
         } catch (error) {
             ErrorLogger.log('Canal - useEffect de scroll en FlaList', error);
-            //console.warn("Error al intentar hacer scroll en FlatList:", error);
         }
 
     }, [currentIndex, selectedCategoryIndex, contentToShow, selectedChannel, isFullScreen]);
@@ -335,7 +334,7 @@ const styles = StyleSheet.create({
         left: 0,
         bottom: 0,
         right: 0,
-        zIndex: 10, // Se asegura de que esté por encima de todo
+        zIndex: 10,
     },
     barraContainer: {
         flexDirection: 'row',

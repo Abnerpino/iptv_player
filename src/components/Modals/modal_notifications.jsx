@@ -6,7 +6,7 @@ import ItemNotification from '../Items/item_notification';
 
 const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expiracion }) => {
     const { markNotification } = useStreaming();
-    // Referencia para almacenar los IDs marcados en esta sesión
+    // Referencia para almacenar los IDs marcados mientras se esté mostrando el modal
     const markedIdsRef = useRef([]);
 
     // Reinicia el array cada vez que se abre el modal
@@ -88,7 +88,7 @@ const ModalNotifications = ({ notificaciones, openModal, handleCloseModal, expir
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999, // Asegura que esté encima de todo
+        zIndex: 9999,
         elevation: 9999,
     },
     touchableBackground: {

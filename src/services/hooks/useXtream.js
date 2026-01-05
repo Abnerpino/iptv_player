@@ -27,7 +27,6 @@ export const useXtream = () => {
             console.log(info.user_info.status);
         } catch (error) {
             ErrorLogger.log('useXtream - getInfoAccount', error);
-            //console.log('Error en la petición: ', error);
         }
     };
 
@@ -91,7 +90,6 @@ export const useXtream = () => {
             return categorias;
         } catch (error) {
             ErrorLogger.log('useXtream - getCategoriesByType', error);
-            //console.log('Error al obtener las categorias: ', error);
             return [];
         }
     };
@@ -128,7 +126,6 @@ export const useXtream = () => {
             return newLive;
         } catch (error) {
             ErrorLogger.log('useXtream - getLiveStream', error);
-            //console.log(`Error al obtener el contenido de LIVE: ${error}`);
         }
     };
 
@@ -180,7 +177,6 @@ export const useXtream = () => {
             return newVod;
         } catch (error) {
             ErrorLogger.log('useXtream - getVodStream', error);
-            //console.log(`Error al obtener el contenido de VOD: ${error}`);
         }
     };
 
@@ -234,7 +230,6 @@ export const useXtream = () => {
             return newSeries;
         } catch (error) {
             ErrorLogger.log('useXtream - getSeries', error);
-            //console.log(`Error al obtener el contenido de SERIES: ${error}`);
         }
     };
 
@@ -259,7 +254,6 @@ export const useXtream = () => {
             }
         } catch (error) {
             ErrorLogger.log('useXtream - getEpisodes', error);
-            //console.log(`Error al obtener los episodios de la Serie con ID ${idSerie}: ${error}`);
         }
     };
 
@@ -267,7 +261,7 @@ export const useXtream = () => {
         // data.episodes es un objeto cuyas claves son los números de temporada (en string)
         // y cada valor es un array de episodios de esa temporada
         Object.keys(data.episodes).forEach((seasonKey) => {
-            // Para cada temporada, mapeamos los episodios y extraemos solo la información requerida
+            // Para cada temporada, mapea los episodios y extrae solo la información requerida
             const episodesInSeason = data.episodes[seasonKey].map((ep) => ({
                 id: ep.id,
                 episode_num: ep.episode_num,
@@ -294,7 +288,6 @@ export const useXtream = () => {
                 });
             } catch (error) {
                 ErrorLogger.log('useXtream - transformEpisodes', error);
-                //console.log('transformEpisodes: ', error);
             }
         });
     };

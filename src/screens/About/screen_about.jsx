@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Text, Image, StyleSheet, TouchableOpacity, ImageBackground, ToastAndroid, Pressable, Modal } from 'react-native';
+import { View, ScrollView, Text, Image, StyleSheet, TouchableOpacity, ImageBackground, ToastAndroid, Pressable } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/Octicons';

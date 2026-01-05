@@ -51,9 +51,8 @@ const Menu = ({ navigation, route }) => {
             const seconds = Math.floor((now - lastUpdate) / 1000); // Calcula la diferencia entre ambos tiempos (milisegundos), convierte el resultado a segundos y lo redondea hacia abajo
             console.log(`Segundos desde la última actualización: ${seconds.toFixed(2)}`);
             return seconds; // Retorna los segundos que han pasado desde la última actualización del contenido
-        } catch (e) {
-            ErrorLogger.log('Menu - getSecondsSinceUpdate', e);
-            //console.error("Error al obtener los segundos desde la última actualización", e);
+        } catch (error) {
+            ErrorLogger.log('Menu - getSecondsSinceUpdate', error);
             return 0;
         }
     };
@@ -64,9 +63,8 @@ const Menu = ({ navigation, route }) => {
         try {
             await AsyncStorage.setItem('@last_update_time_iptv', now.toString()); // Guarda el tiempo como string en el almacenamiento asíncrono
             console.log('Tiempo actualizado');
-        } catch (e) {
-            ErrorLogger.log('Menu - updateLastUpdateTime', e);
-            //console.error("Error al actualizar el tiempo de actualización", e);
+        } catch (error) {
+            ErrorLogger.log('Menu - updateLastUpdateTime', error);
         }
     };
 
@@ -85,9 +83,8 @@ const Menu = ({ navigation, route }) => {
                     for (const multimedia of tiposMultimedia) {
                         try {
                             await multimedia.referencia.current?.triggerUpdateEffects(); // Actualiza su contenido
-                        } catch (e) {
-                            ErrorLogger.log(`Menu - checkAndUpdateContent (${multimedia.tipo})`, e);
-                            //console.log(`Error al actualizar ${multimedia.tipo}:`, e);
+                        } catch (error) {
+                            ErrorLogger.log(`Menu - checkAndUpdateContent (${multimedia.tipo})`, error);
                             localError.push(multimedia.tipo); // Agrega el tipo de multimedia que falló
                         }
                     }
@@ -96,7 +93,6 @@ const Menu = ({ navigation, route }) => {
                 }
             } catch (error) {
                 ErrorLogger.log('Menu - checkAndUpdateContent', error);
-                //console.log('Ocurrió un error en el proceso de actualización: ', error);
             } finally {
                 handleFinishLoading?.(); // Termina el modal de carga
                 // Si hubo por lo menos un error...

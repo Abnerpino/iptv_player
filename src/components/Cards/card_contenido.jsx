@@ -51,7 +51,6 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 navigation.navigate('Pelicula', { idContent: item.stream_id, username });
             } catch (error) {
                 ErrorLogger.log(`CardContenido - handleNavigateToScreen (VOD_${item?.stream_id})`, error);
-                //console.log(error);
             } finally {
                 onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             }
@@ -84,7 +83,6 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 navigation.navigate('Serie', { idContent: item.series_id, username });
             } catch (error) {
                 ErrorLogger.log(`CardContenido - handleNavigateToScreen (Series_${item?.series_id})`, error);
-                //console.log('CardContenido: ', error);
             } finally {
                 onFinishLoading?.(); // Avisa a Seccion que termine el modal de carga
             }
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
     topOverlay: {
         flexDirection: 'row',
         position: 'absolute',
-        top: 0, // Posiciona el texto en la parte superior
+        top: 0,
         left: 0,
         right: 0,
         paddingVertical: 2.5,
@@ -214,7 +212,7 @@ const styles = StyleSheet.create({
     },
     bottomOverlay: {
         position: 'absolute',
-        bottom: 0,  // Posiciona el texto en la parte inferior
+        bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.35)',

@@ -24,9 +24,8 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                 if (savedTime !== null) {
                     setLastUpdateTime(parseInt(savedTime, 10));
                 }
-            } catch (e) {
-                ErrorLogger.log('CardMultimedia - loadLastUpdateTime', e);
-                //console.error("Error al cargar el tiempo de actualización", e);
+            } catch (error) {
+                ErrorLogger.log('CardMultimedia - loadLastUpdateTime', error);
             }
         };
 
@@ -40,7 +39,7 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
             return;
         }
 
-        //    Esta función se usará tanto para el cálculo inmediato como para el intervalo
+        // Esta función se usará tanto para el cálculo inmediato como para el intervalo
         const updateText = () => {
             const now = new Date().getTime();
             const secondsSinceUpdate = Math.floor((now - lastUpdateTime) / 1000); // Calcula la diferencia en segundos
@@ -56,16 +55,16 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
             }
         };
 
-        // Ejecuta la función una vez de inmediato para que el texto se actualice de "nunca" a "ahora" sin esperar el primer intervalo.
+        // Ejecuta la función una vez de inmediato para que el texto se actualice de "nunca" a "ahora" sin esperar el primer intervalo
         updateText();
 
-        // El intervalo ahora corre cada segundo para detectar el cambio de minuto.
+        // El intervalo corre cada segundo para detectar el cambio de minuto
         const interval = setInterval(updateText, 1000);
 
-        // La función de limpieza no cambia, sigue siendo crucial.
+        // Función de limpieza
         return () => clearInterval(interval);
 
-    }, [lastUpdateTime]); // Este efecto se reinicia cada vez que 'lastUpdateTime' cambia
+    }, [lastUpdateTime]);
 
     const handlePressIn = () => {
         setButtonColor('rgba(255,255,255,1)'); // Cambia el color al presionar
@@ -107,7 +106,7 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
                     if (result.finished) {
                         resolve(); // Avisa que la animación terminó
                     } else {
-                        // si la animación se interrumpe
+                        // Si la animación se interrumpe
                         resolve();
                     }
                 });
@@ -122,7 +121,6 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
         } catch (error) {
             // Detiene la carga y resetea la animación
             ErrorLogger.log(`CardMultimedia - handleUpdateStreaming (${tipo})`, error);
-            //console.log(`Error local en card ${tipo}:`, error);
             setIsLoading(false);
             progressAnim.setValue(0); // Regresa la barra a 0
             if (flag) onFinishLoading?.(); // Cierra modal de carga global si estaba abierto
@@ -271,18 +269,18 @@ const styles = StyleSheet.create({
         alignSelf: 'flex_start',
     },
     progressOverlay: {
-        position: 'absolute', // Se superpone sobre el contenido
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo semitransparente oscuro
-        justifyContent: 'flex-start', // La barra empieza desde la izquierda
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
     },
     progressBar: {
         height: '100%', // Ocupa toda la altura
-        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Color de la barra de progreso
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
     },
     flashMessage: {
         width: '20%',

@@ -9,7 +9,7 @@ const CardActor = ({ imagen, nombre }) => {
                 source={{
                     uri: imagen,
                     priority: FastImage.priority.normal
-                }} // URL de la imagen
+                }}
                 style={{
                     width: 100,
                     height: 150,
@@ -21,19 +21,19 @@ const CardActor = ({ imagen, nombre }) => {
                 resizeMode={FastImage.resizeMode.cover}
             />
             <View style={{
-                position: 'absolute', // Permite posicionar el texto sobre la imagen
-                bottom: 0, // Alinea el texto en la parte inferior
-                left: 0, // Alinea el texto a la izquierda
-                right: 0, // Alinea el texto a la derecha
-                backgroundColor: 'rgba(0, 0, 0, 0.15)', // Fondo semitransparente para mejorar la legibilidad
-                padding: 5, // Espaciado interno
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                padding: 5,
                 borderBottomRightRadius: 5,
                 borderBottomLeftRadius: 5,
             }}>
                 <Text
                     style={{
-                        color: 'white', // Color del texto
-                        fontSize: 13, // Tamaño del texto
+                        color: 'white',
+                        fontSize: 13,
                         textAlign: 'center'
                     }}
                     numberOfLines={2}

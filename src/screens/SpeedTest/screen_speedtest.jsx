@@ -12,20 +12,20 @@ const SpeedTest = ({ navigation }) => {
         '#settings-link',                    // Controles avanzados
       ];
 
-      // Ocultar elementos
+      // Oculta elementos
       selectorsToHide.forEach(selector => {
         const el = document.querySelector(selector);
         if (el) el.style.display = 'none';
       });
 
-      // Deshabilitar enlace del logo (logo de Netflix)
+      // Deshabilita enlace del logo (logo de Netflix)
       const poweredByLink = document.querySelector('.powered-by-container a');
       if (poweredByLink) {
         poweredByLink.removeAttribute('href');
         poweredByLink.style.pointerEvents = 'none';
       }
 
-      // Desactivar selección de texto
+      // Desactiva selección de texto
       const style = document.createElement('style');
       style.innerHTML = \`* {
         user-select: none !important;
@@ -34,7 +34,7 @@ const SpeedTest = ({ navigation }) => {
       }\`;
       document.head.appendChild(style);
 
-      // Insertar viewport para bloquear zoom
+      // Inserta viewport para bloquear zoom
       const meta = document.createElement('meta');
       meta.name = 'viewport';
       meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';

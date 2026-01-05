@@ -35,7 +35,7 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
                     <View style={{ paddingTop: 10, paddingBottom: 40 }}>
                         <FlatList
                             data={episodes}
-                            keyExtractor={(item) => item.id} //No es necesario hacer la conversión porque ya es string
+                            keyExtractor={(item) => item.id}
                             renderItem={({ item }) => (
                                 <ItemEpisode
                                     episode={item}
@@ -55,7 +55,7 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999, // Asegura que esté encima de todo
+        zIndex: 9999,
         elevation: 9999,
     },
     touchableBackground: {

@@ -74,9 +74,8 @@ const Inicio = ({ navigation }) => {
                     await AsyncStorage.setItem('@last_update_time_iptv', newTime.toString());
                     console.log('Tiempo guardado');
                 }
-            } catch (e) {
-                ErrorLogger.log('Inicio - saveLastUpdateTime', e);
-                //console.error("Error al guardar el tiempo de actualización", e);
+            } catch (error) {
+                ErrorLogger.log('Inicio - saveLastUpdateTime', error);
             }
         };
 
@@ -197,7 +196,6 @@ const Inicio = ({ navigation }) => {
                 }
             } catch (error) {
                 ErrorLogger.log('Inicio - request', error);
-                //console.error('Error en la petición:', error);
             } finally {
                 isRequestDone = true;    // marca que la petición terminó
             }
@@ -216,10 +214,10 @@ const Inicio = ({ navigation }) => {
         // Verifica constantemente si ambas operaciones ya terminaron
         const checkRequestInterval = setInterval(() => {
             if (isRequestDone && isDelayDone) {
-                clearInterval(checkRequestInterval); // limpia el intervalo
-                manejarResultado(result);            // ejecuta navegación o muestra error
+                clearInterval(checkRequestInterval); // Limpia el intervalo
+                manejarResultado(result);            // Ejecuta navegación o muestra error
             }
-        }, 100); // se revisa cada 100ms
+        }, 100); // Se revisa cada 100ms
 
         // Función para decidir qué hacer con el resultado de la petición
         const manejarResultado = (resultado) => {

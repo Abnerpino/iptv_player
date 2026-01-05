@@ -86,7 +86,7 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999, // Asegura que esté encima de todo
+        zIndex: 9999,
         elevation: 9999,
     },
     touchableBackground: {

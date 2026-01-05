@@ -231,7 +231,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 // Si es el primer render después de conectar, no hace nada y baja la bandera
                 isInitialCast.current = false;
             } else {
-                // Si ya hbaía una conexión (no es el cast inicial) y el 'contenido' cambia, significa que el usuario cambió de canal
+                // Si ya había una conexión (no es el cast inicial) y el 'contenido' cambia, significa que el usuario cambió de canal
                 castVideo(0); // Carga el nuevo contenido desde el inicio
             }
         }
@@ -669,10 +669,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             // Lógica para el manejo del panel de 'Siguiente Episodio'
             if (
                 contenido.episode_run_time > 0 &&
-                (reliableCurrentTime / contenido.episode_run_time) >= 0.99 && // 1. Condición: 99% completado
-                !isShowingNextPanel.current &&                            // 2. La bandera indica que no se está mostrando ya
-                !hasCanceledNextEpisode &&                     // 3. El usuario no lo ha cancelado
-                (idxEpisode + 1) < episodios.length          // 4. No es el último episodio
+                (reliableCurrentTime / contenido.episode_run_time) >= 0.99 && // Condición: 99% completado
+                !isShowingNextPanel.current &&                            // La bandera indica que no se está mostrando ya
+                !hasCanceledNextEpisode &&                     // El usuario no lo ha cancelado
+                (idxEpisode + 1) < episodios.length          // No es el último episodio
             ) {
                 showModalNetxEpisode(); // Muestra el modal del siguiente episodio
             }

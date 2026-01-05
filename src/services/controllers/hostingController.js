@@ -10,7 +10,6 @@ export const registrarCliente = async (data) => {
         return true;
     } catch (error) {
         ErrorLogger.log('HostingController - registrarCliente', error);
-        //console.error("Error al registrar cliente: ", error);
         return null;
     }
 };
@@ -22,7 +21,6 @@ export const actualizarCliente = async (id, data) => {
         await updateDoc(docRef, data);
     } catch (error) {
         ErrorLogger.log('HostingController - actualizarCliente', error);
-        //console.log('Error al actualizar los siguientes campos: ', data);
     }
 };
 
@@ -40,7 +38,6 @@ export const validarUsername = async (username) => {
         return !querySnapshot.empty; // Retorna true si existe, false si está libre
     } catch (error) {
         ErrorLogger.log('HostingController - validarUsername', error);
-        //console.error("Error al validar usuario: ", error);
         return false; // En caso de error, asume que no existe
     }
 };
@@ -81,7 +78,6 @@ export const verificarCliente = async (deviceId, forceUpdate = false) => {
         }
     } catch (error) {
         ErrorLogger.log('HostingController - verificarCliente', error);
-        //console.error("Error al obtener el ID del dispositivo: ", error);
         return { numId: -1, data: null };
     }
 };
@@ -108,7 +104,6 @@ export const agregarClienteANotificaciones = async (type, clientId) => {
         }
     } catch (error) {
         ErrorLogger.log('HostingController - agregarClienteANotificaciones', error);
-        //console.log('Error al agregar cliente a las notificaciones:', error);
     }
 };
 
@@ -123,7 +118,6 @@ export const removerClienteDeNotificaciones = async (notificationsIds, clientId)
         }
     } catch (error) {
         ErrorLogger.log('HostingController - removerClienteDeNotificaciones', error);
-        //console.log('Error al remover cleinte de las notificaciones:', error);
     }
 };
 
@@ -163,7 +157,6 @@ export const obtenerNotificaciones = async (id, type) => {
         return notifications;
     } catch (error) {
         ErrorLogger.log('HostingController - obtenerNotificaciones', error);
-        //console.log('Error al obtener las notificaciones: ', error);
         return null;
     }
 };
@@ -191,7 +184,6 @@ export const obtenerRevendedores = async () => {
         return resellers;
     } catch (error) {
         ErrorLogger.log('HostingController - obtenerRevendedores', error);
-        //console.log('Error al obtener los revendedores: ', error);
         return null;
     }
 };
@@ -214,7 +206,6 @@ export const obtenerKeys = async (type) => {
         return keys;
     } catch (error) {
         ErrorLogger.log('HostingController - obtenerKeys', error);
-        //console.log('Error al obtener las keys:', error);
         return null;
     }
 };
