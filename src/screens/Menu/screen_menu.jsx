@@ -159,6 +159,9 @@ const Menu = ({ navigation, route }) => {
         const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
         if (result) { //Si result no es indefinido, significa que todavia hay alguna notificación sin ver
             setAllSeenNotifications(false);
+            if (!modalNVisible) { // Si el modal de notificaciones no se está mostrando...
+                setModalNVisible(true); // Muestra el modal de notificaciones
+            }
         } else { //Si result es indefinido, significa que todas las notificaciones han sido vistas
             setAllSeenNotifications(true);
         }
