@@ -39,7 +39,7 @@ const Stack = createNativeStackNavigator();
 // Componente hijo que tiene acceso a Realm
 const AppContent = () => {
   const usuario = useQuery('Usuario');
-  const { updateUserProps, deleteUser } = useStreaming();
+  const { updateUserProps, deleteUser, deleteNotifications } = useStreaming();
 
   // Configuración del 'Listener' de solicitudes remotas
   useEffect(() => {
@@ -63,6 +63,7 @@ const AppContent = () => {
           // Si existe la indicación...
           if (cleanUser) {
             deleteUser(usuario[0]?.device_id); // Elimina el usuario
+            deleteNotifications(); // Elimina las notificaciones
             await AsyncStorage.removeItem('last_user_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
             await AsyncStorage.removeItem('account_deleted'); // Invalída la indicación que borra el usuario
             await AsyncStorage.removeItem('is_active'); // Invalída la activación del usuario
@@ -88,6 +89,7 @@ const AppContent = () => {
             // Si existe la indicación...
             if (cleanUser) {
               deleteUser(usuario[0]?.device_id); // Elimina el usuario
+              deleteNotifications(); // Elimina las notificaciones
               await AsyncStorage.removeItem('last_user_sync'); // Invalída la caché para que la proxima vez que se inicie la app, cosulte la nube
               await AsyncStorage.removeItem('account_deleted'); // Invalída la indicación que borra el usuario
               await AsyncStorage.removeItem('is_active'); // Invalída la activación del usuario
