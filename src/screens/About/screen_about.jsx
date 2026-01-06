@@ -74,13 +74,20 @@ const About = ({ navigation }) => {
                             <Text style={[styles.info, { marginTop: 10 }]}>2026</Text>
                         </View>
                     </View>
-                    <TouchableOpacity
-                        style={styles.buttonContainer}
-                        onPress={() => setModalVisible(true)}
-                    >
-                        <Icon2 name="log" size={18} color="white" />
-                        <Text style={styles.textButton}>Bitácora de Errores</Text>
-                    </TouchableOpacity>
+                    <View style={styles.bottomContainer}>
+                        <Image
+                            source={require('../../assets/logo_dev.png')}
+                            resizeMode='contain'
+                            style={styles.imageDev}
+                        />
+                        <TouchableOpacity
+                            style={styles.buttonContainer}
+                            onPress={() => setModalVisible(true)}
+                        >
+                            <Icon2 name="log" size={18} color="white" />
+                            <Text style={styles.textButton}>Bitácora de Errores</Text>
+                        </TouchableOpacity>
+                    </View>
                 </ScrollView>
 
                 <ModalLogger
@@ -144,11 +151,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
         paddingBottom: 5,
     },
+    bottomContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: '5%',
+        marginTop: 20,
+    },
+    imageDev: {
+        width: '20%',
+        height: '100%',
+    },
     buttonContainer: {
         flexDirection: 'row',
-        alignSelf: 'flex-end',
-        marginRight: '5%',
-        marginTop: 20,
         borderColor: '#FFF',
         borderWidth: 1,
         borderRadius: 10,

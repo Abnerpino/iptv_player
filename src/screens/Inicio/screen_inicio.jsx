@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, ImageBackground, View, BackHandler } from 'react-native';
+import { Animated, ImageBackground, View, BackHandler, Image, StyleSheet } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
 import RNRestart from 'react-native-restart';
@@ -276,14 +276,16 @@ const Inicio = ({ navigation }) => {
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
             <ImageBackground
                 source={require('../../assets/inicio.jpg')}
-                style={{
-                    flex: 1,
-                    width: '100%',
-                    height: '100%',
-                }}
+                style={styles.imageBackground}
                 resizeMode='cover'
             >
                 <View style={{ flex: 1 }}>
+                    <Image
+                        source={require('../../assets/logo_dev.png')}
+                        resizeMode='contain'
+                        style={styles.imageDev}
+                    />
+
                     <ModalConfirmation
                         visible={modalVisible}
                         onConfirm={handleReload}
@@ -296,5 +298,21 @@ const Inicio = ({ navigation }) => {
         </Animated.View>
     );
 };
+
+const styles = StyleSheet.create({
+    imageBackground: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
+    imageDev: {
+        alignSelf: 'center',
+        position: 'absolute',
+        bottom: 0,
+        marginBottom: '-5%',
+        width: '20%',
+        height: '20%',
+    },
+});
 
 export default Inicio;
