@@ -35,6 +35,7 @@ const Menu = ({ navigation, route }) => {
     const [tiempo, setTiempo] = useState(); //Estado para almacenar el tiempo que falta la actualización automática
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
+    const [initialCheckDone, setInitialCheckDone] = useState(false); //Maneja el estado de la revisión inicial
 
     const notificaciones = React.useMemo(() => {
         return notifications.sorted('fecha', true);
@@ -101,15 +102,7 @@ const Menu = ({ navigation, route }) => {
                     setErrores(localError); // Actualiza los errores en el estado 
                     setModalEVisible(true); // Muestra el modal de errores
                 }
-            }
-
-            // Si hay notificaciones...
-            if (notificaciones.length > 0) {
-                const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
-                //Si todavia hay alguna notificación sin ver...
-                if (result) {
-                    setModalNVisible(true); // Muestra el modal cada vez que se monte la pantalla Menú
-                }
+                setInitialCheckDone(true); // Marca como finalizada la revisión inicial
             }
         };
 
@@ -152,7 +145,8 @@ const Menu = ({ navigation, route }) => {
     }, [errores]);
 
     useEffect(() => {
-        if (notificaciones.length === 0) return; //Si no hay ninguna notificación, no hace nada
+        //Si no hay ninguna notificación o se está mostrando el modal de carga o no ha terminado la revisión inicial, no hace nada
+        if (notificaciones.length === 0 || loading || !initialCheckDone) return;
 
         const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
         if (result) { //Si result no es indefinido, significa que todavia hay alguna notificación sin ver
@@ -163,7 +157,7 @@ const Menu = ({ navigation, route }) => {
         } else { //Si result es indefinido, significa que todas las notificaciones han sido vistas
             setAllSeenNotifications(true);
         }
-    }, [notificaciones]);
+    }, [notificaciones, loading, initialCheckDone]);
 
     useEffect(() => {
         // Si no hay ningún id, no hace nada
