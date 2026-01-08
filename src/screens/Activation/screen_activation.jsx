@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
@@ -13,6 +13,7 @@ import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useQuery } from '@realm/react';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNExitApp from 'react-native-exit-app';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, agregarClienteANotificaciones, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
@@ -30,6 +31,7 @@ const Activation = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false); // Estado para manejar el modal de carga
   const [keyboardPadding, setKeyboardPadding] = useState(0); // Estado para manejar el valor del padding cuando se muestra/oculta el teclado
   const [selectedReseller, setSelectedReseller] = useState(resellers[0]); // Estado para manejar el reseller seleccionado
+  const [isActive, setIsActive] = useState(false); // Estado para saber cuando la cuenta ya está activada
 
   const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
   const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
@@ -95,6 +97,23 @@ const Activation = ({ navigation, route }) => {
 
     return () => clearInterval(temporizador); // Limpiar el intervalo al desmontar o cambiar contador
   }, [timer]);
+
+  // Maneja la acción del botón de 'Regresar' de Android
+  useEffect(() => {
+    const backAction = () => {
+      handleBack();
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+    return () => backHandler.remove();
+  }, []);
+
+  // Función para cerrar la aplicación
+  const handleBack = () => {
+    RNExitApp.exitApp();
+  };
 
   // Función para filtrar caracteres especiales y numeros en el nombre
   const filterName = (name) => {
@@ -172,6 +191,7 @@ const Activation = ({ navigation, route }) => {
     if (response.numId === 2) { //Si devuelve una respuesta valida...
       const info = response.data;
       if (info.active) { //Si la cuenta ya está activa...
+        setIsActive(true);
         await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
         await agregarClienteANotificaciones('initial', info.id); // Agrega en la nube el id del cliente a todas las notificaciones iniciales
         const notifications = await obtenerNotificaciones(info.id, 'initial'); // Obtiene todas las notificaciones iniciales
@@ -270,6 +290,13 @@ const Activation = ({ navigation, route }) => {
       <KeyboardAvoidingView style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }} keyboardShouldPersistTaps="handled" >
           {/* Encabezado */}
+          <TouchableOpacity
+            style={{ position: 'absolute', top: isReactivation ? '7.5%' : '10%', left: 0, zIndex: 99 }}
+            onPress={handleBack}
+            onLongPress={() => showToast(3, 'Salir de la App')}
+          >
+            <Icon name="arrow-circle-left" size={26} color="white" />
+          </TouchableOpacity>
           <View style={[styles.header, { height: isReactivation ? '20%' : '25%' }]}>
             <Text style={styles.textHeader}>{`${isReactivation ? 'BIENVENIDO     A' : 'BIENVENIDO    A'}`}</Text>
             <Image
@@ -436,8 +463,8 @@ const Activation = ({ navigation, route }) => {
               {/* Botón y mensaje de error */}
               <View style={{ width: '35%', alignItems: 'center', alignSelf: 'center', marginTop: 5, }}>
                 <TouchableOpacity
-                  style={[styles.button, { opacity: timer > 0 ? 0.5 : 1 }]}
-                  disabled={timer > 0 ? true : false}
+                  style={[styles.button, { opacity: (timer > 0 || isActive) ? 0.5 : 1 }]}
+                  disabled={(timer > 0 || isActive) ? true : false}
                   onPress={validateActivation}
                 >
                   <Text style={[styles.textButton, { marginRight: 2.5 }]}>Continuar</Text>
