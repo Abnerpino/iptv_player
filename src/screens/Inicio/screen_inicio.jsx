@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Animated, ImageBackground, View, BackHandler, Image, StyleSheet } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
@@ -6,9 +7,10 @@ import RNRestart from 'react-native-restart';
 import RNExitApp from 'react-native-exit-app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useXtream } from '../../services/hooks/useXtream';
 import { useStreaming } from '../../services/hooks/useStreaming';
-import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import { verificarCliente, actualizarCliente, obtenerNotificaciones, obtenerRevendedores, obtenerKeys } from '../../services/controllers/hostingController';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
 import ErrorLogger from '../../services/logger/errorLogger';
@@ -41,6 +43,14 @@ const Inicio = ({ navigation }) => {
         // Devuelve el estado final
         return netState.isConnected && (netState.isInternetReachable ?? false);
     };
+
+    // Se ejecuta cada vez que la pantalla Inicio está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, 'Inicio'); // Establece el mensaje
+        }, [])
+    );
 
     useEffect(() => {
         // Inicia animación de opacidad (fade-in) al montar el componente

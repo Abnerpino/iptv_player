@@ -6,6 +6,7 @@ import { RealmProvider, useQuery } from "@realm/react";
 import FlashMessage from "react-native-flash-message";
 import SystemNavigationBar from "react-native-system-navigation-bar";
 import { getMessaging, onMessage, requestPermission, getToken, onTokenRefresh } from "@react-native-firebase/messaging";
+import { getCrashlytics, setUserId, setAttributes } from "@react-native-firebase/crashlytics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RNRestart from 'react-native-restart';
 import { useStreaming } from "./services/hooks/useStreaming"
@@ -57,6 +58,15 @@ const AppContent = () => {
 
         // Si ya existe el usuario en el dispositivo...
         if (usuario[0]) {
+          const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+          await setUserId(crashlytics, usuario[0].id); // Establece el id del usuario
+          // Establece atributos : id del dispositivo, nombre del cliente y nombre de usuario
+          await setAttributes(crashlytics, {
+            device_id: usuario[0].device_id,
+            client_name: usuario[0].client_name,
+            username: usuario[0].username,
+          });
+          
           // Recupera la indicación para borrar el usuario
           const cleanUser = await AsyncStorage.getItem('account_deleted');
 

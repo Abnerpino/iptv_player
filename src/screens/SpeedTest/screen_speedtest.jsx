@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 
 const SpeedTest = ({ navigation }) => {
+  // Se ejecuta cuando se monta la pantalla
+  useEffect(() => {
+    const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+    log(crashlytics, 'SpeedTest'); // Establece el mensaje
+  }, []);
+
   const injectedJS = `
     const hideUnwanted = () => {
       const selectorsToHide = [

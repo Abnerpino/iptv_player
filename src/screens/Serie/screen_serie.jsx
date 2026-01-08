@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
@@ -39,7 +41,7 @@ const Serie = ({ navigation, route }) => {
     const [modalVisibleS, setModalVisibleS] = useState(false); //Estado para manejar el modal de las temporadas
     const [selectedSeason, setSelectedSeason] = useState(seasons[season_idx]); //Estado para manejar la información de la temporada seleccionada
     const [episodios, setEpisodios] = useState(selectedSeason.episodios);
-    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[episode_idx]);//serie.episodes[1][0]); //Estado para manejar la información del episodio seleccionado
+    const [selectedEpisode, setSelectedEpisode] = useState(selectedSeason.episodios[episode_idx]); //Estado para manejar la información del episodio seleccionado
     const [playbackInfo, setPlaybackInfo] = useState({
         time: parseFloat(selectedEpisode.playback_time),
         episodeId: selectedEpisode.id
@@ -52,6 +54,14 @@ const Serie = ({ navigation, route }) => {
 
     const duration = selectedEpisode.duration_secs !== "" ? Number(selectedEpisode.duration_secs) : 0;
     const isComplete = (duration > 0 && (parseFloat(selectedEpisode.playback_time) / duration) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+
+    // Se ejecuta cada vez que la pantalla Canal está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, `Serie (${idContent} - T${selectedSeason.numero}-E${selectedEpisode.episode_num}${showReproductor ? ' - Playing' : ''})`); // Establece el mensaje
+        }, [selectedSeason.numero, selectedEpisode.episode_num, showReproductor]) // Se reejecuta cada vez que cambian las dependencias
+    );
 
     useEffect(() => {
         if (playbackInfo.episodeId !== selectedEpisode.id) return;

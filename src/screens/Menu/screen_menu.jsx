@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBack
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import RNExitApp from 'react-native-exit-app';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -196,6 +197,14 @@ const Menu = ({ navigation, route }) => {
         }, [])
     );
 
+    // Se ejecuta cada vez que la pantalla Menú está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, 'Menu'); // Establece el mensaje
+        }, [])
+    );
+
     const handleManualError = (tipoError) => {
         setErrores([tipoError]); // Crea un array con el único error
         setModalEVisible(true);  // Muestra el modal
@@ -286,7 +295,7 @@ const Menu = ({ navigation, route }) => {
                             style={{ marginRight: 15 }}
                             onPress={() => {
                                 hideMessage();
-                                navigation.navigate('SpeedTest')
+                                navigation.navigate('SpeedTest');
                             }}
                             onLongPress={() => showToast('Test de Internet')}
                         >

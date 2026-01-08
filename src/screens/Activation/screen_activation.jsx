@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,6 +11,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { Linking } from 'react-native';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useQuery } from '@realm/react';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, agregarClienteANotificaciones, obtenerNotificaciones } from '../../services/controllers/hostingController';
@@ -31,6 +33,22 @@ const Activation = ({ navigation, route }) => {
 
   const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
   const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
+
+  // Se ejecuta cada vez que la pantalla Activation está enfocada
+  useFocusEffect(
+    useCallback(() => {
+      const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+      let estado = '';
+      if (!usuario[0]?.is_registered) {
+        estado = 'Registro';
+      } else if (isReactivation) {
+        estado = 'Reactivación';
+      } else {
+        estado = 'Activación';
+      }
+      log(crashlytics, `Activation (${estado})`); // Establece el mensaje
+    }, [usuario[0]?.is_registered, isReactivation]) // Se reejecuta cada vez que cambian la dependencias
+  );
 
   // Escucha los eventos del Teclado
   useEffect(() => {

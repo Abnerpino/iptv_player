@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
@@ -32,6 +34,14 @@ const Seccion = ({ navigation, route }) => {
     const handleFinishLoading = useCallback(() => setLoading(false), []); //Cambia el valor a falso para que se cierre el modal de carga
 
     const contentField = type === 'live' ? 'canales' : (type === 'vod' ? 'peliculas' : 'series');
+
+    // Se ejecuta cada vez que la pantalla Sección está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, `Seccion (${type})`); // Establece el mensaje
+        }, [])
+    );
 
     // Efecto para establecer la categoría inicial solo hasta cuando las categorías se han cargado
     useEffect(() => {

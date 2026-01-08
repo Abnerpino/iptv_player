@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, Text, Image, StyleSheet, TouchableOpacity, ImageBackground, ToastAndroid, Pressable } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -6,6 +7,7 @@ import Icon2 from 'react-native-vector-icons/Octicons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Linking } from 'react-native';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import ModalLogger from '../../components/Modals/modal_logger';
 
 const About = ({ navigation }) => {
@@ -13,6 +15,14 @@ const About = ({ navigation }) => {
 
     const version = DeviceInfo.getVersion();
     const email = 'abnerpino15@gmail.com';
+
+    // Se ejecuta cada vez que la pantalla About está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, 'About'); // Establece el mensaje
+        }, [])
+    );
 
     const handlePress = () => {
         // Abre la app de correo con el destinatario prellenado

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import ProgressBar from '../../components/ProgressBar/progress_bar';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
@@ -34,6 +36,14 @@ const Pelicula = ({ navigation, route }) => {
     const hasPerformedInitialSave = useRef(false);  // Referencia para saber cuando ya se guardó el 'playback_time' de la pelicula la primera vez que se reproduce
 
     const isComplete = (runtime > 0 && (playbackTime / (runtime * 60)) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+
+    // Se ejecuta cada vez que la pantalla Pelicula está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, `Pelicula (${idContent}${showReproductor ? ' - Playing' : ''})`); // Establece el mensaje
+        }, [showReproductor]) // Se reejecuta cada vez que cambia la dependencia
+    );
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {
@@ -250,7 +260,7 @@ const styles = StyleSheet.create({
     containerBackButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10, 
+        paddingVertical: 10,
     },
     backButton: {
         marginHorizontal: -20,

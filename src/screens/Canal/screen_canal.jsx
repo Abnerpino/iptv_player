@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
@@ -14,12 +16,11 @@ import ErrorLogger from '../../services/logger/errorLogger';
 const Canal = ({ navigation, route }) => {
     const { idContent, idCategory, username } = route.params;
     const canal = useObject('Canal', idContent); // Encuentra el canal usando su Modelo y su ID
-    const id_categoria = idCategory;
 
     const { getModelName, updateProps, getWatchedItems, getFavoriteItems } = useStreaming();
     const categoryModel = getModelName('live', true); //Obtiene el nombre del modelo para las categorias de 'live'
     const categories = useQuery(categoryModel); //Obtiene las categorias con base en el modelo
-    const initialCategoryIndex = categories.findIndex(categoria => categoria.category_id === id_categoria); //Almacena el indice de la categoría inicial
+    const initialCategoryIndex = categories.findIndex(categoria => categoria.category_id === idCategory); //Almacena el indice de la categoría inicial
     const vistos = categories.find(categoria => categoria.category_id === '0.2'); //Busca y asigna la categoria 'Recientemente Vistos'
     const [currentIndex, setCurrentIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria actual
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria del canal seleccionado
@@ -61,6 +62,14 @@ const Canal = ({ navigation, route }) => {
 
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
     }, [categories, currentIndex, searchCont]);
+
+    // Se ejecuta cada vez que la pantalla Canal está enfocada
+    useFocusEffect(
+        useCallback(() => {
+            const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
+            log(crashlytics, `Canal (${selectedChannel.stream_id}${isFullScreen ? ' - FullScreen' : ''})`); // Establece el mensaje
+        }, [selectedChannel.stream_id, isFullScreen]) // Se reejecuta cada vez que cambian las dependencias
+    );
 
     useEffect(() => {
         // Sale si la ref de la FlatList aún no está lista
