@@ -297,11 +297,10 @@ const Activation = ({ navigation, route }) => {
           >
             <Icon name="arrow-circle-left" size={26} color="white" />
           </TouchableOpacity>
-          <View style={[styles.header, { height: isReactivation ? '20%' : '25%' }]}>
-            <Text style={styles.textHeader}>{`${isReactivation ? 'BIENVENIDO     A' : 'BIENVENIDO    A'}`}</Text>
+          <View style={{ justifyContent: 'center', height: isReactivation ? '20%' : '25%', }}>
             <Image
-              source={require('../../assets/imagotipo.png')}
-              style={{ height: '100%', width: '26%', resizeMode: 'contain', alignSelf: 'center', }}
+              source={require('../../assets/imagotipo_welcome.png')}
+              style={{ height: '100%', width: '50%', resizeMode: 'contain', alignSelf: 'center', }}
             />
           </View>
           {!usuario[0]?.is_registered ? (
@@ -491,11 +490,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(16,16,16,0.5)',
     padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   textHeader: {
     fontSize: 25,
