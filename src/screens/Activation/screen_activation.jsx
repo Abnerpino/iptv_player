@@ -31,7 +31,6 @@ const Activation = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false); // Estado para manejar el modal de carga
   const [keyboardPadding, setKeyboardPadding] = useState(0); // Estado para manejar el valor del padding cuando se muestra/oculta el teclado
   const [selectedReseller, setSelectedReseller] = useState(resellers[0]); // Estado para manejar el reseller seleccionado
-  const [isActive, setIsActive] = useState(false); // Estado para saber cuando la cuenta ya está activada
 
   const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
   const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
@@ -185,34 +184,37 @@ const Activation = ({ navigation, route }) => {
   const validateActivation = async () => {
     hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
-    const response = await verificarCliente(usuario[0]?.device_id, true); //Consulta la información del cliente para verficar su activación
-    handleFinishLoading?.(); // Termina el modal de carga
 
-    if (response.numId === 2) { //Si devuelve una respuesta valida...
-      const info = response.data;
-      if (info.active) { //Si la cuenta ya está activa...
-        setIsActive(true);
-        await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
-        await agregarClienteANotificaciones('initial', info.id); // Agrega en la nube el id del cliente a todas las notificaciones iniciales
-        const notifications = await obtenerNotificaciones(info.id, 'initial'); // Obtiene todas las notificaciones iniciales
-        updateUserProps(usuario[0]?.device_id, {
-          id: info.id,
-          user: info.user,
-          password: info.password,
-          host: info.host,
-          expiration_date: info.expiration,
-          purchased_package: info.package
-        });
-        upsertNotifications(notifications);
-        actualizarCliente(info.id, { reactivation: true }); // Marca la reactivación como verdadera para la siguiente consulta en la nube
-        // Envía 'true' al Menú para forzar la actualización del contenido en caso de que el contador del tiempo falle
-        navigation.replace('Menu', { updateNow: true });
-      } else { //Si la cuenta no está activa...
-        setTimer(60);
-        setError('¡Su cuenta está inactiva!');
+    try {
+      const response = await verificarCliente(usuario[0]?.device_id, true); //Consulta la información del cliente para verficar su activación
+
+      if (response.numId === 2) { //Si devuelve una respuesta valida...
+        const info = response.data;
+        if (info.active) { //Si la cuenta ya está activa...
+          await AsyncStorage.setItem('is_active', 'is_active'); // Establece el usuario como activado
+          await agregarClienteANotificaciones('initial', info.id); // Agrega en la nube el id del cliente a todas las notificaciones iniciales
+          const notifications = await obtenerNotificaciones(info.id, 'initial'); // Obtiene todas las notificaciones iniciales
+          updateUserProps(usuario[0]?.device_id, {
+            id: info.id,
+            user: info.user,
+            password: info.password,
+            host: info.host,
+            expiration_date: info.expiration,
+            purchased_package: info.package
+          });
+          upsertNotifications(notifications);
+          actualizarCliente(info.id, { reactivation: true }); // Marca la reactivación como verdadera para la siguiente consulta en la nube
+          // Envía 'true' al Menú para forzar la actualización del contenido en caso de que el contador del tiempo falle
+          navigation.replace('Menu', { updateNow: true });
+        } else { //Si la cuenta no está activa...
+          setTimer(60);
+          setError('¡Su cuenta está inactiva!');
+        }
+      } else { // Si no devuelve una respuesta valida...
+        setError('¡Error en la verificación! Intente de nuevo');
       }
-    } else { // Si no devuelve una respuesta valida...
-      setError('¡Error en la verificación! Intente de nuevo');
+    } finally {
+      handleFinishLoading?.(); // Termina el modal de carga
     }
   };
 
@@ -462,8 +464,8 @@ const Activation = ({ navigation, route }) => {
               {/* Botón y mensaje de error */}
               <View style={{ width: '35%', alignItems: 'center', alignSelf: 'center', marginTop: 5, }}>
                 <TouchableOpacity
-                  style={[styles.button, { opacity: (timer > 0 || isActive) ? 0.5 : 1 }]}
-                  disabled={(timer > 0 || isActive) ? true : false}
+                  style={[styles.button, { opacity: timer > 0 ? 0.5 : 1 }]}
+                  disabled={timer > 0 ? true : false}
                   onPress={validateActivation}
                 >
                   <Text style={[styles.textButton, { marginRight: 2.5 }]}>Continuar</Text>
