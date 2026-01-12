@@ -380,7 +380,6 @@ const Serie = ({ navigation, route }) => {
                     episodios={episodios}
                     idxEpisode={episodios.findIndex(episodio => episodio.id === selectedEpisode.id)}
                     onContentChange={handleChangeEpisode}
-                    setVisto={handleChangeEpisode}
                     onProgressUpdate={handleProgressUpdate}
                     username={username}
                 />

@@ -14,7 +14,7 @@ import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, setVisto, onProgressUpdate, onContentChange, markAsWatched, username }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, onProgressUpdate, onContentChange, markAsWatched, username }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const remoteControlTimeout = useRef(null);
@@ -179,8 +179,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         // Se acabó el tiempo
                         clearInterval(countdownTimer.current);
 
-                        // Llama a la función estabilizada
-                        handlePlayNow();
+                        // Llama a la función estabilizada (se envuelve en setTimeout para sacarla del ciclo de renderizado actual)
+                        setTimeout(() => {
+                            handlePlayNow();
+                        }, 0);
+
                         return 0;
                     }
                     return prev - 1; // Resta 1 segundo
@@ -778,7 +781,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         // Se asegura de que no sea el último episodio de la temporada
         if ((idxEpisode + 1) < episodios.length) {
             onContentChange(episodios[idxEpisode + 1]);
-            setVisto(episodios[idxEpisode + 1]);
         }
 
         // Lógica de reseteo de variables del panel de 'Siguiente Episodio'
@@ -786,7 +788,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         setShowNextEpisode(false);
         clearInterval(countdownTimer.current);
         setHasCanceledNextEpisode(false);
-    }, [idxEpisode, episodios, onContentChange, setVisto]);
+    }, [idxEpisode, episodios, onContentChange]);
 
     // Se ejecuta al presionar "CANCELAR" en el panel de 'Siguiente Episodio'
     const handleCancelNextEpisode = () => {
@@ -1182,7 +1184,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 episodes={episodios}
                 onSelectEpisode={(episodio) => {
                     onContentChange(episodio);
-                    setVisto(episodio);
                     // Lógica para resetear las variables del panel de 'Siguiente Episodio'
                     isShowingNextPanel.current = false; // Marca como falsa la bandera para que se pueda volver a mostrar el panel
                     setShowNextEpisode(false); // Oculta el panel si estaba visible
