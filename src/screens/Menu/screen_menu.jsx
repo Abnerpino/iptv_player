@@ -36,6 +36,9 @@ const Menu = ({ navigation, route }) => {
     const [allSeenNotifications, setAllSeenNotifications] = useState(false); //Estado para manejar si todas las notificaciones ya han sido vistas
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const [initialCheckDone, setInitialCheckDone] = useState(false); //Maneja el estado de la revisión inicial
+    const [flagUpdateNow, setFlagUpdateNow] = useState(updateNow); //Maneja el estado de la bandera que indica si el contenido se debe actualizar ahora o no
+    const [flagShowModalN, setFlagShowModalN] = useState(true); //Estado que maneja la bandera que indica si se debe mostrar el modal de notificaciones en otro momento que no sea despues de la actualización automatica del contenido
+    const [oldLength, setOldLength] = useState(0); //Estado que maneja la cantidad antigua de notificaciones sin ver
 
     const notificaciones = React.useMemo(() => {
         return notifications.sorted('fecha', true);
@@ -78,7 +81,7 @@ const Menu = ({ navigation, route }) => {
                 const secondsSinceUpdate = await getSecondsSinceUpdate(); // Obtiene los segundos que han pasado desde la última actualización del contenido
 
                 // Si la bandera de actualización está activa o ya pasaron 24 horas...
-                if (updateNow || secondsSinceUpdate > 86400) {
+                if (flagUpdateNow || secondsSinceUpdate > 86400) {
                     handleStartLoading?.(); // Activa el modal de carga
 
                     // Para cada tipo de Multimedia...
@@ -91,6 +94,7 @@ const Menu = ({ navigation, route }) => {
                         }
                     }
 
+                    setFlagUpdateNow(false); // Desactiva la bandera de actualización inmediata
                     await updateLastUpdateTime(); // Actualiza el tiempo de la última actualización
                 }
             } catch (error) {
@@ -145,19 +149,35 @@ const Menu = ({ navigation, route }) => {
     }, [errores]);
 
     useEffect(() => {
-        //Si no hay ninguna notificación o se está mostrando el modal de carga o no ha terminado la revisión inicial, no hace nada
-        if (notificaciones.length === 0 || loading || !initialCheckDone) return;
+        const newLength = notificaciones.filter(item => item.visto === false).length; // Obtiene la cantidad actual de notificaciones no vistas
+        // Si la cantidad actual de notificaciones sin ver es mayor que la cantidad antigua...
+        if (newLength > oldLength) {
+            setFlagShowModalN(true); // Activa la bandera del modal de notificaciones
+        }
+        // Si todas las notificaciones han sido vistas...
+        if (newLength === 0) {
+            setAllSeenNotifications(true); // Marca que todas las notificaciones han sido vistas
+        }
+        setOldLength(newLength); // Actualiza la cantidad antigua de notificaciones sin ver
+    }, [notificaciones]);
+
+    useEffect(() => {
+        // Si no hay ninguna notificación o se está mostrando el modal de carga o no ha terminado la revisión inicial o no está activa la bandera del modal de notificaciones, no hace nada
+        if (notificaciones.length === 0 || loading || !initialCheckDone || !flagShowModalN) return;
 
         const result = notificaciones.find(item => item.visto === false); //Busca si hay notificaciones no vistas
-        if (result) { //Si result no es indefinido, significa que todavia hay alguna notificación sin ver
-            setAllSeenNotifications(false);
-            if (!modalNVisible) { // Si el modal de notificaciones no se está mostrando...
+        // Si result no es indefinido...
+        if (result) {
+            setAllSeenNotifications(false); // Marca que todavia hay alguna notificación sin ver
+            // Si el modal de notificaciones no se está mostrando...
+            if (!modalNVisible) {
                 setModalNVisible(true); // Muestra el modal de notificaciones
+                setFlagShowModalN(false); // Desactiva la bandera del modal de notificaciones
             }
-        } else { //Si result es indefinido, significa que todas las notificaciones han sido vistas
-            setAllSeenNotifications(true);
+        } else { // Si result es indefinido...
+            setAllSeenNotifications(true); // Marca que todas las notificaciones han sido vistas
         }
-    }, [notificaciones, loading, initialCheckDone]);
+    }, [notificaciones, loading, initialCheckDone, flagShowModalN]);
 
     useEffect(() => {
         // Si no hay ningún id, no hace nada
