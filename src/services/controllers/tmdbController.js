@@ -9,8 +9,8 @@ export const getDataMovie = async (apiKey, title, year, poster, release) => {
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
-        //Selecciona la que coincida con el poster o la fecha de estreno
-        const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date);
+        //Selecciona la que coincida con el poster o con la fecha de estreno o con el título
+        const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date || title === result.title);
         if (movie) {
             const info = await getDataMovieById(movie.id, apiKey);
             return info;
