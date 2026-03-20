@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
+import { View, Text, FlatList, TouchableNativeFeedback, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard, findNodeHandle, Platform } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/SimpleLineIcons';
@@ -8,6 +8,7 @@ import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import SearchBar from '../../components/SearchBar';
 import ItemChannel from '../../components/Items/item_channel';
 import Reproductor from '../../components/Reproductor';
@@ -22,6 +23,8 @@ const Canal = ({ navigation, route }) => {
     const categories = useQuery(categoryModel); //Obtiene las categorias con base en el modelo
     const initialCategoryIndex = categories.findIndex(categoria => categoria.category_id === idCategory); //Almacena el indice de la categoría inicial
     const vistos = categories.find(categoria => categoria.category_id === '0.2'); //Busca y asigna la categoria 'Recientemente Vistos'
+    const favoritos = categories.find(categoria => categoria.category_id === '0.3'); //Busca y asigna la categoria 'Favoritos'
+    const [favorite, setFavorite] = useState(canal?.favorito ?? false); //Estado para manejar si un canal está en Favoritos o no
     const [currentIndex, setCurrentIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria actual
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(initialCategoryIndex); //Estado para manejar el indice de la categoria del canal seleccionado
     const [selectedChannel, setSelectedChannel] = useState(canal); //Estado para el manejo del canal seleccionado
@@ -30,7 +33,46 @@ const Canal = ({ navigation, route }) => {
     const [isFullScreen, setIsFullScreen] = useState(false); //Estado para manejar la pantalla completa del reproductor
     const [searchCont, setSearchCont] = useState(''); //Estado para manejar la búsqueda de contenido
     const [reproductorHeight, setReproductorHeight] = useState(null); //Estado para guardar la altura dinámica del reproductor
-    const flatListRef = useRef(null);
+    const [focusTags, setFocusTags] = useState({ back: null, prev: null, next: null, bar: null, play: null, fav: null }); // Estado para manejar la navegación de los botones/componentes
+    const [triggerControls, setTriggerControls] = useState(0); // Estado para manejar el disparador de controles del reproductor
+    const backBtnRef = useRef(null); // Referencia para el botón de Regresar
+    const prevBtnRef = useRef(null); // Referencia para el botón Categoría Anterior
+    const nextBtnRef = useRef(null); // Referencia para el botón Siguiente Categoría
+    const playerRef = useRef(null); // Referencia para el reproductor
+    const favBtnRef = useRef(null); // Referencia para el botón de Favoritos
+    const flatListRef = useRef(null); // Referencia para el FlatList
+
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : undefined;
+
+    // useEffect para vincular los botones/elementos para navegación explicita
+    useEffect(() => {
+        // Si no es TV o si la pantalla está completa, no hace nada
+        if (!Platform.isTV || isFullScreen) return;
+
+        // Timeout para asegurar que los elementos estén montados
+        const timer = setTimeout(() => {
+            if (backBtnRef.current && prevBtnRef.current && nextBtnRef.current && playerRef.current && favBtnRef.current) {
+                setFocusTags(prev => ({
+                    ...prev,
+                    back: findNodeHandle(backBtnRef.current),
+                    prev: findNodeHandle(prevBtnRef.current),
+                    next: findNodeHandle(nextBtnRef.current),
+                    play: findNodeHandle(playerRef.current),
+                    fav: findNodeHandle(favBtnRef.current)
+                }));
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [isFullScreen]);
+
+    // Función para actualizar dinámicamente cualquier etiqueta de navagación de un elemento
+    const updateFocusTags = (propiedad, valor) => {
+        setFocusTags(prev => ({
+            ...prev,
+            [propiedad]: valor
+        }));
+    };
 
     const handleToggleWatched = () => {
         // Verifica si el canal ya está en Vistos (para evitar agregar de nuevo)
@@ -42,6 +84,20 @@ const Canal = ({ navigation, route }) => {
         let newTotal = currentTotal + 1;
 
         updateProps('live', true, vistos.category_id, { total: newTotal }); // Actualiza el total de la categoría Vistos
+    };
+
+    // Función para agregar/quitar un canal de Favoritos
+    const handleToggleFavorite = () => {
+        const newFavoriteStatus = !favorite;
+
+        setFavorite(newFavoriteStatus);
+
+        updateProps('live', false, selectedChannel.stream_id, { favorito: newFavoriteStatus }); // Actualiza la pelicula en el schema
+
+        const currentTotal = favoritos.total;
+        let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+
+        updateProps('live', true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     };
 
     const contentToShow = useMemo(() => {
@@ -175,6 +231,7 @@ const Canal = ({ navigation, route }) => {
     function seleccionarCanal(category, channel) {
         if (channel.num !== selectedChannel.num) { // Si es un canal diferente al que estaba seleccionado...
             const newIndex = category.canales.findIndex(c => c.stream_id === channel.stream_id);
+            setFavorite(channel?.favorito ?? false);
             setSelectedChannelIndex(newIndex);
             setSelectedChannel(channel); // Actualiza el nuevo canal seleccionado
             seleccionarCategoria(category); // Llama a la función para actualizar la categoría seleccionada
@@ -197,22 +254,29 @@ const Canal = ({ navigation, route }) => {
                         {!isFullScreen && (
                             <View style={styles.listaContainer}>
                                 <View style={{ flexDirection: 'row' }}>
-                                    <TouchableOpacity
-                                        style={styles.flechaIcono}
+                                    <RippleButton
+                                        ref={backBtnRef}
+                                        mainStyle={styles.flechaIcono}
+                                        iconLib={Icon}
+                                        name="arrow-circle-left"
                                         onPress={handleBack}
                                         onLongPress={() => showToast('Regresar')}
-                                    >
-                                        <Icon name="arrow-circle-left" size={26} color="white" />
-                                    </TouchableOpacity>
+                                        nextFocusLeft={focusTags.back}
+                                    />
                                     <Image
                                         source={require('../../assets/imagotipo_live.png')}
                                         style={styles.imagotipo}
                                     />
                                 </View>
                                 <View style={styles.categoriaContanier}>
-                                    <TouchableOpacity onPress={handlePrevious} style={{ paddingHorizontal: 5 }} >
-                                        <Icon2 name="arrow-left" size={26} color="white" />
-                                    </TouchableOpacity>
+                                    <RippleButton
+                                        ref={prevBtnRef}
+                                        mainStyle={{ paddingHorizontal: 5 }}
+                                        iconLib={Icon2}
+                                        name="arrow-left"
+                                        onPress={handlePrevious}
+                                        nextFocusRight={focusTags.next}
+                                    />
                                     <View style={{ flex: 1, alignItems: categories[currentIndex].category_name.length > 28 ? 'stretch' : 'center' }}>
                                         <TextTicker
                                             style={styles.categoryText}
@@ -225,13 +289,20 @@ const Canal = ({ navigation, route }) => {
                                             {categories[currentIndex].category_name}
                                         </TextTicker>
                                     </View>
-                                    <TouchableOpacity onPress={handleNext} style={{ paddingHorizontal: 5 }} >
-                                        <Icon2 name="arrow-right" size={26} color="white" />
-                                    </TouchableOpacity>
+                                    <RippleButton
+                                        ref={nextBtnRef}
+                                        mainStyle={{ paddingHorizontal: 5 }}
+                                        iconLib={Icon2}
+                                        name="arrow-right"
+                                        onPress={handleNext}
+                                        nextFocusUp={focusTags.back}
+                                        nextFocusLeft={focusTags.prev}
+                                        nextFocusRight={focusTags.play}
+                                    />
                                 </View>
                                 {contentToShow.length === 0 ? (
                                     <View style={{ padding: 10 }}>
-                                        <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                                        <Text style={styles.resultText}>
                                             No se ha encontrado el canal
                                         </Text>
                                     </View>
@@ -240,14 +311,17 @@ const Canal = ({ navigation, route }) => {
                                         ref={flatListRef}
                                         data={contentToShow}
                                         numColumns={1}
-                                        renderItem={({ item }) => (
+                                        renderItem={({ item, index }) => (
                                             <ItemChannel
                                                 canal={item}
+                                                index={index}
                                                 seleccionado={selectedChannel.num}
                                                 seleccionar={(canal) => {
                                                     Keyboard.dismiss(); // Si el teclado se está mostrando, lo oculta al seleccionar un canal
                                                     seleccionarCanal(categories[currentIndex], canal);
                                                 }}
+                                                upTag={focusTags.prev}
+                                                rightTag={focusTags.play}
                                             />
                                         )}
                                         keyExtractor={item => item.num}
@@ -264,9 +338,14 @@ const Canal = ({ navigation, route }) => {
                                 <View>
                                     <View style={styles.barraContainer}>
                                         <View style={styles.busquedaContainer}>
-                                            <SearchBar message='Buscar canal' searchText={searchCont} setSearchText={setSearchCont} />
+                                            <SearchBar
+                                                message='Buscar canal'
+                                                searchText={searchCont}
+                                                setSearchText={setSearchCont}
+                                                playerTag={focusTags.play}
+                                                getBarTag={updateFocusTags}
+                                            />
                                         </View>
-                                        <Icon name='search' size={26} color="#FFF" style={{ marginLeft: 10 }} />
                                     </View>
                                     <View style={styles.textContainer}>
                                         <TextTicker
@@ -284,7 +363,7 @@ const Canal = ({ navigation, route }) => {
                             )}
                             <View
                                 style={[
-                                    !isFullScreen ? styles.reproductor : { flex: 1 },
+                                    !isFullScreen ? styles.wrapper : { flex: 1 },
                                     (!isFullScreen && reproductorHeight) ? { height: reproductorHeight, flex: 0 } : {}
                                 ]}
                                 onLayout={(event) => {
@@ -294,18 +373,53 @@ const Canal = ({ navigation, route }) => {
                                     }
                                 }}
                             >
-                                <Reproductor
-                                    tipo={'live'}
-                                    fullScreen={isFullScreen}
-                                    setFullScreen={(value) => setIsFullScreen(value)}
-                                    categoria={categories[selectedCategoryIndex]}
-                                    channelIndex={selectedChannelIndex}
-                                    contenido={selectedChannel}
-                                    onContentChange={seleccionarCanal}
-                                    markAsWatched={handleToggleWatched}
-                                    username={username}
-                                />
+                                <TouchableNativeFeedback
+                                    ref={playerRef}
+                                    onPress={() => Platform.isTV && !isFullScreen ? setIsFullScreen(true) : setTriggerControls(prev => prev + 1)}
+                                    background={focusRipple}
+                                    useForeground={!Platform.isTV}
+                                    nextFocusUp={focusTags.bar}
+                                >
+                                    <View style={{ flex: 1, padding: Platform.isTV && !isFullScreen ? 3 : 0 }}>
+                                        <View style={[{ flex: 1 }, (!Platform.isTV && !isFullScreen) && { borderWidth: 3, borderColor: '#999' }]}>
+                                            <Reproductor
+                                                tipo={'live'}
+                                                fullScreen={isFullScreen}
+                                                setFullScreen={(value) => setIsFullScreen(value)}
+                                                categoria={categories[selectedCategoryIndex]}
+                                                channelIndex={selectedChannelIndex}
+                                                contenido={selectedChannel}
+                                                onContentChange={seleccionarCanal}
+                                                markAsWatched={handleToggleWatched}
+                                                username={username}
+                                                triggerControls={triggerControls}
+                                            />
+                                        </View>
+                                    </View>
+                                </TouchableNativeFeedback>
                             </View>
+                            {Platform.isTV && !isFullScreen && (
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={favBtnRef}
+                                        onPress={handleToggleFavorite}
+                                        background={focusRipple}
+                                        useForeground={false}
+                                        nextFocusDown={focusTags.fav}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={styles.innerContentButton}>
+                                                <View style={styles.buttonContent}>
+                                                    <Icon name={!favorite ? "heart-o" : "heart"} size={24} color={!favorite ? "black" : "red"} />
+                                                    <Text style={styles.textButton}>
+                                                        {!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -333,9 +447,8 @@ const styles = StyleSheet.create({
     },
     reproductorContainer: {
         flex: 6,
-        flexDirection: 'column',
-        paddingLeft: '1.75%',
-        paddingRight: '2%',
+        paddingHorizontal: '2%',
+        paddingBottom: '1%'
     },
     fullScreenContainer: {
         position: 'absolute',
@@ -363,6 +476,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
+        paddingHorizontal: 2.5,
     },
     imagotipo: {
         height: '100%',
@@ -377,22 +491,57 @@ const styles = StyleSheet.create({
     },
     categoryText: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: Platform.isTV ? 20 : 18,
         fontWeight: 'bold',
+    },
+    resultText: {
+        color: 'white',
+        fontSize: Platform.isTV ? 18 : 16,
+        textAlign: 'center'
     },
     nameText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         fontWeight: '500'
     },
-    reproductor: {
+    wrapper: {
         flex: 1,
-        marginHorizontal: 5,
-        marginBottom: 2.5,
-        borderRadius: 15,
-        borderWidth: 3,
+        borderRadius: 18,
+        marginHorizontal: '1%',
+        marginBottom: '1%'
+    },
+    buttonWrapper: {
+        height: 50,
+        width: '40%',
+        borderRadius: 5,
         overflow: 'hidden',
-        borderColor: '#999',
+        alignSelf: 'center',
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: 3,
+    },
+    innerContentButton: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 3,
+        backgroundColor: 'rgb(80,80,100)',
+    },
+    buttonContent: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+        alignItems: 'center',
+        width: '100%',
+    },
+    textButton: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFF',
+        textAlign: 'center',
+        paddingLeft: 5
     },
     flashMessage: {
         width: '12.5%',

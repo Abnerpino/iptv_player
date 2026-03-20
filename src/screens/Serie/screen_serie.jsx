@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableNativeFeedback, ImageBackground, Vibration, BackHandler, Platform, findNodeHandle } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import CardActor from '../../components/Cards/card_actor';
 import StarRating from '../../components/StarRating';
 import ModalOverview from '../../components/Modals/modal_overview';
@@ -49,11 +50,20 @@ const Serie = ({ navigation, route }) => {
     const [selectedTab, setSelectedTab] = useState('episodios'); //Estado para manejar el tab seleccionado: 'episodios' o 'reparto'
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
-    const hasUpdatedIndex = useRef(false);
+    const [focusTags, setFocusTags] = useState({ back: null, read: null, play: null, temp: null, fav: null, epis: null, cast: null, card: null }); // Estado para manejar las etiquetas de los elementos para la navegación explicita
+    const backBtnRef = useRef(null); // Referencia para el botón de Regresar
+    const readMoreRef = useRef(null); // Referencia para el elemento de Leer Más
+    const playBtnRef = useRef(null); // Referencia para el botón de Reproducir
+    const seasonsBtnRef = useRef(null); // Referencia para el botón de Temporadas
+    const favBtnRef = useRef(null); // Referencia para el botón de Favoritos
+    const episodesBtnRef = useRef(null); // Referencia para el botón de Episodios
+    const castBtnRef = useRef(null); // Referencia para el botón de Reparto
+    const hasUpdatedIndex = useRef(false); // Referencia para marcar cuando se actualice el indice
     const hasPerformedInitialSave = useRef(false); // Referencia para saber cuando ya se guardó el 'playback_time' del episodio la primera vez que se reproduce
 
     const duration = selectedEpisode.duration_secs !== "" ? Number(selectedEpisode.duration_secs) : 0;
     const isComplete = (duration > 0 && (parseFloat(selectedEpisode.playback_time) / duration) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#FFFFFF40', false);
 
     // Se ejecuta cada vez que la pantalla Canal está enfocada
     useFocusEffect(
@@ -62,6 +72,43 @@ const Serie = ({ navigation, route }) => {
             log(crashlytics, `Serie (${idContent} - T${selectedSeason.numero}-E${selectedEpisode.episode_num}${showReproductor ? ' - Playing' : ''})`); // Establece el mensaje
         }, [selectedSeason.numero, selectedEpisode.episode_num, showReproductor]) // Se reejecuta cada vez que cambian las dependencias
     );
+
+    // useEffect para vincular los botones para navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que los elementos estén montados
+        const timer = setTimeout(() => {
+            let backTag, readTag, playTag, tempTag, favTag, episTag, castTag = null;
+
+            if (backBtnRef.current) {
+                backTag = findNodeHandle(backBtnRef.current);
+            }
+            if (readMoreRef.current) {
+                readTag = findNodeHandle(readMoreRef.current);
+            }
+            if (playBtnRef.current) {
+                playTag = findNodeHandle(playBtnRef.current);
+            }
+            if (seasonsBtnRef.current) {
+                tempTag = findNodeHandle(seasonsBtnRef.current);
+            }
+            if (favBtnRef.current) {
+                favTag = findNodeHandle(favBtnRef.current);
+            }
+            if (episodesBtnRef.current) {
+                episTag = findNodeHandle(episodesBtnRef.current);
+            }
+            if (castBtnRef.current) {
+                castTag = findNodeHandle(castBtnRef.current);
+            }
+
+            setFocusTags(prev => ({ ...prev, back: backTag, read: readTag, play: playTag, temp: tempTag, fav: favTag, epis: episTag, cast: castTag }));
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (playbackInfo.episodeId !== selectedEpisode.id) return;
@@ -122,6 +169,14 @@ const Serie = ({ navigation, route }) => {
         return () => backHandler.remove();
     }, []);
 
+    // Función para actualizar dinámicamente cualquier etiqueta de navagación de un elemento
+    const updateFocusTags = (propiedad, valor) => {
+        setFocusTags(prev => ({
+            ...prev,
+            [propiedad]: valor
+        }));
+    };
+
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
 
@@ -158,6 +213,14 @@ const Serie = ({ navigation, route }) => {
     function handleCloseModalS() {
         setModalVisibleS(false);
     }
+
+    const onSelectSeason = (idxSeason) => {
+        const season = seasons[idxSeason];
+        setSelectedSeason(season);
+        setEpisodios(season.episodios);
+        setSelectedEpisode(season.episodios[season.idx_last_ep_played]);
+        hasUpdatedIndex.current = false;
+    };
 
     const handleChangeEpisode = (episodio) => {
         // Actualiza el estado en el padre, esto provocará que el reproductor se reinicie
@@ -202,13 +265,15 @@ const Serie = ({ navigation, route }) => {
                         {/* Vista principal en columna */}
                         <View style={styles.containerBackButton}>
                             {/* Fila con el botón de regreso y el titulo de la serie */}
-                            <TouchableOpacity
-                                style={styles.backButton}
+                            <RippleButton
+                                ref={backBtnRef}
+                                mainStyle={styles.backButton}
+                                iconLib={Icon}
+                                name="arrow-circle-left"
                                 onPress={handleBack}
                                 onLongPress={() => showToast('Regresar')}
-                            >
-                                <Icon name="arrow-circle-left" size={26} color="white" />
-                            </TouchableOpacity>
+                                nextFocusRight={focusTags.back}
+                            />
                             <View style={styles.containerTitle}>
                                 <Text style={styles.title}>{serie.name}</Text>
                             </View>
@@ -242,63 +307,132 @@ const Serie = ({ navigation, route }) => {
                                         <StarRating rating={rating ? rating : 0} size={20} />
                                         <Text style={styles.overview} numberOfLines={2} >{overview ? overview : 'Trama no disponible'}</Text>
                                         {overview ? (
-                                            <TouchableOpacity onPress={() => setModalVisibleO(true)}>
-                                                <Text style={styles.readMore}>Leer Más</Text>
-                                            </TouchableOpacity>
+                                            <View style={styles.textWrapper}>
+                                                <TouchableNativeFeedback
+                                                    ref={readMoreRef}
+                                                    onPress={() => setModalVisibleO(true)}
+                                                    background={focusRipple}
+                                                    useForeground={!Platform.isTV}
+                                                    nextFocusDown={focusTags.play}
+                                                    nextFocusLeft={focusTags.read}
+                                                    nextFocusRight={focusTags.read}
+                                                >
+                                                    <View style={styles.borderSimulator}>
+                                                        <View style={{ borderRadius: 3 }}>
+                                                            <Text style={styles.readMore}>Leer Más</Text>
+                                                        </View>
+                                                    </View>
+                                                </TouchableNativeFeedback>
+                                            </View>
                                         ) : <Text>{'\n'}</Text>}
 
                                     </View>
                                 </View>
                             </View>
                             <View style={styles.containerButtons}>
-                                <TouchableOpacity
-                                    style={styles.button}
-                                    onPress={() => setShowReproductor(true)}
-                                >
-                                    <View style={styles.playButton}>
-                                        <Icon name="play-circle-o" size={22} color="white" />
-                                        <Text style={styles.textButton}>
-                                            {`${parseFloat(selectedEpisode.playback_time) === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}: T${selectedSeason.numero}-E${selectedEpisode.episode_num}`}
-                                        </Text>
-                                    </View>
-                                    {parseFloat(selectedEpisode.playback_time) > 0 && (
-                                        <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
-                                    )}
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setModalVisibleS(true)} style={[styles.button, styles.subStyleButton]}>
-                                    <Icon name="list-alt" size={22} color="white" />
-                                    <Text style={styles.textButton}>{`Temporada: ${selectedSeason.numero}`}</Text>
-                                    <Icon2 name='keyboard-arrow-down' size={22} color="white" />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, styles.subStyleButton]}>
-                                    <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
-                                    <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
-                                </TouchableOpacity>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={playBtnRef}
+                                        onPress={() => setShowReproductor(true)}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        hasTVPreferredFocus={Platform.isTV}
+                                        nextFocusLeft={focusTags.play}
+                                        nextFocusDown={focusTags.epis}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={styles.innerContentButton}>
+                                                <View style={styles.playButton}>
+                                                    <Icon name="play-circle-o" size={Platform.isTV ? 24 : 22} color="white" />
+                                                    <Text style={styles.textButton}>
+                                                        {`${parseFloat(selectedEpisode.playback_time) === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}: T${selectedSeason.numero}-E${selectedEpisode.episode_num}`}
+                                                    </Text>
+                                                </View>
+                                                {parseFloat(selectedEpisode.playback_time) > 0 && (
+                                                    <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
+                                                )}
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={seasonsBtnRef}
+                                        onPress={() => setModalVisibleS(true)}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        nextFocusDown={focusTags.epis}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={[styles.innerContentButton, styles.subStyleButton]}>
+                                                <Icon name="list-alt" size={Platform.isTV ? 24 : 22} color="white" />
+                                                <Text style={styles.textButton}>{`Temporada: ${selectedSeason.numero}`}</Text>
+                                                <Icon2 name='keyboard-arrow-down' size={Platform.isTV ? 24 : 22} color="white" />
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={favBtnRef}
+                                        onPress={handleToggleFavorite}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        nextFocusDown={focusTags.epis}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={[styles.innerContentButton, styles.subStyleButton]}>
+                                                <Icon name={!favorite ? "heart-o" : "heart"} size={Platform.isTV ? 24 : 22} color={!favorite ? "black" : "red"} />
+                                                <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
                             </View>
 
                             {selectedSeason && (
                                 <View style={{ paddingVertical: 10 }}>
                                     <View style={styles.containerFlatList}>
                                         {/* Botón EPISODIOS */}
-                                        <TouchableOpacity
-                                            onPress={() => setSelectedTab('episodios')}
-                                            style={[styles.episodiosButton, { backgroundColor: selectedTab === 'episodios' ? 'orange' : '#444', }]}
-                                        >
-                                            <Text style={styles.titleEpisodios}>
-                                                EPISODIOS ({selectedSeason.episodios.length})
-                                            </Text>
-                                        </TouchableOpacity>
+                                        <View style={[styles.wrapper, { marginRight: 10 }]}>
+                                            <TouchableNativeFeedback
+                                                ref={episodesBtnRef}
+                                                onPress={() => setSelectedTab('episodios')}
+                                                background={focusRipple}
+                                                useForeground={!Platform.isTV}
+                                                nextFocusRight={focusTags.cast || focusTags.epis}
+                                                nextFocusDown={focusTags.card}
+                                            >
+                                                <View style={styles.borderSimulator}>
+                                                    <View style={[styles.innerContent, { backgroundColor: selectedTab === 'episodios' ? '#07f' : '#444', }]}>
+                                                        <Text style={styles.titleEpisodios}>
+                                                            EPISODIOS ({selectedSeason.episodios.length})
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            </TouchableNativeFeedback>
+                                        </View>
 
                                         {/* Botón Reparto (solo si hay datos) */}
                                         {Array.isArray(cast) && cast.length > 0 && (
-                                            <TouchableOpacity
-                                                onPress={() => setSelectedTab('reparto')}
-                                                style={[styles.repartoButton, { backgroundColor: selectedTab === 'reparto' ? 'orange' : '#444' }]}
-                                            >
-                                                <Text style={styles.titleReparto}>
-                                                    Reparto
-                                                </Text>
-                                            </TouchableOpacity>
+                                            <View style={styles.wrapper}>
+                                                <TouchableNativeFeedback
+                                                    ref={castBtnRef}
+                                                    onPress={() => setSelectedTab('reparto')}
+                                                    background={focusRipple}
+                                                    useForeground={!Platform.isTV}
+                                                    nextFocusRight={focusTags.cast}
+                                                    nextFocusDown={focusTags.card}
+                                                >
+                                                    <View style={styles.borderSimulator}>
+                                                        <View style={[styles.innerContent, { backgroundColor: selectedTab === 'reparto' ? '#07f' : '#444', }]}>
+                                                            <Text style={styles.titleReparto}>
+                                                                Reparto
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                </TouchableNativeFeedback>
+                                            </View>
                                         )}
                                     </View>
 
@@ -311,13 +445,14 @@ const Serie = ({ navigation, route }) => {
                                             data={selectedSeason.episodios}
                                             scrollEnabled={false} // Desactiva scroll interno para evitar conflictos con el ScrollView ya que la oritentación de desplazamiento es la misma
                                             keyExtractor={(item) => item.id} //No es necesario hacer la conversión porque ya es string
-                                            renderItem={({ item }) => (
+                                            renderItem={({ item, index }) => (
                                                 <ItemEpisode
                                                     episode={item}
                                                     onSelectEpisode={(episodio) => {
                                                         handleChangeEpisode(episodio);
                                                         setShowReproductor(true);
                                                     }}
+                                                    upTag={index === 0 ? focusTags.epis : undefined}
                                                 />
                                             )}
                                         />
@@ -325,10 +460,13 @@ const Serie = ({ navigation, route }) => {
                                         <FlatList
                                             data={cast}
                                             horizontal
-                                            renderItem={({ item }) => (
+                                            renderItem={({ item, index }) => (
                                                 <CardActor
+                                                    index={index}
                                                     imagen={item.imagen}
                                                     nombre={item.nombre}
+                                                    upTag={focusTags.cast}
+                                                    getFirstCard={updateFocusTags}
                                                 />
                                             )}
                                             keyExtractor={(item, index) => index.toString()}
@@ -348,13 +486,12 @@ const Serie = ({ navigation, route }) => {
                         <ModalSeasons
                             openModal={modalVisibleS}
                             handleCloseModal={handleCloseModalS}
-                            seasons={seasons}//.map((season) => season.temporada)} //Envia un nuevo arreglo solo con el valor de las temporadas
-                            onSelectSeason={(season) => {
-                                setSelectedSeason(season);
-                                setEpisodios(season.episodios);
-                                setSelectedEpisode(season.episodios[season.idx_last_ep_played]);
-                                hasUpdatedIndex.current = false;
-                            }}
+                            seasons={seasons.map((season) => ({
+                                numero: season.numero,
+                                episodios: season.episodios.length
+                            }))} //Envia un nuevo arreglo solo con el número de las temporadas y su cantidad de episodios
+                            indexSelectedSeason={seasons.findIndex(season => season.numero === selectedSeason.numero)}
+                            onSelectSeason={onSelectSeason}
                         />
                     </View>
                 </ImageBackground>
@@ -388,7 +525,6 @@ const Serie = ({ navigation, route }) => {
     );
 };
 
-// Estilos para la aplicación
 const styles = StyleSheet.create({
     imageBackground: {
         flex: 1,
@@ -415,7 +551,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     title: {
-        fontSize: 20,
+        fontSize: Platform.isTV ? 22 : 20,
         color: '#fff',
         fontWeight: 'bold',
         textAlign: 'center'
@@ -430,7 +566,7 @@ const styles = StyleSheet.create({
     },
     poster: {
         flex: 1,
-        width: '100%',
+        width: Platform.isTV ? '105%' : '103%',
         height: '100%',
         borderRadius: 5,
         borderColor: '#fff',
@@ -448,19 +584,24 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     text: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         color: '#CCC',
         marginVertical: 6.5,
     },
     overview: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         textAlign: 'justify',
         color: '#CCC',
         paddingRight: '21%',
     },
+    textWrapper: {
+        flex: 1,
+        borderRadius: 5,
+        overflow: 'hidden',
+    },
     readMore: {
         color: 'rgb(255,127,0)',
-        fontSize: 14,
+        fontSize: Platform.isTV ? 16 : 14,
         fontWeight: 'bold'
     },
     containerButtons: {
@@ -469,10 +610,20 @@ const styles = StyleSheet.create({
         paddingTop: 20,
         paddingBottom: 10,
     },
-    button: {
+    buttonWrapper: {
         width: '25%',
-        justifyContent: 'center',
         borderRadius: 5,
+        overflow: 'hidden'
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 3 : 0,
+    },
+    innerContentButton: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 3,
         backgroundColor: 'rgb(80,80,100)',
     },
     subStyleButton: {
@@ -487,7 +638,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
     },
     textButton: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
@@ -495,17 +646,27 @@ const styles = StyleSheet.create({
     },
     containerFlatList: {
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
+    },
+    wrapper: {
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    innerContent: {
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        borderRadius: 5
     },
     episodiosButton: {
         paddingVertical: 6,
         paddingHorizontal: 14,
         borderRadius: 8,
-        marginRight: 10
+
     },
     titleEpisodios: {
         color: '#fff',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        fontSize: Platform.isTV ? 16 : 14
     },
     repartoButton: {
         paddingVertical: 6,
@@ -514,7 +675,8 @@ const styles = StyleSheet.create({
     },
     titleReparto: {
         color: '#fff',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        fontSize: Platform.isTV ? 16 : 14
     },
     horizontalLine: {
         height: 1,

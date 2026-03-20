@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, ScrollView, Text, Image, StyleSheet, TouchableOpacity, ImageBackground, ToastAndroid, Pressable } from 'react-native';
+import { View, ScrollView, Text, Image, StyleSheet, TouchableNativeFeedback, ImageBackground, ToastAndroid, Pressable, Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/Octicons';
@@ -8,6 +8,7 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Linking } from 'react-native';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import ModalLogger from '../../components/Modals/modal_logger';
 
 const About = ({ navigation }) => {
@@ -15,6 +16,7 @@ const About = ({ navigation }) => {
 
     const version = DeviceInfo.getVersion();
     const email = 'abnerpino15@gmail.com';
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#00000040', false);
 
     // Se ejecuta cada vez que la pantalla About está enfocada
     useFocusEffect(
@@ -46,42 +48,55 @@ const About = ({ navigation }) => {
         >
             <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0)', }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5, alignSelf: 'flex-start' }}>
-                        <Icon name="arrow-circle-left" size={26} color="white" />
-                    </TouchableOpacity>
+                    <RippleButton
+                        mainStyle={{ paddingHorizontal: 15, paddingVertical: 12.5 }}
+                        iconLib={Icon}
+                        name="arrow-circle-left"
+                        onPress={() => navigation.goBack()}
+                    />
                     <Text style={styles.sectionTitle}>ACERCA DE</Text>
                 </View>
                 <ScrollView style={styles.body}>
-                    <Image
-                        source={require('../../assets/icono.jpg')}
-                        style={{ height: '30%', width: '30%', resizeMode: 'contain', alignSelf: 'center' }}
-                    />
-                    <View style={styles.versionContainer}>
-                        <Icon2 name="versions" size={16} color="white" />
-                        <Text style={styles.version}>Versión: {version}</Text>
-                    </View>
-                    <Text style={styles.description}>IPTV Player es una aplicación móvil para ver canales en vivo, películas y series, todo a través de una conexión a Internet.</Text>
-                    <View style={{ flexDirection: 'row', alignSelf: 'center', }}>
-                        <View style={{ alignItems: '', paddingRight: 25, }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', }}>
-                                <Icon3 name="engineering" size={24} color="white" />
-                                <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Desarrollador:</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
-                                <Icon3 name="email" size={24} color="white" />
-                                <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Correo:</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
-                                <Icon3 name="rocket-launch" size={24} color="white" />
-                                <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Lanzamiento:</Text>
-                            </View>
+                    <View style={styles.topContainer}>
+                        <Image
+                            source={require('../../assets/icono.jpg')}
+                            style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'center' }}
+                        />
+                        <View style={styles.versionContainer}>
+                            <Icon2 name="versions" size={Platform.isTV ? 22 : 16} color="white" />
+                            <Text style={styles.version}>Versión: {version}</Text>
                         </View>
-                        <View style={{ alignItems: 'flex-start', paddingLeft: 25, }}>
-                            <Text style={styles.info}>Ing. Abner Pino Federico</Text>
-                            <Pressable onPress={handlePress} onLongPress={handleLongPress}>
-                                <Text style={styles.email}>{email}</Text>
-                            </Pressable>
-                            <Text style={[styles.info, { marginTop: 10 }]}>2026</Text>
+                    </View>
+                    <View style={styles.middleContainer}>
+                        <Text style={styles.description}>IPTV Player es una aplicación para ver canales en vivo, películas y series, todo a través de una conexión a Internet.</Text>
+                        <View style={{ flexDirection: 'row', alignSelf: 'center', }}>
+                            <View style={{ alignItems: '', paddingRight: 25, }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+                                    <Icon3 name="engineering" size={24} color="white" />
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Desarrollador:</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
+                                    <Icon3 name="email" size={24} color="white" />
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Correo:</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
+                                    <Icon3 name="rocket-launch" size={24} color="white" />
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Lanzamiento:</Text>
+                                </View>
+                            </View>
+                            <View style={{ alignItems: 'flex-start', paddingLeft: 25, }}>
+                                <Text style={styles.info}>Ing. Abner Pino Federico</Text>
+                                {Platform.isTV ? (
+                                    <View>
+                                        <Text style={styles.email}>{email}</Text>
+                                    </View>
+                                ) : (
+                                    <Pressable onPress={handlePress} onLongPress={handleLongPress}>
+                                        <Text style={styles.email}>{email}</Text>
+                                    </Pressable>
+                                )}
+                                <Text style={[styles.info, { marginTop: 10 }]}>2026</Text>
+                            </View>
                         </View>
                     </View>
                     <View style={styles.bottomContainer}>
@@ -90,13 +105,20 @@ const About = ({ navigation }) => {
                             resizeMode='contain'
                             style={styles.imageDev}
                         />
-                        <TouchableOpacity
-                            style={styles.buttonContainer}
-                            onPress={() => setModalVisible(true)}
-                        >
-                            <Icon2 name="log" size={18} color="white" />
-                            <Text style={styles.textButton}>Bitácora de Errores</Text>
-                        </TouchableOpacity>
+                        <View style={styles.wrapper}>
+                            <TouchableNativeFeedback
+                                onPress={() => setModalVisible(true)}
+                                background={focusRipple}
+                                useForeground={!Platform.isTV}
+                            >
+                                <View style={styles.borderSimulator}>
+                                    <View style={styles.buttonContainer}>
+                                        <Icon2 name="log" size={Platform.isTV ? 20 : 18} color="white" />
+                                        <Text style={styles.textButton}>Bitácora de Errores</Text>
+                                    </View>
+                                </View>
+                            </TouchableNativeFeedback>
+                        </View>
                     </View>
                 </ScrollView>
 
@@ -134,12 +156,22 @@ const styles = StyleSheet.create({
     },
     version: {
         color: '#FFF',
-        fontSize: 12,
+        fontSize: Platform.isTV ? 16 : 12,
         marginLeft: 5
+    },
+    topContainer: {
+        height: '40%',
+        justifyContent: 'center',
+        paddingTop: 30,
+        paddingBottom: 10
+    },
+    middleContainer: {
+        height: Platform.isTV ? '85%' : '70%',
+        justifyContent: 'center'
     },
     description: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 20 : 16,
         marginHorizontal: '5%',
         marginBottom: 20,
         textAlign: 'center',
@@ -148,39 +180,48 @@ const styles = StyleSheet.create({
     },
     info: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 20 : 16,
         paddingVertical: 2,
     },
     email: {
         backgroundColor: 'rgba(255,255,255,0.5)',
         color: 'blue',
         textDecorationLine: 'underline',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 20 : 16,
         marginTop: 10,
         borderRadius: 5,
         paddingHorizontal: 5,
         paddingBottom: 5,
     },
     bottomContainer: {
+        height: '15%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: '5%',
-        marginTop: 20,
     },
     imageDev: {
         width: '20%',
         height: '100%',
     },
+    wrapper: {
+        borderRadius: 10,
+        overflow: 'hidden'
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: 5,
+    },
     buttonContainer: {
         flexDirection: 'row',
         borderColor: '#FFF',
         borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 5,
-        paddingVertical: 5,
+        borderRadius: 7,
+        paddingHorizontal: 7.5,
+        paddingVertical: Platform.isTV ? 8 : 5,
         backgroundColor: 'gray'
     },
     textButton: {
+        fontSize: Platform.isTV ? 16 : 14,
         fontWeight: '500',
         color: '#FFF',
         marginLeft: 5,

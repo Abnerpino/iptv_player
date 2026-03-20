@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard } from 'react-native';
+import { View, Text, FlatList, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard, findNodeHandle, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import ItemCategory from '../../components/Items/item_category';
 import CardContenido from '../../components/Cards/card_contenido';
 import SearchBar from '../../components/SearchBar';
@@ -24,7 +25,9 @@ const Seccion = ({ navigation, route }) => {
     const [showModal, setShowModal] = useState(false); //Estado para manejar el modal de confirmación
     const [itemToDelete, setItemToDelete] = useState(null); //Estado para manejar el item seleccionado
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
-    const flatListRef = useRef(null);   //Referencia al FlatList del contenido
+    const [focusRightTag, setFocusRightTag] = useState(null); // Estado para manejar la etiqueta del icono de la Barra de Búsqueda
+    const iconBarRef = useRef(null); // Referencia para el icono de la Barra de Búsqueda
+    const flatListRef = useRef(null); //Referencia al FlatList del contenido
 
     const { getModelName, getWatchedItems, getFavoriteItems, getLastPlayedEpisode, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
     const categoryModel = getModelName(type, true);
@@ -43,7 +46,23 @@ const Seccion = ({ navigation, route }) => {
         }, [])
     );
 
-    // Efecto para establecer la categoría inicial solo hasta cuando las categorías se han cargado
+    // useEffect para vinular el icono de la Barra de Búsqueda para navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que el icono esté montado
+        const timer = setTimeout(() => {
+            if (iconBarRef.current) {
+                const iconTag = findNodeHandle(iconBarRef.current); // Encuentra la etiqueta del icono de la Barra de Búsqueda
+                setFocusRightTag(iconTag); // Asigna la etiqueta del icono
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    // useEffect para establecer la categoría inicial solo hasta cuando las categorías se han cargado
     useEffect(() => {
         if (!category && categories.length > 3) {
             setCategory(categories[3]);
@@ -212,13 +231,13 @@ const Seccion = ({ navigation, route }) => {
                     <View style={styles.container}>
                         <View style={styles.categoriasContainer}>
                             <View style={{ flexDirection: 'row' }}>
-                                <TouchableOpacity
-                                    style={{ paddingHorizontal: 15, paddingVertical: 12.5, }}
+                                <RippleButton
+                                    mainStyle={{ paddingHorizontal: 15, paddingVertical: 12.5, borderRadius: 50 }}
+                                    iconLib={Icon}
+                                    name="arrow-circle-left"
                                     onPress={handleBack}
                                     onLongPress={() => showToast('Regresar', 1)}
-                                >
-                                    <Icon name="arrow-circle-left" size={26} color="white" />
-                                </TouchableOpacity>
+                                />
                                 <Image
                                     source={require('../../assets/imagotipo.png')}
                                     style={{ height: '100%', width: '76%', resizeMode: 'contain', }}
@@ -256,28 +275,32 @@ const Seccion = ({ navigation, route }) => {
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
                                 <View style={{ flexDirection: 'row', width: (category?.category_id === '0.2' || category?.category_id === '0.3') ? '12.5%' : '5%', justifyContent: 'space-between', }}>
                                     {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
-                                        <TouchableOpacity
-                                            style={{ opacity: category?.total > 0 ? 1 : 0.5 }}
+                                        <RippleButton
+                                            mainStyle={{ opacity: category?.total > 0 ? 1 : 0.5 }}
+                                            iconLib={Icon2}
+                                            name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'}
                                             onPress={handleUnmarkItems}
                                             onLongPress={() => showToast(category?.category_id === '0.2' ? 'Eliminar Historial' : 'Quitar Favoritos', 2)}
                                             disabled={category?.total > 0 ? false : true}
-                                        >
-                                            <Icon2 name={category?.category_id === '0.2' ? 'eye-remove' : 'heart-remove'} size={26} color="#FFF" />
-                                        </TouchableOpacity>
+                                        />
                                     )}
-                                    <TouchableOpacity
-                                        style={{ paddingRight: 5 }}
+                                    <RippleButton
+                                        ref={iconBarRef}
+                                        mainStyle={{ borderRadius: 50, marginRight: (category?.category_id === '0.2' || category?.category_id === '0.3') ? '10%' : 0 }}
+                                        iconLib={Icon}
+                                        name={mostrarBusqueda ? 'long-arrow-right' : 'search'}
                                         onPress={() => setMostrarBusqueda(prev => !prev)}
                                         onLongPress={() => showToast(mostrarBusqueda ? 'Ocultar Barra de Búsqueda' : 'Mostrar Barra de Búsqueda', 2)}
-                                    >
-                                        <Icon name={mostrarBusqueda ? 'long-arrow-right' : 'search'} size={26} color="#FFF" />
-                                    </TouchableOpacity>
+                                        nextFocusRight={!mostrarBusqueda ? focusRightTag : undefined}
+                                    />
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'center', }}>
                                     {mostrarBusqueda ? (
                                         <SearchBar
                                             message={`Buscar ${type === 'live' ? 'canal' : (type === 'vod' ? 'película' : 'serie')}`}
-                                            searchText={searchCont} setSearchText={setSearchCont}
+                                            searchText={searchCont}
+                                            setSearchText={setSearchCont}
+                                            flag={true}
                                         />
                                     ) : (
                                         <Text style={styles.sectionTitle}>{category?.category_name}</Text>
@@ -285,13 +308,13 @@ const Seccion = ({ navigation, route }) => {
                                 </View>
                             </View>
 
-                            {(category?.category_id === '0.3' && contentToShow.length === 0) ? (
+                            {(category?.category_id === '0.3' && contentToShow.length === 0 && searchCont === '') ? (
                                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                     <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                         {type === 'live' ? 'Sin canales favoritos' : (type === 'vod' ? 'Sin películas favoritas' : 'Sin series favoritas')}
                                     </Text>
                                 </View>
-                            ) : (category?.category_id === '0.2' && contentToShow.length === 0) ? (
+                            ) : (category?.category_id === '0.2' && contentToShow.length === 0 && searchCont === '') ? (
                                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                                     <Text style={{ color: 'white', fontSize: 18, fontStyle: 'italic' }}>
                                         {type === 'live' ? 'Sin canales vistos' : (type === 'vod' ? 'Sin películas vistas' : 'Sin series vistas')}

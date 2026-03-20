@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, ImageBackground, Vibration, BackHandler } from 'react-native';
+import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableNativeFeedback, ImageBackground, Vibration, BackHandler, findNodeHandle, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useObject, useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import ProgressBar from '../../components/ProgressBar/progress_bar';
 import StarRating from '../../components/StarRating';
 import CardActor from '../../components/Cards/card_actor';
@@ -33,9 +34,14 @@ const Pelicula = ({ navigation, route }) => {
     const [error, setError] = useState(false);
     const [showReproductor, setShowReproductor] = useState(false);
     const [playbackTime, setPlaybackTime] = useState(parseFloat(pelicula.playback_time));
+    const [focusTags, setFocusTags] = useState({ back: null, play: null, fav: null, card: null }); // Estado para manejar las etiquetas de los botones para la navegación
+    const backBtnRef = useRef(null); // Referencia para el botón de Regresar
+    const playBtnRef = useRef(null); // Referecia para el botón de Reproducir
+    const favBtnRef = useRef(null); // Referencia para el botón de Favoritos
     const hasPerformedInitialSave = useRef(false);  // Referencia para saber cuando ya se guardó el 'playback_time' de la pelicula la primera vez que se reproduce
 
     const isComplete = (runtime > 0 && (playbackTime / (runtime * 60)) >= 0.99) ? true : false; //Bandera para saber cuando una pelicula ya se reprodujo por completo
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#FFFFFF40', false);
 
     // Se ejecuta cada vez que la pantalla Pelicula está enfocada
     useFocusEffect(
@@ -44,6 +50,26 @@ const Pelicula = ({ navigation, route }) => {
             log(crashlytics, `Pelicula (${idContent}${showReproductor ? ' - Playing' : ''})`); // Establece el mensaje
         }, [showReproductor]) // Se reejecuta cada vez que cambia la dependencia
     );
+
+    // useEffect para vincular los botones para navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que los elementos estén montados
+        const timer = setTimeout(() => {
+            if (backBtnRef.current && playBtnRef.current && favBtnRef.current) {
+                setFocusTags(prev => ({
+                    ...prev,
+                    back: findNodeHandle(backBtnRef.current),
+                    play: findNodeHandle(playBtnRef.current),
+                    fav: findNodeHandle(favBtnRef.current)
+                })); // Encuentra los ids de los botones y los asigna
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {
@@ -79,6 +105,14 @@ const Pelicula = ({ navigation, route }) => {
 
         return () => backHandler.remove();
     }, []);
+
+    // Función para actualizar dinámicamente cualquier etiqueta de navagación de un elemento
+    const updateFocusTags = (propiedad, valor) => {
+        setFocusTags(prev => ({
+            ...prev,
+            [propiedad]: valor
+        }));
+    };
 
     const handleToggleFavorite = () => {
         const newFavoriteStatus = !favorite;
@@ -149,13 +183,15 @@ const Pelicula = ({ navigation, route }) => {
                         {/* Vista principal en columna */}
                         <View style={styles.containerBackButton}>
                             {/* Fila con textos */}
-                            <TouchableOpacity
-                                style={styles.backButton}
+                            <RippleButton
+                                ref={backBtnRef}
+                                mainStyle={styles.backButton}
+                                iconLib={Icon}
+                                name="arrow-circle-left"
                                 onPress={handleBack}
                                 onLongPress={() => showToast('Regresar')}
-                            >
-                                <Icon name="arrow-circle-left" size={26} color="white" />
-                            </TouchableOpacity>
+                                nextFocusRight={focusTags.back}
+                            />
                             <View style={styles.containerTitle}>
                                 <Text style={styles.title}>{pelicula.name}</Text>
                             </View>
@@ -191,22 +227,54 @@ const Pelicula = ({ navigation, route }) => {
                                 </View>
                             </View>
                             <View style={styles.containerButtons}>
-                                <TouchableOpacity
-                                    style={styles.button}
-                                    onPress={() => setShowReproductor(true)}
-                                >
-                                    <View style={styles.playButton}>
-                                        <Icon name="play-circle-o" size={22} color="white" />
-                                        <Text style={styles.textButton}>{playbackTime === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}</Text>
-                                    </View>
-                                    {playbackTime > 0 && (
-                                        <ProgressBar isVod={true} duration={runtime} playback={playbackTime} />
-                                    )}
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleToggleFavorite} style={[styles.button, styles.favoriteButton]}>
-                                    <Icon name={!favorite ? "heart-o" : "heart"} size={22} color={!favorite ? "black" : "red"} />
-                                    <Text style={styles.textButton}>{!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}</Text>
-                                </TouchableOpacity>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={playBtnRef}
+                                        onPress={() => setShowReproductor(true)}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        hasTVPreferredFocus={Platform.isTV}
+                                        nextFocusLeft={focusTags.play}
+                                        nextFocusDown={focusTags.card}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={styles.innerContentButton}>
+                                                <View style={styles.buttonContent}>
+                                                    <Icon name="play-circle-o" size={Platform.isTV ? 24 : 22} color="white" />
+                                                    <Text style={styles.textButton}>
+                                                        {playbackTime === 0 ? 'Reproducir' : isComplete ? 'Reiniciar' : 'Reanudar'}
+                                                    </Text>
+                                                </View>
+                                                {playbackTime > 0 && (
+                                                    <View style={styles.progressBarContainer}>
+                                                        <ProgressBar isVod={true} duration={runtime} playback={playbackTime} />
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={favBtnRef}
+                                        onPress={handleToggleFavorite}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        nextFocusRight={focusTags.fav}
+                                        nextFocusDown={focusTags.card}
+                                    >
+                                        <View style={styles.borderSimulator}>
+                                            <View style={[styles.innerContentButton, { backgroundColor: 'rgb(80,80,100)' }]}>
+                                                <View style={styles.buttonContent}>
+                                                    <Icon name={!favorite ? "heart-o" : "heart"} size={Platform.isTV ? 24 : 22} color={!favorite ? "black" : "red"} />
+                                                    <Text style={styles.textButton}>
+                                                        {!favorite ? 'Agregar a Favoritos' : 'Quitar de Favoritos'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
                             </View>
                             <View style={{ paddingVertical: 10, }}>
                                 <Text style={styles.overview}>{overview ? overview : 'Sinopsis no disponible'}</Text>
@@ -217,10 +285,13 @@ const Pelicula = ({ navigation, route }) => {
                                     <FlatList
                                         data={cast}
                                         horizontal
-                                        renderItem={({ item }) => (
+                                        renderItem={({ item, index }) => (
                                             <CardActor
+                                                index={index}
                                                 imagen={item.imagen}
                                                 nombre={item.nombre}
+                                                upTag={focusTags.play}
+                                                getFirstCard={updateFocusTags}
                                             />
                                         )}
                                         keyExtractor={(item, index) => index.toString()}
@@ -272,7 +343,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     title: {
-        fontSize: 20,
+        fontSize: Platform.isTV ? 22 : 20,
         color: '#fff',
         fontWeight: 'bold',
         textAlign: 'center'
@@ -305,7 +376,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     text: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         color: '#CCC',
         marginVertical: 8,
     },
@@ -320,38 +391,49 @@ const styles = StyleSheet.create({
         justifyContent: 'space-evenly',
         paddingTop: 10,
     },
-    button: {
+    buttonWrapper: {
         width: '25%',
-        justifyContent: 'center',
         borderRadius: 5,
+        overflow: 'hidden'
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 3 : 0,
+    },
+    innerContentButton: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 3,
         backgroundColor: 'rgb(80,80,100)',
     },
-    playButton: {
+    buttonContent: {
         flexDirection: 'row',
         justifyContent: 'center',
         paddingVertical: 10,
         paddingHorizontal: 5,
+        alignItems: 'center',
+        width: '100%',
     },
-    favoriteButton: {
-        flexDirection: 'row',
-        paddingVertical: 10,
-        paddingHorizontal: 5,
+    progressBarContainer: {
+        width: '100%',
+        position: 'absolute',
+        bottom: 0,
     },
     textButton: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         fontWeight: 'bold',
         color: '#FFF',
         textAlign: 'center',
         paddingLeft: 5
     },
     overview: {
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         textAlign: 'justify',
         color: '#CCC',
     },
     containerFlatList: {
-        paddingHorizontal: 5,
-        paddingBottom: 5,
+        padding: 5,
     },
     flashMessage: {
         width: '12.5%',

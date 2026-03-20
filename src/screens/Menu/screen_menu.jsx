@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Image, StyleSheet, TouchableOpacity, BackHandler, ImageBackground, Vibration } from 'react-native';
+import { View, Text, Image, StyleSheet, BackHandler, ImageBackground, Vibration, findNodeHandle, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@realm/react';
 import { showMessage, hideMessage } from 'react-native-flash-message';
@@ -11,6 +11,7 @@ import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import Icon4 from 'react-native-vector-icons/Feather';
 import Icon5 from 'react-native-vector-icons/Ionicons';
+import RippleButton from '../../components/RippleButton/ripple_button';
 import CardMultimedia from '../../components/Cards/card_multimedia';
 import ModalNotifications from '../../components/Modals/modal_notifications';
 import ModalConfirmation from '../../components/Modals/modal_confirmation';
@@ -21,9 +22,10 @@ import { removerClienteDeNotificaciones } from '../../services/controllers/hosti
 
 const Menu = ({ navigation, route }) => {
     const updateNow = route.params.updateNow; // Bandera que indica si se debe actualizar el contenido ahora o no
-    const liveCardRef = useRef(null);
-    const vodCardRef = useRef(null);
-    const seriesCardRef = useRef(null);
+    const liveCardRef = useRef(null); // Referencia para el Card de Canales
+    const vodCardRef = useRef(null); // Referencia para el Card de Peliculas
+    const seriesCardRef = useRef(null); // Referencia para el Card de Series
+    const notifBntRef = useRef(null); // Referencia para el botón de Notificaciones
     const usuario = useQuery('Usuario');
     const notifications = useQuery('Notificacion');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -39,6 +41,7 @@ const Menu = ({ navigation, route }) => {
     const [flagUpdateNow, setFlagUpdateNow] = useState(updateNow); //Maneja el estado de la bandera que indica si el contenido se debe actualizar ahora o no
     const [flagShowModalN, setFlagShowModalN] = useState(true); //Estado que maneja la bandera que indica si se debe mostrar el modal de notificaciones en otro momento que no sea despues de la actualización automatica del contenido
     const [oldLength, setOldLength] = useState(0); //Estado que maneja la cantidad antigua de notificaciones sin ver
+    const [focusTags, setFocusTags] = useState({ btn: null, card: null }); // Estado para manejar las etiquetas de los elementos para la navegación
 
     const notificaciones = React.useMemo(() => {
         return notifications.sorted('fecha', true);
@@ -72,6 +75,22 @@ const Menu = ({ navigation, route }) => {
             ErrorLogger.log('Menu - updateLastUpdateTime', error);
         }
     };
+
+    // useEffect para vincular el botón de Notificaciones para navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que el botón esté montado
+        const timer = setTimeout(() => {
+            if (notifBntRef.current) {
+                const tag = findNodeHandle(notifBntRef.current);
+                updateFocusTags('btn', tag);
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const checkAndUpdateContent = async () => {
@@ -219,6 +238,14 @@ const Menu = ({ navigation, route }) => {
         }, [])
     );
 
+    // Función para actualizar dinámicamente cualquier etiqueta de navagación de un elemento
+    const updateFocusTags = (propiedad, valor) => {
+        setFocusTags(prev => ({
+            ...prev,
+            [propiedad]: valor
+        }));
+    };
+
     const handleManualError = (tipoError) => {
         setErrores([tipoError]); // Crea un array con el único error
         setModalEVisible(true);  // Muestra el modal
@@ -280,58 +307,67 @@ const Menu = ({ navigation, route }) => {
                         <Icon2 name="clock" size={26} color="#FFF" />
                         <Text style={styles.date}>{formattedDate[1]}</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'flex-end' }}>
-                        <TouchableOpacity
-                            style={{ marginRight: 15 }}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '17%', justifyContent: 'space-between', }}>
+                        <RippleButton
+                            ref={notifBntRef}
+                            mainStyle={{ borderRadius: 50, overflow: 'hidden' }}
+                            secondaryStyle={{ padding: 5 }}
+                            iconLib={Icon2}
+                            name={notificaciones.length === 0 ? "bell-outline" : (allSeenNotifications ? "bell" : "bell-badge")}
+                            color={notificaciones.length === 0 ? "white" : (allSeenNotifications ? "white" : "yellow")}
                             onPress={() => {
                                 hideMessage();
                                 setModalNVisible(true);
                             }}
                             onLongPress={() => showToast('Notificaciones')}
-                        >
-                            <Icon2
-                                name={notificaciones.length === 0 ? "bell-outline" : (allSeenNotifications ? "bell" : "bell-badge")}
-                                color={notificaciones.length === 0 ? "white" : (allSeenNotifications ? "white" : "yellow")}
-                                size={26}
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={{ marginRight: 15 }}
+                            nextFocusDown={focusTags.card}
+                            nextFocusLeft={focusTags.btn}
+                        />
+                        <RippleButton
+                            mainStyle={{ borderRadius: 50, overflow: 'hidden' }}
+                            secondaryStyle={{ padding: 5 }}
+                            iconLib={Icon}
+                            name="info-circle"
                             onPress={() => {
                                 hideMessage();
                                 navigation.navigate('About');
                             }}
                             onLongPress={() => showToast('Sobre la App')}
-                        >
-                            <Icon name="info-circle" size={26} color="#FFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={{ marginRight: 15 }}
+                            nextFocusDown={focusTags.card}
+                        />
+                        <RippleButton
+                            mainStyle={{ borderRadius: 50, overflow: 'hidden' }}
+                            secondaryStyle={{ padding: 5 }}
+                            iconLib={Icon3}
+                            name="network-check"
                             onPress={() => {
                                 hideMessage();
                                 navigation.navigate('SpeedTest');
                             }}
                             onLongPress={() => showToast('Test de Internet')}
-                        >
-                            <Icon3 name="network-check" size={26} color="white" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                            nextFocusDown={focusTags.card}
+                        />
+                        <RippleButton
+                            mainStyle={{ borderRadius: 50, overflow: 'hidden' }}
+                            secondaryStyle={{ padding: 5 }}
+                            iconLib={Icon5}
+                            name="exit-outline"
                             onPress={() => {
                                 hideMessage();
                                 setModalCVisible(true);
                             }}
                             onLongPress={() => showToast('Salir de la App')}
-                        >
-                            <Icon5 name="exit-outline" size={26} color="white" />
-                        </TouchableOpacity>
+                            nextFocusDown={focusTags.card}
+                        />
                     </View>
                 </View>
 
                 {/* Fila 1: TV en Directo, Cine, Series */}
                 <View style={styles.row}>
-                    {tiposMultimedia.map((multimedia, idx) => (
+                    {tiposMultimedia.map((multimedia, index) => (
                         <CardMultimedia
-                            key={idx}
+                            key={index}
+                            index={index}
                             navigation={navigation}
                             ref={multimedia.referencia}
                             tipo={multimedia.tipo}
@@ -340,6 +376,9 @@ const Menu = ({ navigation, route }) => {
                             onFinishLoading={handleFinishLoading}
                             onUpdateError={handleManualError}
                             username={usuario[0]?.username}
+                            hasTVPreferredFocus={Platform.isTV && index === 0}
+                            lastCard={index === (tiposMultimedia.length - 1)}
+                            getFirstCard={updateFocusTags}
                         />
                     ))}
                 </View>
@@ -347,17 +386,17 @@ const Menu = ({ navigation, route }) => {
                 {/* Footer con fecha de expiración, usuario y tipo de paquete */}
                 <View style={styles.footer}>
                     <View style={{ flexDirection: 'row', width: '33%', paddingLeft: 5 }}>
-                        <Icon2 name="calendar-clock" size={20} color="#FFF" />
+                        <Icon2 name="calendar-clock" size={Platform.isTV ? 22 : 20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>EXPIRACIÓN:</Text>
                         <Text style={styles.footerText}>{usuario[0]?.expiration_date}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '34%', justifyContent: 'center' }}>
-                        <Icon4 name="user" size={20} color="#FFF" />
+                        <Icon4 name="user" size={Platform.isTV ? 22 : 20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>USUARIO:</Text>
                         <Text style={styles.footerText}>{usuario[0]?.username}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', width: '33%', justifyContent: 'flex-end', paddingRight: 5 }}>
-                        <Icon2 name="package-variant-closed" size={20} color="#FFF" />
+                        <Icon2 name="package-variant-closed" size={Platform.isTV ? 22 : 20} color="#FFF" />
                         <Text style={[styles.footerText, { fontWeight: 'bold' }]}>PAQUETE:</Text>
                         <Text style={styles.footerText}>{usuario[0]?.purchased_package}</Text>
                     </View>
@@ -411,7 +450,7 @@ const styles = StyleSheet.create({
     },
     date: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: Platform.isTV ? 20 : 18,
     },
     row: {
         flexDirection: 'row',
@@ -435,7 +474,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: Platform.isTV ? 16 : 14,
         marginLeft: 5
     },
 });

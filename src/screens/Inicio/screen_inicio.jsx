@@ -302,6 +302,7 @@ const Inicio = ({ navigation }) => {
                         onCancel={handleExit}
                         onRequestClose={handleCloseModal}
                         numdId={errorId}
+                        navigation={navigation}
                     />
                 </View>
             </ImageBackground>

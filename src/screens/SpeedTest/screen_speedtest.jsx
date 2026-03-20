@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, StyleSheet, Text, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
 import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
+import RippleButton from '../../components/RippleButton/ripple_button';
 
 const SpeedTest = ({ navigation }) => {
   // Se ejecuta cuando se monta la pantalla
@@ -71,9 +72,12 @@ const SpeedTest = ({ navigation }) => {
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 15, paddingVertical: 12.5, alignSelf: 'flex-start' }}>
-            <Icon name="arrow-circle-left" size={26} color="white" />
-          </TouchableOpacity>
+          <RippleButton
+            mainStyle={{ paddingHorizontal: 15, paddingVertical: 12.5 }}
+            iconLib={Icon}
+            name="arrow-circle-left"
+            onPress={() => navigation.goBack()}
+          />
           <Text style={styles.sectionTitle}>TEST DE VELOCIDAD</Text>
         </View>
         <WebView
