@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { Platform, StatusBar } from "react-native";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RealmProvider, useQuery } from "@realm/react";
@@ -66,7 +66,7 @@ const AppContent = () => {
             client_name: usuario[0].client_name,
             username: usuario[0].username,
           });
-          
+
           // Recupera la indicación para borrar el usuario
           const cleanUser = await AsyncStorage.getItem('account_deleted');
 
@@ -179,16 +179,19 @@ const AppContent = () => {
 
   // Configuración de modo inmersivo al iniciar la app
   useEffect(() => {
-    // Activa el modo inmersivo (oculta status bar y navigation bar)
-    SystemNavigationBar.immersive();
-    /// Permite que el contenido de la app ocupe el espacio DETRÁS de la barra
-    SystemNavigationBar.setNavigationColor('transparent');
-    // Evita que Android ponga un fondo semitransparente oscuro automáticamente
-    SystemNavigationBar.setNavigationBarContrastEnforced(false);
-    // La barra estará oculta, pero cuando el teclado la fuerce a aparecer, será transparente
-    SystemNavigationBar.navigationHide();
-    // Asegura que se mantenga oculta aunque se toque la pantalla (Sticky)
-    SystemNavigationBar.stickyImmersive();
+    // Si el dispotivo es Móvil (no TV)...
+    if (!Platform.isTV) {
+      // Activa el modo inmersivo (oculta status bar y navigation bar)
+      SystemNavigationBar.immersive();
+      /// Permite que el contenido de la app ocupe el espacio DETRÁS de la barra
+      SystemNavigationBar.setNavigationColor('transparent');
+      // Evita que Android ponga un fondo semitransparente oscuro automáticamente
+      SystemNavigationBar.setNavigationBarContrastEnforced(false);
+      // La barra estará oculta, pero cuando el teclado la fuerce a aparecer, será transparente
+      SystemNavigationBar.navigationHide();
+      // Asegura que se mantenga oculta aunque se toque la pantalla (Sticky)
+      SystemNavigationBar.stickyImmersive();
+    }
   }, []);
 
   return (
