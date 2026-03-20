@@ -1,19 +1,43 @@
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Animated, ActivityIndicator, Vibration } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { View, Text, TouchableNativeFeedback, Image, StyleSheet, Animated, ActivityIndicator, Vibration, findNodeHandle, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useXtream } from '../../services/hooks/useXtream';
 import ErrorLogger from '../../services/logger/errorLogger';
 
-const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, onFinishLoading, onUpdateError, username }, ref) => {
+const CardMultimedia = forwardRef(({ index, navigation, tipo, fondo, onStartLoading, onFinishLoading, onUpdateError, username, hasTVPreferredFocus, lastCard, getFirstCard }, ref) => {
     const { getStreamingByType } = useXtream();
-    const [buttonColor, setButtonColor] = useState('rgba(0,0, 0, 0.5)'); //Estado para manejar el color del botón de actualizar contenido
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
     const [timeAgo, setTimeAgo] = useState('Última actualización: nunca'); // Estado para guardar el texto formateado
     const [isLoading, setIsLoading] = useState(false); // Estado para mostrar/ocultar la barra
-    const progressAnim = useRef(new Animated.Value(0)).current; //Referencia para la animación
+    const [nextFocusIds, setNextFocusIds] = useState({ update: null, main: null }); // Estado para manejar los ids de los componentes para el foco de atención
+    const progressAnim = useRef(new Animated.Value(0)).current; // Referencia para la animación
+    const mainTouchableRef = useRef(null); // Referencia para el componente principal
+    const updateTouchableRef = useRef(null); // Referencia para el botón de actualización
 
     const imagen = tipo === 'live' ? require('../../assets/tv.png') : (tipo === 'vod' ? require('../../assets/cine.png') : require('../../assets/series.png'));
+
+    // Efecto para vincular la navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que los elementos estén montados
+        const timer = setTimeout(() => {
+            let mainTag, updateTag = null;
+
+            if (mainTouchableRef.current && updateTouchableRef.current) {
+                mainTag = findNodeHandle(mainTouchableRef.current); // Encuentra la etiqueta del componente principal
+                updateTag = findNodeHandle(updateTouchableRef.current); // Encuentra la etiqueta del botón de actualización
+                setNextFocusIds({ update: updateTag, main: mainTag }); // Asigna las etiquetas de los componentes
+            }
+            if (index === 0) {
+                getFirstCard('card', mainTag); // Registra la etiqueta del componente principal en el padre
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // Efecto para cargar la última fecha de actualización guardada cuando el componente se monta
     useEffect(() => {
@@ -49,9 +73,12 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
             } else if (secondsSinceUpdate < 3600) {
                 const minutes = Math.floor(secondsSinceUpdate / 60);
                 setTimeAgo(`Última actualización: hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`);
-            } else {
+            } else if (secondsSinceUpdate < 86400) {
                 const hours = Math.floor(secondsSinceUpdate / 3600);
                 setTimeAgo(`Última actualización: hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`);
+            } else {
+                const days = Math.floor(secondsSinceUpdate / 86400);
+                setTimeAgo(`Última actualización: hace ${days} ${days === 1 ? 'día' : 'días'}`);
             }
         };
 
@@ -65,14 +92,6 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
         return () => clearInterval(interval);
 
     }, [lastUpdateTime]);
-
-    const handlePressIn = () => {
-        setButtonColor('rgba(255,255,255,1)'); // Cambia el color al presionar
-    };
-
-    const handlePressOut = () => {
-        setButtonColor('rgba(0,0,0,0.5)'); // Regresa al color original al soltar
-    };
 
     const handleNavigateToScreen = () => {
         hideMessage();
@@ -147,6 +166,9 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
         outputRange: ["0%", "100%"]
     });
 
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#00000040', false);
+    const dimensionValue = Platform.isTV ? 0 : 5;
+
     const showToast = (mensaje) => {
         Vibration.vibrate();
 
@@ -166,44 +188,67 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: fondo }]}>
-            <TouchableOpacity style={styles.touchableContent} onPress={handleNavigateToScreen}>
-                <View style={styles.imageContainer1}>
-                    <Image
-                        source={imagen}
-                        resizeMode="contain"
-                        style={{
-                            width: tipo === 'live' ? '80%' : '60%',
-                            height: tipo === 'live' ? '80%' : '60%',
-                            alignSelf: 'center',
-                        }}>
-                    </Image>
-                </View>
+        <View style={styles.cardContainer}>
+            {/* Capa 1: Componente Principal */}
+            <View style={[styles.mainLayer, styles.roundedClipperOuter, { top: dimensionValue, bottom: dimensionValue, left: dimensionValue, right: dimensionValue }]}>
+                <TouchableNativeFeedback
+                    ref={mainTouchableRef}
+                    nextFocusDown={nextFocusIds.update}
+                    onPress={handleNavigateToScreen}
+                    hasTVPreferredFocus={hasTVPreferredFocus}
+                    background={focusRipple}
+                    useForeground={!Platform.isTV}
+                    nextFocusRight={lastCard ? nextFocusIds.main : undefined}
+                >
+                    <View style={{ flex: 1, padding: Platform.isTV ? 5 : 0 }}>
+                        <View style={[styles.innerContent, { backgroundColor: fondo }]}>
+                            <View style={styles.imageZone}>
+                                <Image
+                                    source={imagen}
+                                    resizeMode="contain"
+                                    style={styles.mainImage}
+                                />
+                            </View>
+                            <View style={styles.footerPlaceholder} />
+                        </View>
+                    </View>
+                </TouchableNativeFeedback>
+            </View>
 
+            {/* Capa 2: Botón de Actualización */}
+            <View style={[styles.updateLayer, styles.roundedClipperInner]}>
                 {isLoading ? (
-                    <View style={[styles.updateContainer, { justifyContent: 'center' }]}>
-                        <ActivityIndicator size="small" color="#fff" />
-                        <Text style={styles.updatingText}>Actualizando</Text>
+                    <View style={[styles.loadingContainer]}>
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 5 }} />
+                        <Text style={styles.textLoading}>Actualizando...</Text>
                     </View>
                 ) : (
-                    <TouchableOpacity
-                        style={[styles.updateContainer, { backgroundColor: buttonColor, justifyContent: 'space-evenly' }]}
+                    <TouchableNativeFeedback
+                        ref={updateTouchableRef}
+                        nextFocusUp={nextFocusIds.main}
                         onPress={() => handleUpdateStreaming(true)}
-                        onPressIn={handlePressIn}
-                        onPressOut={handlePressOut}
                         onLongPress={() => showToast(`Actualizar ${tipo === 'live' ? 'canales' : tipo === 'vod' ? 'películas' : 'series'}`)}
+                        background={focusRipple}
+                        useForeground={!Platform.isTV}
+                        nextFocusRight={lastCard ? nextFocusIds.update : undefined}
                     >
-                        <Text style={styles.updateText}>{timeAgo}</Text>
-                        <View style={styles.imageContainer2}>
-                            <Image
-                                source={require('../../assets/update.png')}
-                                resizeMode="contain"
-                                style={styles.updateImage} />
+                        <View style={{ flex: 1, padding: Platform.isTV ? 3 : 0 }}>
+                            <View style={[styles.innerUpdateButton, { backgroundColor: fondo }]}>
+                                <View style={styles.footerOverlay}>
+                                    <Text style={styles.textTime} numberOfLines={2}>{timeAgo}</Text>
+                                    <Image
+                                        source={require('../../assets/update.png')}
+                                        resizeMode="contain"
+                                        style={styles.iconUpdate}
+                                    />
+                                </View>
+                            </View>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableNativeFeedback>
                 )}
-            </TouchableOpacity>
+            </View>
 
+            {/* Barra de Progreso */}
             {isLoading && (
                 <View style={styles.progressOverlay}>
                     <Animated.View style={[styles.progressBar, { width: widthInterpolate }]} />
@@ -214,73 +259,10 @@ const CardMultimedia = forwardRef(({ navigation, tipo, fondo, onStartLoading, on
 });
 
 const styles = StyleSheet.create({
-    container: {
+    cardContainer: {
         flex: 1,
-        marginHorizontal: 5,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-    },
-    touchableContent: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    imageContainer1: {
-        flex: 0.8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%'
-    },
-    updateContainer: {
-        flexDirection: 'row',
-        flex: 0.2,
-        alignItems: 'center',
-        width: '100%',
-        height: '100%',
-        borderBottomRightRadius: 10,
-        borderBottomLeftRadius: 10,
-    },
-    updatingText: {
-        color: '#fff',
-        fontSize: 16,
-        paddingVertical: 10,
-        marginLeft: 5,
-    },
-    updateText: {
-        color: '#fff',
-        fontSize: 12,
-        paddingVertical: 10,
-        height: '100%',
-        width: '70%',
-        textAlign: 'left',
-        textAlignVertical: 'center',
-    },
-    imageContainer2: {
-        height: '100%',
-        width: '16%',
-        justifyContent: 'center'
-    },
-    updateImage: {
-        width: '100%',
-        height: '100%',
-        alignSelf: 'flex_start',
-    },
-    progressOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-    },
-    progressBar: {
-        height: '100%', // Ocupa toda la altura
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        margin: 5,
+        position: 'relative',
     },
     flashMessage: {
         width: '20%',
@@ -288,7 +270,100 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 2.5,
         paddingBottom: 1,
-        marginBottom: '5%',
+        marginBottom: '5%'
+    },
+    // Máscaras de recorte
+    roundedClipperOuter: {
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    roundedClipperInner: {
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    // Capa 1
+    mainLayer: {
+        position: 'absolute',
+        zIndex: 1,
+    },
+    innerContent: {
+        flex: 1,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    imageZone: {
+        flex: 0.78,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mainImage: {
+        width: '80%',
+        height: '80%',
+    },
+    footerPlaceholder: {
+        flex: 0.22,
+    },
+    // Capa 2
+    updateLayer: {
+        position: 'absolute',
+        height: '22%',
+        zIndex: 2,
+        bottom: 5, left: 5, right: 5,
+    },
+    innerUpdateButton: {
+        flex: 1,
+        borderRadius: 6,
+        overflow: 'hidden',
+    },
+    footerOverlay: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        paddingHorizontal: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 6,
+    },
+    // Textos e iconos
+    textTime: {
+        color: '#eee',
+        fontSize: Platform.isTV ? 14 : 12,
+        width: '75%'
+    },
+    textLoading: {
+        color: '#fff',
+        fontSize: Platform.isTV ? 18 : 16,
+        fontWeight: 'bold'
+    },
+    iconUpdate: {
+        width: '16%',
+        height: '100%',
+        opacity: 0.9
+    },
+    // Progreso
+    progressOverlay: {
+        position: 'absolute',
+        bottom: 5,
+        left: 5,
+        right: 5,
+        top: 5,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        borderRadius: 8,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        overflow: 'hidden',
+        zIndex: 3
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.5)'
     },
 });
 

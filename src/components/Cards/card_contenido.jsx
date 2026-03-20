@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Vibration } from "react-native";
+import { View, Text, TouchableNativeFeedback, StyleSheet, Vibration, Platform } from "react-native";
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -109,54 +109,63 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item, favoritos]);
 
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#00000080', false);
+
     return (
-        <TouchableOpacity
-            style={[styles.container, { height: tipo === 'live' ? 100 : 160 }]}
-            onPress={handleNavigateToScreen}
-            onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}
-        >
-            <FastImage
-                style={styles.image}
-                source={imagen && !error ? {
-                    uri: imagen,
-                    priority: FastImage.priority.normal
-                } : require('../../assets/not_image.png')}
-                resizeMode={imagen && !error ? FastImage.resizeMode.cover : FastImage.resizeMode.contain}
-                onError={() => setError(true)}
-            />
-            {tipo !== 'live' && idCategory === '0.2' && (
-                <FastImage
-                    style={styles.iconPlay}
-                    source={require('../../assets/icono_play.png')}
-                    resizeMode={FastImage.resizeMode.contain}
-                />
-            )}
-            <View style={[styles.topOverlay, { justifyContent: tipo !== 'live' && item.rating > 0 ? 'space-between' : 'flex-end', }]}>
-                {tipo !== 'live' && (tipo === 'vod' || idCategory !== '0.2') && item.rating > 0 && (
-                    <Text style={styles.ratingText}>
-                        {item.rating}
-                    </Text>
-                )}
-                {tipo === 'series' && idCategory === '0.2' && (
-                    <Text style={styles.infoEpisode}>{`T${item.last_ep_played[0] + 1}:E${item.last_ep_played[1] + 1}`}</Text>
-                )}
-                {item.favorito && (
-                    <Icon name={"heart"} size={20} color={"red"} />
-                )}
-            </View>
-            <View style={styles.bottomOverlay}>
-                <Text style={styles.titleText} numberOfLines={2}>{item.name}</Text>
-            </View>
-            {idCategory === '0.2' && ((tipo === 'vod' && item.playback_time > 0) || (tipo === 'series' && episodio)) && (
-                <ProgressBar
-                    isVod={tipo === 'vod' ? true : false}
-                    duration={tipo === 'vod'
-                        ? (item.episode_run_time !== "" ? Number(item.episode_run_time) : item.runtime !== "" ? Number(item.runtime) : 0)
-                        : (episodio.duration_secs !== "" ? Number(episodio.duration_secs) : 0)}
-                    playback={tipo === 'vod' ? parseFloat(item.playback_time) : parseFloat(episodio.playback_time)}
-                />
-            )}
-        </TouchableOpacity>
+        <View style={[styles.container, { height: tipo === 'live' ? (Platform.isTV ? 120 : 100) : (Platform.isTV ? 180 : 160) }]}>
+            <TouchableNativeFeedback
+                onPress={handleNavigateToScreen}
+                onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}
+                background={focusRipple}
+                useForeground={!Platform.isTV}
+            >
+                <View style={styles.borderSimulator}>
+                    <View style={[styles.innerContent]}>
+                        <FastImage
+                            style={styles.image}
+                            source={imagen && !error ? {
+                                uri: imagen,
+                                priority: FastImage.priority.normal
+                            } : require('../../assets/not_image.png')}
+                            resizeMode={imagen && !error ? (tipo === 'live' ? FastImage.resizeMode.contain : FastImage.resizeMode.cover) : FastImage.resizeMode.contain}
+                            onError={() => setError(true)}
+                        />
+                        {tipo !== 'live' && idCategory === '0.2' && (
+                            <FastImage
+                                style={styles.iconPlay}
+                                source={require('../../assets/icono_play.png')}
+                                resizeMode={FastImage.resizeMode.contain}
+                            />
+                        )}
+                        <View style={[styles.topOverlay, { justifyContent: tipo !== 'live' && item.rating > 0 ? 'space-between' : 'flex-end', }]}>
+                            {tipo !== 'live' && (tipo === 'vod' || idCategory !== '0.2') && item.rating > 0 && (
+                                <Text style={styles.ratingText}>
+                                    {item.rating}
+                                </Text>
+                            )}
+                            {tipo === 'series' && idCategory === '0.2' && (
+                                <Text style={styles.infoEpisode}>{`T${item.last_ep_played[0] + 1}:E${item.last_ep_played[1] + 1}`}</Text>
+                            )}
+                            {item.favorito && (
+                                <Icon name={"heart"} size={20} color={"red"} />
+                            )}
+                        </View>
+                        <View style={styles.bottomOverlay}>
+                            <Text style={styles.titleText} numberOfLines={2}>{item.name}</Text>
+                        </View>
+                        {idCategory === '0.2' && ((tipo === 'vod' && item.playback_time > 0) || (tipo === 'series' && episodio)) && (
+                            <ProgressBar
+                                isVod={tipo === 'vod' ? true : false}
+                                duration={tipo === 'vod'
+                                    ? (item.episode_run_time !== "" ? Number(item.episode_run_time) : item.runtime !== "" ? Number(item.runtime) : 0)
+                                    : (episodio.duration_secs !== "" ? Number(episodio.duration_secs) : 0)}
+                                playback={tipo === 'vod' ? parseFloat(item.playback_time) : parseFloat(episodio.playback_time)}
+                            />
+                        )}
+                    </View>
+                </View>
+            </TouchableNativeFeedback>
+        </View>
     );
 };
 
@@ -164,10 +173,20 @@ const styles = StyleSheet.create({
     container: {
         margin: '1%',
         width: '18%',
+        overflow: Platform.isTV ? 'hidden' : 'visible',
+        borderRadius: 8,
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 5 : 0,
+        borderRadius: 8,
+    },
+    innerContent: {
         borderColor: '#fff',
         borderWidth: 0.5,
         borderRadius: 5,
         backgroundColor: '#201F29',
+        overflow: 'hidden',
     },
     image: {
         width: '100%',
