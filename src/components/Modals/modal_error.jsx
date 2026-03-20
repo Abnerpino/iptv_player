@@ -1,8 +1,29 @@
-import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
+import React, { useEffect, useState, useRef } from "react";
+import { View, Text, TouchableNativeFeedback, StyleSheet, BackHandler, findNodeHandle, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ModalError = ({ visible, error, tiempo, onClose }) => {
+    const [closeFocusTag, setCloseFocusTag] = useState(null); // Estado para manejar la etiqueta del botón Cerrar para el foco de atención
+    const closeRef = useRef(null); // Referencia para el botón de Cerrar
+
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#000', false) : TouchableNativeFeedback.Ripple('#00000040', false);
+
+    // useEffect para vincular el botón de Cerrar para la navegación explicita
+    useEffect(() => {
+        // Si no es TV o si el modal no está abierto, no hace nada
+        if (!Platform.isTV || !visible) return;
+
+        // Timeout para asegurar que el botón de Cerrar esté montado
+        const timer = setTimeout(() => {
+            if (closeRef.current) {
+                const closeTag = findNodeHandle(closeRef.current); // Encuentra la etiqueta del botón Cerrar
+                setCloseFocusTag(closeTag); // Asigna la etiqueta del botón
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [visible]);
+
     // useEffect para el manejo del botón físico "Atrás" de Android
     useEffect(() => {
         const onBackPress = () => {
@@ -50,14 +71,14 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
     if (!visible) return null;
 
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
+        <View style={styles.modalOverlay} importantForAccessibility="yes">
+            <View style={styles.centeredView}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <Icon name="report-gmailerrorred" size={27} color="red" />
                         <Text style={styles.title}>ADVERTENCIA</Text>
                     </View>
-                    <View style={{ padding: 10 }}>
+                    <View style={styles.content}>
                         <Text style={styles.textMessage}>{`¡Ocurrió un error en la actualización ${error.length > 1 ? 'de los siguientes contenidos' : 'del siguiente contenido'}!`}</Text>
                         <View style={styles.typesContainer}>
                             {error.length > 0 && (
@@ -71,11 +92,26 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
                             )}
                         </View>
                         <Text style={styles.textMessage}>{`Debe ${error.length > 1 ? 'actualizarlos' : 'actualizarlo'} manualmente o esperar a que se ${error.length > 1 ? 'actualicen' : 'actualice'} automáticamente ${formattedTime(tiempo)}`}</Text>
-                        <View style={styles.buttonsContainer}>
-                            <TouchableOpacity onPress={onClose} style={styles.button}>
-                                <Icon name="close" size={24} color="#FFF" />
-                                <Text style={styles.textButton}>Cerrar</Text>
-                            </TouchableOpacity>
+                        <View style={styles.wrapper}>
+                                <TouchableNativeFeedback
+                                    ref={closeRef}
+                                    onPress={onClose}
+                                    background={focusRipple}
+                                    useForeground={!Platform.isTV}
+                                    hasTVPreferredFocus={Platform.isTV}
+                                    nextFocusDown={closeFocusTag}
+                                    nextFocusUp={closeFocusTag}
+                                    nextFocusLeft={closeFocusTag}
+                                    nextFocusRight={closeFocusTag}
+                                >
+                                    <View style={styles.borderSimulator}>
+                                        <View style={styles.button}>
+                                            <Icon name="close" size={24} color="#FFF" />
+                                            <Text style={styles.textButton}>Cerrar</Text>
+                                        </View>
+                                    </View>
+                                </TouchableNativeFeedback>
+                            
                         </View>
                     </View>
                 </View>
@@ -86,10 +122,14 @@ const ModalError = ({ visible, error, tiempo, onClose }) => {
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999,
-        elevation: 9999,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5000,
     },
-    touchableBackground: {
+    centeredView: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
@@ -99,6 +139,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF",
         borderRadius: 10,
         width: "50%",
+        maxHeight: '80%',
+        elevation: 10
     },
     header: {
         flexDirection: 'row',
@@ -115,22 +157,33 @@ const styles = StyleSheet.create({
         textAlignVertical: 'center',
         paddingLeft: 5
     },
+    content: {
+        paddingHorizontal: 10,
+        paddingBottom: 10,
+        paddingTop: 5,
+        maxHeight: '90%',
+    },
     typesContainer: {
         alignItems: 'center',
         marginVertical: 5
     },
-    buttonsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
+    wrapper: {
+        height: Platform.isTV ? 46 : 36,
+        width: '25%',
+        alignSelf: 'center',
+        borderRadius: 8,
+        overflow: 'hidden',
         marginTop: 10,
-        marginBottom: 5
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 5 : 0
     },
     button: {
         flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 5,
         padding: 5,
-        width: '20%',
         backgroundColor: 'gray'
     },
     textMessage: {

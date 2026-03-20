@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
-import { Text, TouchableOpacity, View, StyleSheet, FlatList, BackHandler } from "react-native";
+import { Text, View, StyleSheet, FlatList, BackHandler, Platform } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
+import RippleButton from "../RippleButton/ripple_button";
 import ItemEpisode from "../Items/item_episode";
 
 const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSelectEpisode }) => {
@@ -23,13 +24,17 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
     if (!openModal) return null;
 
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
+        <View style={styles.modalOverlay} importantForAccessibility="yes">
+            <View style={styles.centeredView}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={handleCloseModal}>
-                            <Icon name="arrow-circle-left" size={26} color="#fff" style={{ marginRight: 10 }} />
-                        </TouchableOpacity>
+                        <RippleButton
+                            mainStyle={{ marginRight: 10 }}
+                            iconLib={Icon}
+                            name="arrow-circle-left"
+                            onPress={handleCloseModal}
+                            hasTVPreferredFocus={Platform.isTV}
+                        />
                         <Text style={styles.textHeader}>{`Episodios - Temporada ${temporada}`}</Text>
                     </View>
                     <View style={{ paddingTop: 10, paddingBottom: 40 }}>
@@ -55,10 +60,14 @@ const ModalEpisodes = ({ openModal, handleCloseModal, temporada, episodes, onSel
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999,
-        elevation: 9999,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5000,
     },
-    touchableBackground: {
+    centeredView: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.75)",
         justifyContent: "center",
@@ -67,14 +76,16 @@ const styles = StyleSheet.create({
     modalContent: {
         width: "100%",
         height: '100%',
-        paddingRight: '2.5%'
+        paddingTop: '1%',
+        paddingHorizontal: '1%',
+        elevation: 10,
     },
     header: {
         flexDirection: 'row',
         borderBottomWidth: 2,
         borderBottomColor: '#888',
-        paddingVertical: 5,
-        paddingHorizontal: 5,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
     },
     textHeader: {
         fontWeight: 'bold',

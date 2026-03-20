@@ -1,9 +1,35 @@
-import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableNativeFeedback, StyleSheet, BackHandler, findNodeHandle, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon3 from 'react-native-vector-icons/FontAwesome';
 
-const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdId, itemName }) => {
+const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdId, itemName, navigation }) => {
+    const [focusTags, setFocusTags] = useState({ confirm: null, cancel: null, about: null }); // Estado para manejar las etiquetas de los botones para navegación explicita
+    const confirmRef = useRef(null); // Referencia para el botón de Confirmar
+    const cancelRef = useRef(null); // Referencia para el botón de Cancelar
+    const aboutRef = useRef(null); // Referencia para el botón 'Sobre la App'
+
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#000', false) : TouchableNativeFeedback.Ripple('#00000040', false);
+
+    // Efecto para vincular la navegación explicita
+    useEffect(() => {
+        // Si no es TV o si el modal no está abierto, no hace nada
+        if (!Platform.isTV || !visible) return;
+
+        // Timeout para asegurar que los botones estén montados
+        const timer = setTimeout(() => {
+            if (confirmRef.current && cancelRef.current) {
+                const confirmTag = findNodeHandle(confirmRef.current); // Encuentra la etiqueta del botón Confirmar
+                const cancelTag = findNodeHandle(cancelRef.current); // Encuentra la etiqueta del botón Cancelar
+                const aboutTag = aboutRef.current ? findNodeHandle(aboutRef.current) : null; // Encuentra la etiqueta del botón 'Sobre la App'
+                setFocusTags({ confirm: confirmTag, cancel: cancelTag, about: aboutTag }); // Asigna las etiquetas de los botones
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [visible]);
+
     // useEffect para el manejo del botón físico "Atrás" de Android
     useEffect(() => {
         const onBackPress = () => {
@@ -50,27 +76,79 @@ const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdI
     if (!visible) return null;
 
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
+        <View style={styles.modalOverlay} importantForAccessibility="yes">
+            <View style={styles.centeredView}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
-                        <Icon name="warning" size={27} color="#333" />
+                        <Icon name="warning" size={Platform.isTV ? 29 : 27} color="#000" />
                         <Text style={styles.title}>AVISO</Text>
                     </View>
                     <Text style={styles.textMessage}>{assignMessage()}</Text>
                     <View style={styles.buttonsContainer}>
-                        <TouchableOpacity onPress={onConfirm} style={[styles.button, { backgroundColor: 'green' }]}>
-                            <Icon2 name={numdId >= 3 ? "reload" : "check"} size={24} color="#FFF" />
-                            <Text style={styles.textButton}>{`${numdId >= 3 ? 'Recargar' : 'Aceptar'}`}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={onCancel} style={[styles.button, { backgroundColor: 'red' }]}>
-                            {numdId >= 3 ? (
-                                <Icon name="exit-outline" size={24} color="#FFF" />
-                            ) : (
-                                <Icon2 name="cancel" size={24} color="#FFF" />
-                            )}
-                            <Text style={styles.textButton}>{`${numdId >= 3 ? 'Salir' : 'Cancelar'}`}</Text>
-                        </TouchableOpacity>
+                        <View style={styles.buttonWrapper}>
+                            <TouchableNativeFeedback
+                                ref={confirmRef}
+                                onPress={onConfirm}
+                                background={focusRipple}
+                                useForeground={!Platform.isTV}
+                                nextFocusUp={focusTags.confirm}
+                                nextFocusDown={focusTags.confirm}
+                                nextFocusLeft={focusTags.confirm}
+                                nextFocusRight={focusTags.cancel}
+                            >
+                                <View style={styles.borderSimulator}>
+                                    <View style={[styles.innerContent, { backgroundColor: 'green' }]}>
+                                        <Icon2 name={numdId >= 3 ? "reload" : "check"} size={24} color="#FFF" />
+                                        <Text style={styles.textButton}>{`${numdId >= 3 ? 'Recargar' : 'Aceptar'}`}</Text>
+                                    </View>
+                                </View>
+                            </TouchableNativeFeedback>
+                        </View>
+                        <View style={styles.buttonWrapper}>
+                            <TouchableNativeFeedback
+                                ref={cancelRef}
+                                onPress={onCancel}
+                                background={focusRipple}
+                                useForeground={!Platform.isTV}
+                                hasTVPreferredFocus={Platform.isTV}
+                                nextFocusUp={focusTags.cancel}
+                                nextFocusDown={focusTags.cancel}
+                                nextFocusRight={focusTags.about ?? focusTags.cancel}
+                                nextFocusLeft={focusTags.confirm}
+                            >
+                                <View style={styles.borderSimulator}>
+                                    <View style={[styles.innerContent, { backgroundColor: 'red' }]}>
+                                        {numdId >= 3 ? (
+                                            <Icon name="exit-outline" size={24} color="#FFF" />
+                                        ) : (
+                                            <Icon2 name="cancel" size={24} color="#FFF" />
+                                        )}
+                                        <Text style={styles.textButton}>{`${numdId >= 3 ? 'Salir' : 'Cancelar'}`}</Text>
+                                    </View>
+                                </View>
+                            </TouchableNativeFeedback>
+                        </View>
+                        {numdId >= 3 && (
+                            <View style={styles.buttonWrapper}>
+                                <TouchableNativeFeedback
+                                    ref={aboutRef}
+                                    onPress={() => navigation.navigate('About')}
+                                    background={focusRipple}
+                                    useForeground={!Platform.isTV}
+                                    nextFocusUp={focusTags.about}
+                                    nextFocusDown={focusTags.about}
+                                    nextFocusRight={focusTags.about}
+                                    nextFocusLeft={focusTags.cancel}
+                                >
+                                    <View style={styles.borderSimulator}>
+                                        <View style={[styles.innerContent, { backgroundColor: 'blue' }]}>
+                                            <Icon3 name="info-circle" size={24} color="#FFF" />
+                                            <Text style={[styles.textButton, { marginLeft: 2.5 }]}>Sobre la App</Text>
+                                        </View>
+                                    </View>
+                                </TouchableNativeFeedback>
+                            </View>
+                        )}
                     </View>
                 </View>
             </View>
@@ -80,57 +158,74 @@ const ModalConfirmation = ({ visible, onConfirm, onCancel, onRequestClose, numdI
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999,
-        elevation: 9999,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5000,
     },
-    touchableBackground: {
+    centeredView: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         alignItems: "center",
     },
     modalContent: {
-        backgroundColor: "#FFF",
+        backgroundColor: '#FFF',
         borderRadius: 10,
-        width: "40%",
+        width: "55%",
+        paddingBottom: 20,
+        elevation: 10,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'center',
         borderBottomWidth: 2,
         borderBottomColor: '#333',
-        paddingVertical: 5,
+        paddingVertical: 10,
         paddingHorizontal: 20,
     },
     title: {
         fontWeight: 'bold',
-        fontSize: 20,
-        color: '#333',
+        fontSize: Platform.isTV ? 22 : 20,
+        color: '#000',
         textAlignVertical: 'center',
         paddingLeft: 5
     },
     buttonsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-evenly'
+        justifyContent: 'space-evenly',
+        marginTop: 10,
     },
-    button: {
+    buttonWrapper: {
+        width: '30%',
+        height: Platform.isTV ? 50 : 40,
+        borderRadius: 5,
+        overflow: 'hidden',
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 5 : 0,
+    },
+    innerContent: {
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
-        borderRadius: 5,
-        padding: 5,
-        marginVertical: 10,
-        width: '30%',
+        alignItems: 'center',
+        borderRadius: 3,
     },
     textMessage: {
         color: '#000',
-        fontSize: 18,
+        fontSize: Platform.isTV ? 20 : 18,
         fontWeight: '500',
         textAlign: 'center',
         marginTop: 10,
         marginHorizontal: 5,
+        paddingHorizontal: 10
     },
     textButton: {
-        fontSize: 18,
+        fontSize: Platform.isTV ? 20 : 18,
         color: "#FFF",
         textAlign: 'center',
     },

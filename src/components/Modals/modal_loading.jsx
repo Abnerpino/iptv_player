@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Animated, StyleSheet, View, Text } from 'react-native';
+import { Animated, StyleSheet, View, Text, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 const ModalLoading = ({ visible }) => {
@@ -62,7 +62,7 @@ const ModalLoading = ({ visible }) => {
         <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
             <View style={styles.touchableBackground}>
                 <Animated.View style={[styles.circleContainer, { transform: [{ rotate: spin }] }]}>
-                    <Svg width={100} height={100} viewBox="0 0 100 100">
+                    <Svg width={Platform.isTV ? 120 : 100} height={Platform.isTV ? 120 : 100} viewBox="0 0 100 100">
                         <Path
                             d="M50 10 A 40 40 0 0 1 90 50"
                             fill="none"
@@ -90,14 +90,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     circleContainer: {
-        width: 100,
-        height: 100,
+        width: Platform.isTV ? 120 : 100,
+        height: Platform.isTV ? 120 : 100,
         marginBottom: 16,
         justifyContent: 'center',
         alignItems: 'center',
     },
     text: {
-        fontSize: 18,
+        fontSize: Platform.isTV ? 20 : 18,
         fontWeight: '500',
         color: '#FFF',
     },

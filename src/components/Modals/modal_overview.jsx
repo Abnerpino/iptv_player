@@ -1,8 +1,29 @@
-import React, { useEffect } from "react";
-import { Text, TouchableOpacity, View, ScrollView, StyleSheet, BackHandler } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { Text, TouchableNativeFeedback, View, ScrollView, StyleSheet, BackHandler, findNodeHandle, Platform } from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ModalOverview = ({ openModal, handleCloseModal, overview }) => {
+    const [closeFocusTag, setCloseFocusTag] = useState(null); // Estado para manejar la etiqueta del botón Cerrar para el foco de atención
+    const closeRef = useRef(null); // Referencia para el botón de Cerrar
+
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#000', false) : TouchableNativeFeedback.Ripple('#00000040', false);
+
+    // useEffect para vincular el botón de Cerrar para la navegación explicita
+    useEffect(() => {
+        // Si no es TV o si el modal no está abierto, no hace nada
+        if (!Platform.isTV || !openModal) return;
+
+        // Timeout para asegurar que el botón de Cerrar esté montado
+        const timer = setTimeout(() => {
+            if (closeRef.current) {
+                const closeTag = findNodeHandle(closeRef.current); // Encuentra la etiqueta del botón Cerrar
+                setCloseFocusTag(closeTag); // Asigna la etiqueta del botón
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [openModal]);
+
     // useEffect para el manejo del botón físico "Atrás" de Android
     useEffect(() => {
         const onBackPress = () => {
@@ -22,17 +43,33 @@ const ModalOverview = ({ openModal, handleCloseModal, overview }) => {
     if (!openModal) return null;
 
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
+        <View style={styles.modalOverlay} importantForAccessibility="yes">
+            <View style={styles.centeredView}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
-                            <Icon name="info-circle" size={27} color="#333" />
+                            <Icon name="info-circle" size={Platform.isTV ? 29 : 27} color="#000" />
                             <Text style={styles.textHeader}>TRAMA</Text>
                         </View>
-                        <TouchableOpacity onPress={handleCloseModal}>
-                            <Icon name="window-close" size={27} color="red" />
-                        </TouchableOpacity>
+                        <View style={styles.wrapper}>
+                            <TouchableNativeFeedback
+                                ref={closeRef}
+                                onPress={handleCloseModal}
+                                background={focusRipple}
+                                useForeground={!Platform.isTV}
+                                hasTVPreferredFocus={Platform.isTV}
+                                nextFocusDown={closeFocusTag}
+                                nextFocusUp={closeFocusTag}
+                                nextFocusLeft={closeFocusTag}
+                                nextFocusRight={closeFocusTag}
+                            >
+                                <View style={styles.borderSimulator}>
+                                    <View style={{ borderRadius: 3 }}>
+                                        <Icon name="window-close" size={27} color="red" />
+                                    </View>
+                                </View>
+                            </TouchableNativeFeedback>
+                        </View>
                     </View>
                     <ScrollView style={styles.content}>
                         <Text style={styles.text}>{overview}</Text>
@@ -45,20 +82,25 @@ const ModalOverview = ({ openModal, handleCloseModal, overview }) => {
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999,
-        elevation: 9999,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5000,
     },
-    touchableBackground: {
+    centeredView: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         alignItems: "center",
     },
     modalContent: {
-        backgroundColor: "#FFF",
+        backgroundColor: '#FFF',
         borderRadius: 10,
         width: "70%",
-        maxHeight: '80%'
+        maxHeight: '80%',
+        elevation: 10
     },
     header: {
         flexDirection: 'row',
@@ -68,6 +110,15 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         paddingHorizontal: 20,
     },
+    wrapper: {
+        height: '100%',
+        borderRadius: 5,
+        overflow: 'hidden'
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 3 : 0
+    },
     content: {
         paddingHorizontal: 20,
         paddingTop: 5,
@@ -76,14 +127,14 @@ const styles = StyleSheet.create({
     },
     textHeader: {
         fontWeight: 'bold',
-        fontSize: 20,
-        color: '#333',
+        fontSize: Platform.isTV ? 22 : 20,
+        color: '#000',
         textAlignVertical: 'center',
         paddingLeft: 5
     },
     text: {
-        fontSize: 18,
-        color: "#333",
+        fontSize: Platform.isTV ? 20 : 18,
+        color: "#000",
         textAlign: 'justify',
     },
 });

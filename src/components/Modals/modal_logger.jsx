@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableNativeFeedback, StyleSheet, BackHandler, findNodeHandle, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Octicons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
 import Icon3 from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -8,8 +8,30 @@ import Share from 'react-native-share';
 import ErrorLogger from '../../services/logger/errorLogger';
 
 const ModalLogger = ({ visible, onCancel }) => {
+    const closeRef = useRef(null); // Referencia para el botón de Cerrar
+    const sendRef = useRef(null); // Referencia para el botón de Enviar
+    const [focusTags, setFocusTags] = useState({ close: null, send: null }); // Estado para manejar las etiquetas de los botones para el foco de atención
     const [exists, setExists] = useState(false); // Estado para saber si ya existe la bitácora de errores
     const [error, setError] = useState(false); // Estado para manejar cuando haya un error al compartir la bitácora
+
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#000', false) : TouchableNativeFeedback.Ripple('#00000040', false);
+
+    // useEffect para vincular los elementos para la navegación explicita
+    useEffect(() => {
+        // Si no es TV o si el modal no está abierto, no hace nada
+        if (!Platform.isTV || !visible) return;
+
+        // Timeout para asegurar que los elementos estén montados
+        const timer = setTimeout(() => {
+            if (closeRef.current) {
+                const closeTag = findNodeHandle(closeRef.current); // Encuentra la etiqueta del botón Cerrar
+                const sendTag = findNodeHandle(sendRef.current); // Encuentra la etiqueta del botón Enviar
+                setFocusTags({ close: closeTag, send: sendTag }); // Asigna las etiquetas de los botones
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [visible]);
 
     // useEffect que determina si ya existe la bitácora al momento de montar el componente
     useEffect(() => {
@@ -79,17 +101,33 @@ const ModalLogger = ({ visible, onCancel }) => {
     if (!visible) return null;
 
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
+        <View style={styles.modalOverlay} importantForAccessibility="yes">
+            <View style={styles.centeredView}>
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row' }}>
                             <Icon name="log" size={27} color="#333" />
                             <Text style={styles.title}>BITÁCORA DE ERRORES</Text>
                         </View>
-                        <TouchableOpacity onPress={onCancel}>
-                            <Icon2 name="window-close" size={27} color="red" />
-                        </TouchableOpacity>
+                        <View style={styles.closeWrapper}>
+                            <TouchableNativeFeedback
+                                ref={closeRef}
+                                onPress={onCancel}
+                                background={focusRipple}
+                                useForeground={!Platform.isTV}
+                                hasTVPreferredFocus={Platform.isTV}
+                                nextFocusDown={focusTags.send}
+                                nextFocusUp={focusTags.close}
+                                nextFocusLeft={focusTags.close}
+                                nextFocusRight={focusTags.close}
+                            >
+                                <View style={styles.borderSimulator}>
+                                    <View style={{ borderRadius: 3 }}>
+                                        <Icon2 name="window-close" size={27} color="red" />
+                                    </View>
+                                </View>
+                            </TouchableNativeFeedback>
+                        </View>
                     </View>
                     <View style={styles.body}>
                         <Text style={styles.textMessage}>La "Bitácora de Errores" es un registro detallado y cronológico de los fallos en la aplicación. Si ya existe una, se listará a continuación:</Text>
@@ -103,10 +141,25 @@ const ModalLogger = ({ visible, onCancel }) => {
                         {exists && (
                             <>
                                 <Text style={styles.textMessage}>Si su aplicación está fallando, envíe (preferentemente por WhatsApp) la bitácora a su Proveedor de Servicios.</Text>
-                                <TouchableOpacity onPress={sendErrorLog} style={styles.button}>
-                                    <Text style={styles.textButton}>Enviar</Text>
-                                    <Icon3 name="send" size={24} color="#FFF" />
-                                </TouchableOpacity>
+                                <View style={styles.buttonWrapper}>
+                                    <TouchableNativeFeedback
+                                        ref={sendRef}
+                                        onPress={sendErrorLog}
+                                        background={focusRipple}
+                                        useForeground={!Platform.isTV}
+                                        nextFocusDown={focusTags.send}
+                                        nextFocusUp={focusTags.close}
+                                        nextFocusLeft={focusTags.send}
+                                        nextFocusRight={focusTags.send}
+                                    >
+                                        <View style={[styles.borderSimulator, { padding: Platform.isTV ? 5 : 0 }]}>
+                                            <View style={styles.button}>
+                                                <Text style={styles.textButton}>Enviar</Text>
+                                                <Icon3 name="send" size={24} color="#FFF" />
+                                            </View>
+                                        </View>
+                                    </TouchableNativeFeedback>
+                                </View>
                                 {error && (
                                     <View style={styles.errorContainer}>
                                         <Icon4 name="report-gmailerrorred" size={18} color="red" />
@@ -124,10 +177,14 @@ const ModalLogger = ({ visible, onCancel }) => {
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        zIndex: 9999,
-        elevation: 9999,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5000,
     },
-    touchableBackground: {
+    centeredView: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
@@ -158,14 +215,28 @@ const styles = StyleSheet.create({
         textAlignVertical: 'center',
         paddingLeft: 5
     },
+    closeWrapper: {
+        height: '100%',
+        borderRadius: 5,
+        overflow: 'hidden'
+    },
+    borderSimulator: {
+        flex: 1,
+        padding: Platform.isTV ? 3 : 0
+    },
+    buttonWrapper: {
+        height: Platform.isTV ? 46 : 36,
+        width: '22.5%',
+        marginTop: 15,
+        alignSelf: 'center',
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
     button: {
         flexDirection: 'row',
         justifyContent: 'space-evenly',
-        alignSelf: 'center',
         borderRadius: 5,
         padding: 5,
-        marginTop: 15,
-        width: '20%',
         backgroundColor: 'green'
     },
     textMessage: {
