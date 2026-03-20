@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Image, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Image, Text, StyleSheet, TouchableOpacity, TouchableNativeFeedback, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground, Platform, PanResponder } from 'react-native';
 import Video from 'react-native-video';
+import KeyEvent from 'react-native-keyevent';
 import { Slider } from '@miblanchard/react-native-slider';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,12 +10,13 @@ import Icon4 from 'react-native-vector-icons/FontAwesome5';
 import GoogleCast, { CastButton, useCastState, useRemoteMediaClient, useMediaStatus } from 'react-native-google-cast';
 import { showMessage, hideMessage } from 'react-native-flash-message';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import RippleButton from '../RippleButton/ripple_button';
 import ModalEpisodes from '../Modals/modal_episodes';
 import PanelSettings from '../Panels/panel_settings';
 import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
 
-const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, onProgressUpdate, onContentChange, markAsWatched, username }) => {
+const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, onProgressUpdate, onContentChange, markAsWatched, username, triggerControls }) => {
     const playerRef = useRef(null);
     const controlTimeout = useRef(null);
     const remoteControlTimeout = useRef(null);
@@ -70,6 +72,110 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const isCasting = castState === 'connected';
     const customUserAgent = `IPTV_Player-${username}`;
     const idKey = tipo === 'vod' ? 'stream_id' : 'episode_id';
+    const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#FFFFFF80', false);
+
+    // Mantiene la referencia mutable para poder acceder al estado actual sin causar re-renders
+    const stateRef = useRef({
+        showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls
+    });
+
+    useEffect(() => {
+        stateRef.current = {
+            showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls
+        };
+    });
+
+    // Función centralizada para reiniciar los temporizadores que ocultan los controles
+    const resetTimers = useCallback(() => {
+        const state = stateRef.current;
+
+        // Controles Locales
+        if (state.showControls && !state.modalVisible && !state.showSettings && !state.showChannels && !state.showNextEpisode) {
+            if (controlTimeout.current) clearTimeout(controlTimeout.current);
+            controlTimeout.current = setTimeout(() => {
+                if (!stateRef.current.showNotifactionMessage) hideMessage();
+                setShowControls(false);
+            }, 4000);
+        }
+
+        // Controles Remotos (Cast)
+        /*if (state.showRemoteControls) {
+            if (remoteControlTimeout.current) clearTimeout(remoteControlTimeout.current);
+            remoteControlTimeout.current = setTimeout(() => {
+                setShowRemoteControls(false);
+            }, 4000);
+        }*/
+    }, []);
+
+    // useEffect para interceptar los botones fisicos del control de TV
+    useEffect(() => {
+        if (!Platform.isTV) return; // Si no es TV, no hace nada
+
+        // Escucha cualquier botón que se presione en el control remoto
+        KeyEvent.onKeyDownListener((keyEvent) => {
+            // Cada vez que se presiona un botón físico, reinicia el temporizador
+            resetTimers();
+        });
+
+        return () => {
+            // Limpieza al desmontar el componente
+            KeyEvent.removeKeyDownListener();
+        };
+    }, [resetTimers]);
+
+    // PanResponder para detectar los gestos táctiles en teléfonos
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponderCapture: () => {
+                if (!Platform.isTV) resetTimers();
+                return false;
+            },
+            onMoveShouldSetPanResponderCapture: () => {
+                if (!Platform.isTV) resetTimers();
+                return false;
+            },
+        })
+    ).current;
+
+    // useEffect para manejar el Enter de TV cuando es un canal
+    useEffect(() => {
+        // Si el dispositivo es TV, el contenido es un canal y no es el montaje inicial (0)...
+        if (Platform.isTV && tipo === 'live' && triggerControls > 0) {
+            const state = stateRef.current;
+
+            // Si hay menús abiertos, ignora el Enter
+            if (state.modalVisible || state.showSettings || state.showChannels || state.showNextEpisode) return;
+
+            // Manejo si está transmitiendo (Cast)
+            /*if (isCasting) {
+                if (state.showRemoteControls) {
+                    setShowRemoteControls(false);
+                    if (remoteControlTimeout.current) clearTimeout(remoteControlTimeout.current);
+                } else {
+                    setShowRemoteControls(true);
+                    if (remoteControlTimeout.current) clearTimeout(remoteControlTimeout.current);
+                    remoteControlTimeout.current = setTimeout(() => setShowRemoteControls(false), 4000);
+                }
+                return;
+            }*/
+
+            // Manejo normal del Reproductor
+            if (state.showControls) {
+                // Si los controles están visibles, los oculta
+                setShowControls(false);
+                if (controlTimeout.current) clearTimeout(controlTimeout.current);
+                if (!state.showNotifactionMessage) hideMessage();
+            } else {
+                // Si los controles están ocultos, los muestra y arranca el temporizador de 4 segundos
+                setShowControls(true);
+                if (controlTimeout.current) clearTimeout(controlTimeout.current);
+                controlTimeout.current = setTimeout(() => {
+                    if (!stateRef.current.showNotifactionMessage) hideMessage();
+                    setShowControls(false);
+                }, 4000);
+            }
+        }
+    }, [triggerControls, isCasting]);
 
     // useEffect para guardar el tiempo de reproducción y limpiar todos los Timeouts e Intervals al salir del reproductor
     useEffect(() => {
@@ -846,7 +952,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} {...panResponder.panHandlers}>
             {isCasting ? (
                 <TouchableWithoutFeedback
                     onPress={() => {
@@ -949,7 +1055,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             }}
                             style={styles.videoPlayer}
                             controls={false}
-                            paused={isCannotReproduce ? true : paused}
+                            paused={true}//isCannotReproduce ? true : paused}
                             rate={playbackRate}
                             resizeMode={resizeMode.modo}
                             selectedAudioTrack={selectedAudioTrack}
@@ -974,9 +1080,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 ) : isCannotReproduce ? (
                                     <Icon3 name='play-disabled' size={60} color="#fff" />
                                 ) : paused ? (
-                                    <TouchableOpacity onPress={togglePlayPause}>
-                                        <Icon4 name='play' size={45} color="#fff" />
-                                    </TouchableOpacity>
+                                    <RippleButton
+                                        secondaryStyle={{ padding: 10 }}
+                                        iconLib={Icon4}
+                                        name='play'
+                                        size={45}
+                                        onPress={togglePlayPause}
+                                    />
                                 ) : null}
                             </View>
                         )}
@@ -987,40 +1097,45 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 {/* Top */}
                                 {showControls && (
                                     <View style={styles.topControls}>
-                                        <TouchableOpacity
+                                        <RippleButton
+                                            iconLib={Icon}
+                                            name="arrow-circle-left"
+                                            hasTVPreferredFocus={Platform.isTV && (isLoading || isCannotReproduce) ? true : false}
                                             onPress={handleBack}
                                             onLongPress={() => showToast('Regresar', 1)}
-                                        >
-                                            <Icon name="arrow-circle-left" size={26} color="#fff" />
-                                        </TouchableOpacity>
+                                        />
                                         <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
                                         <View style={styles.rightIcons}>
                                             {/* Boton de Cast */}
-                                            <TouchableOpacity
-                                                style={{ opacity: 0.5 }}
-                                                disabled={true}
-                                            >
-                                            {/*<CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />*/}
-                                                <Icon2 name="cast" size={26} color="#fff" />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    setIsScreenLock(true);
-                                                    toggleIconLock();
-                                                }}
-                                                onLongPress={() => showToast('Bloquear Pantalla', 2)}
-                                            >
-                                                <Icon name="unlock-alt" size={26} color="#fff" />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
+                                            {!Platform.isTV && (
+                                                <TouchableOpacity
+                                                    style={{ opacity: 0.5 }}
+                                                    disabled={true}
+                                                >
+                                                    {/*<CastButton style={{ width: 26, height: 26, tintColor: 'white' }} />*/}
+                                                    <Icon2 name="cast" size={26} color="#fff" />
+                                                </TouchableOpacity>
+                                            )}
+                                            {!Platform.isTV && (
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        setIsScreenLock(true);
+                                                        toggleIconLock();
+                                                    }}
+                                                    onLongPress={() => showToast('Bloquear Pantalla', 2)}
+                                                >
+                                                    <Icon name="unlock-alt" size={26} color="#fff" />
+                                                </TouchableOpacity>
+                                            )}
+                                            <RippleButton
+                                                iconLib={Icon2}
+                                                name="cog-outline"
                                                 onPress={() => {
                                                     setShowControls(false);
                                                     setShowSettings(true);
                                                 }}
                                                 onLongPress={() => showToast('Ajustes', 2)}
-                                            >
-                                                <Icon2 name="cog-outline" size={26} color="#fff" />
-                                            </TouchableOpacity>
+                                            />
                                         </View>
                                     </View>
                                 )}
@@ -1029,13 +1144,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                 <View style={styles.middleControls}>
                                     {/* Botón para ir al canal anterior / retroceder 10 segundos */}
                                     {showControls && (
-                                        <TouchableOpacity
-                                            style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                        <RippleButton
+                                            mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                            disabled={(tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? true : false}
+                                            iconLib={Icon3}
+                                            name={tipo === 'live' ? "skip-previous" : "replay-10"}
+                                            size={60}
+                                            rippleColor="#FFFFFF00"
                                             onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
-                                            disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
-                                        >
-                                            <Icon3 name={tipo === 'live' ? "skip-previous" : "replay-10"} size={60} color="#fff" />
-                                        </TouchableOpacity>
+                                        />
                                     )}
 
                                     {/* Animación de carga, Icono de reproducción deshabilitada o Botón de play/pausa */}
@@ -1044,20 +1161,28 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     ) : isCannotReproduce ? (
                                         <Icon3 name='play-disabled' size={60} color="#fff" />
                                     ) : ((showControls || paused) && (
-                                        <TouchableOpacity onPress={togglePlayPause}>
-                                            <Icon4 name={paused ? 'play' : 'pause'} size={45} color="#fff" />
-                                        </TouchableOpacity>
+                                        <RippleButton
+                                            secondaryStyle={{ padding: 10 }}
+                                            iconLib={Icon4}
+                                            name={paused ? 'play' : 'pause'}
+                                            size={45}
+                                            hasTVPreferredFocus={Platform.isTV}
+                                            rippleColor="#FFFFFF00"
+                                            onPress={togglePlayPause}
+                                        />
                                     ))}
 
                                     {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
                                     {showControls && (
-                                        <TouchableOpacity
-                                            style={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                        <RippleButton
+                                            mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                            disabled={(tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? true : false}
+                                            iconLib={Icon3}
+                                            name={tipo === 'live' ? "skip-next" : "forward-10"}
+                                            size={60}
+                                            rippleColor="#FFFFFF00"
                                             onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
-                                            disabled={(tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? true : false}
-                                        >
-                                            <Icon3 name={tipo === 'live' ? "skip-next" : "forward-10"} size={60} color="#fff" />
-                                        </TouchableOpacity>
+                                        />
                                     )}
                                 </View>
 
@@ -1093,40 +1218,66 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         )}
                                         <View style={styles.bottomIcons}>
                                             {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
-                                                <TouchableOpacity
-                                                    style={{ flexDirection: 'row', }}
-                                                    onPress={() => {
-                                                        setShowControls(false);
-                                                        if (tipo === 'live') {
-                                                            setShowChannels(true);
-                                                        } else {
-                                                            setModalVisible(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
-                                                    <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
-                                                </TouchableOpacity>
+                                                <View style={styles.wrapper}>
+                                                    <TouchableNativeFeedback
+                                                        onPress={() => {
+                                                            setShowControls(false);
+                                                            if (tipo === 'live') {
+                                                                setShowChannels(true);
+                                                            } else {
+                                                                setModalVisible(true);
+                                                            }
+                                                        }}
+                                                        background={focusRipple}
+                                                        useForeground={false}
+                                                    >
+                                                        <View style={styles.innerContent}>
+                                                            <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
+                                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
+                                                        </View>
+                                                    </TouchableNativeFeedback>
+                                                </View>
                                             )}
-                                            <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cycleAspectRatio}>
-                                                <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
-                                                <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
-                                            </TouchableOpacity>
+                                            <View style={styles.wrapper}>
+                                                <TouchableNativeFeedback
+                                                    onPress={cycleAspectRatio}
+                                                    background={focusRipple}
+                                                    useForeground={false}
+                                                >
+                                                    <View style={styles.innerContent}>
+                                                        <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
+                                                        <Text style={styles.textIcon}>Proporción ({resizeMode.nombre})</Text>
+                                                    </View>
+                                                </TouchableNativeFeedback>
+                                            </View>
                                             {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
-                                                <TouchableOpacity style={{ flexDirection: 'row', }} onPress={cyclePlaybackSpeed}>
-                                                    <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
-                                                    <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
-                                                </TouchableOpacity>
+                                                <View style={styles.wrapper}>
+                                                    <TouchableNativeFeedback
+                                                        onPress={cyclePlaybackSpeed}
+                                                        background={focusRipple}
+                                                        useForeground={false}
+                                                    >
+                                                        <View style={styles.innerContent}>
+                                                            <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
+                                                            <Text style={styles.textIcon}>Velocidad ({playbackRate}x)</Text>
+                                                        </View>
+                                                    </TouchableNativeFeedback>
+                                                </View>
                                             )}
                                             {tipo === 'series' && ( // Solo se muestra para episodios
-                                                <TouchableOpacity
-                                                    style={{ flexDirection: 'row', opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }}
-                                                    onPress={nextEpisode}
-                                                    disabled={(idxEpisode + 1) < episodios.length ? false : true}
-                                                >
-                                                    <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
-                                                    <Text style={styles.textIcon}>Siguiente episodio</Text>
-                                                </TouchableOpacity>
+                                                <View style={styles.wrapper}>
+                                                    <TouchableNativeFeedback
+                                                        onPress={nextEpisode}
+                                                        disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                                        background={focusRipple}
+                                                        useForeground={false}
+                                                    >
+                                                        <View style={[styles.innerContent, { opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }]}>
+                                                            <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
+                                                            <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                                        </View>
+                                                    </TouchableNativeFeedback>
+                                                </View>
                                             )}
                                         </View>
                                     </View>
@@ -1242,13 +1393,13 @@ const styles = StyleSheet.create({
     title: {
         flex: 0.80,
         color: '#fff',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 20 : 18,
         marginLeft: 20,
     },
     rightIcons: {
         flex: 0.20,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: Platform.isTV ? 'flex-end' : 'space-between',
     },
     bottomIcons: {
         flexDirection: 'row',
@@ -1260,6 +1411,14 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         textAlignVertical: 'center',
+    },
+    wrapper: {
+        borderRadius: 10,
+        overflow: 'hidden'
+    },
+    innerContent: {
+        flexDirection: 'row',
+        padding: 7.5
     },
     iconMargin: {
         marginRight: 10
