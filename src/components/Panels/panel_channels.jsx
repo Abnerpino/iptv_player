@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
+import RippleButton from '../RippleButton/ripple_button';
 import ItemCategory from '../Items/item_category';
 import ItemChannel from '../Items/item_channel';
 
@@ -90,9 +91,11 @@ const PanelChannels = ({ onClose, idCategorySelected, idChannelSelected, onSelec
         <View style={styles.container}>
             <View style={styles.categoriesList}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onClose}>
-                        <Icon name="arrow-circle-left" size={26} color="#fff" />
-                    </TouchableOpacity>
+                    <RippleButton
+                        iconLib={Icon}
+                        name="arrow-circle-left"
+                        onPress={onClose}
+                    />
                     <Text style={styles.headerTitle}>Lista de Canales</Text>
                 </View>
                 <FlatList

@@ -1,67 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Icon2 from 'react-native-vector-icons/FontAwesome';
-import Icon3 from 'react-native-vector-icons/Entypo';
-import Icon4 from 'react-native-vector-icons/MaterialIcons';
-
-const getTrackLabel = (track, trackType) => {
-    if (!track) return 'Desconocido';
-
-    const parts = [track.index];
-
-    if (trackType === 'video') {
-        parts.push('VIDEO');
-
-        // Codec
-        if (track.codecs && track.codecs.startsWith('avc')) {
-            parts.push('h264');
-        } else if (track.codecs && track.codecs.startsWith('hvc')) {
-            parts.push('hevc');
-        } else {
-            parts.push(track.codecs || 'N/A');
-        }
-
-        parts.push(track.bitrate ? `${Math.round(track.bitrate / 1000)} kb/s` : 'N/A'); // Bitrate
-        parts.push(track.width && track.height ? `${track.width} x ${track.height}` : 'N/A'); // Resolución
-    }
-
-    if (trackType === 'audio') {
-        parts.push('AUDIO');
-        parts.push(track.type && track.type.includes('/') ? track.type.split('/')[1] : 'N/A'); // Codec (extraído de 'type')
-        parts.push(track.title || 'N/A'); // Titulo de la pista
-        parts.push(track.language || 'N/A'); // Idioma
-    }
-
-    if (trackType === 'subtitle') {
-        parts.push('SUBTÍTULO');
-        parts.push(track.title || 'N/A'); // Titulo de la pista
-        parts.push(track.language || 'N/A'); // Idioma
-    }
-
-    return parts.join(', ');
-};
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon2 from 'react-native-vector-icons/Entypo';
+import Icon3 from 'react-native-vector-icons/MaterialIcons';
+import RippleButton from '../RippleButton/ripple_button';
+import TrackOption from '../TrackOption';
 
 const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selectedVideoTrack, selectedAudioTrack, selectedTextTrack, onSelectVideoTrack, onSelectAudioTrack, onSelectTextTrack, }) => {
-    const TrackOption = ({ track, isSelected, onSelect, trackType }) => (
-        <TouchableOpacity style={styles.optionRow} onPress={onSelect}>
-            <Icon name={isSelected ? 'radiobox-marked' : 'radiobox-blank'} size={22} color="#fff" />
-            <Text style={styles.optionText}>{getTrackLabel(track, trackType)}</Text>
-        </TouchableOpacity>
-    );
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={onClose}>
-                    <Icon2 name="arrow-circle-left" size={26} color="#fff" />
-                </TouchableOpacity>
+                <RippleButton
+                    iconLib={Icon}
+                    name="arrow-circle-left"
+                    onPress={onClose}
+                    hasTVPreferredFocus={Platform.isTV}
+                />
                 <Text style={styles.headerTitle}>Ajustes</Text>
             </View>
             <ScrollView style={styles.scrollView}>
                 {/* Pistas de Video */}
                 <View style={styles.containerTitle}>
-                    <Icon3 name="video" size={26} color="#FFF" />
+                    <Icon2 name="video" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE VIDEO</Text>
                 </View>
                 {videoTracks && videoTracks.length > 0 ? (
@@ -83,15 +43,15 @@ const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selected
 
                 {/* Pistas de Audio */}
                 <View style={styles.containerTitle}>
-                    <Icon4 name="audiotrack" size={26} color="#FFF" />
+                    <Icon3 name="audiotrack" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE AUDIO</Text>
                 </View>
                 {audioTracks && audioTracks.length > 0 ? (
                     <>
-                        <TouchableOpacity style={styles.optionRow} onPress={() => onSelectAudioTrack({ type: 'index', value: -1 })}>
-                            <Icon name={selectedAudioTrack?.value === -1 ? 'radiobox-marked' : 'radiobox-blank'} size={22} color="#fff" />
-                            <Text style={styles.optionText}>Desactivar</Text>
-                        </TouchableOpacity>
+                        <TrackOption
+                            isSelected={selectedAudioTrack?.value === -1}
+                            onSelect={() => onSelectAudioTrack({ type: 'index', value: -1 })}
+                        />
                         {audioTracks.map((track) => (
                             <TrackOption
                                 key={`audio-${track.index}`}
@@ -109,15 +69,15 @@ const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selected
 
                 {/* Pistas de Subtítulos */}
                 <View style={styles.containerTitle}>
-                    <Icon4 name="closed-caption" size={26} color="#FFF" />
+                    <Icon3 name="closed-caption" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE SUBTÍTULOS</Text>
                 </View>
                 {textTracks && textTracks.length > 0 ? (
                     <>
-                        <TouchableOpacity style={styles.optionRow} onPress={() => onSelectTextTrack(undefined)}>
-                            <Icon name={!selectedTextTrack ? 'radiobox-marked' : 'radiobox-blank'} size={22} color="#fff" />
-                            <Text style={styles.optionText}>Desactivar</Text>
-                        </TouchableOpacity>
+                        <TrackOption
+                            isSelected={!selectedTextTrack}
+                            onSelect={() => onSelectAudioTrack({ type: 'index', value: -1 })}
+                        />
                         {textTracks.map((track) => (
                             <TrackOption
                                 key={`text-${track.index}`}
@@ -150,8 +110,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
+        paddingLeft: 7.5,
         borderBottomWidth: 1,
-        borderColor: '#444'
+        borderColor: '#444',
     },
     headerTitle: {
         color: '#fff',
@@ -174,12 +135,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         paddingLeft: 10,
-    },
-    optionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 7.5,
-        paddingHorizontal: 5,
     },
     optionText: {
         color: '#fff',
