@@ -1,19 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableHighlight, StyleSheet, Vibration } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableHighlight, TouchableNativeFeedback, StyleSheet, Vibration, Platform } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useQuery } from '@realm/react';
 import { useStreaming } from '../../services/hooks/useStreaming';
 
-const ItemChannel = ({ canal, seleccionado, seleccionar, isOnReproductor }) => {
+const ItemChannel = ({ canal, index, seleccionado, seleccionar, upTag, rightTag, isOnReproductor }) => {
     const { getModelName, updateProps } = useStreaming();
     const categoryModel = getModelName('live', true);
     const categories = useQuery(categoryModel);
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
     const [favorite, setFavorite] = useState(canal?.favorito ?? false);
+    const [focusTags, setFocusTags] = useState({ up: null, right: null }); // Estado para manejar las etiqueta de los elementos para la navegación
 
     const backgroundColor = canal.num === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
     const borderBottomColor = isOnReproductor ? '#999' : '#303030'; // Establece el color dependiendo de si el item se muestra dentro o fuera del reproductor
+    const focusRipple = canal.num !== seleccionado ? TouchableNativeFeedback.Ripple('#FFD700', false) : undefined;
+
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        let arriba, derecha = null;
+
+        if (index === 0 && upTag) {
+            arriba = upTag;
+        }
+        if (rightTag) {
+            derecha = rightTag;
+        }
+
+        setFocusTags({ up: arriba, right: derecha });
+    }, [index, upTag, rightTag])
 
     const handleToggleFavorite = () => {
         Vibration.vibrate();
@@ -30,45 +48,91 @@ const ItemChannel = ({ canal, seleccionado, seleccionar, isOnReproductor }) => {
     };
 
     return (
-        <TouchableHighlight
-            style={[styles.container, { backgroundColor, borderBottomColor }]}
-            onPress={() => seleccionar(canal)}
-            onLongPress={handleToggleFavorite}
-            underlayColor={canal.num !== seleccionado ? "#D5700F" : "#006172"}
-        >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.textoNum}>{canal.num}</Text>
-                <View style={styles.imageContainer}>
-                    <FastImage
-                        style={styles.imagen}
-                        source={{
-                            uri: canal.stream_icon,
-                            priority: FastImage.priority.normal
-                        }}
-                        resizeMode={FastImage.resizeMode.contain}
-                    />
+        <>
+            {Platform.isTV ? (
+                // Diseño para TV
+                <View style={[styles.wrapper, { backgroundColor, borderBottomColor }]}>
+                    <TouchableNativeFeedback
+                        onPress={() => seleccionar(canal)}
+                        onLongPress={handleToggleFavorite}
+                        background={focusRipple}
+                        useForeground={false}
+                        nextFocusUp={focusTags.up}
+                        nextFocusRight={focusTags.right}
+                        hasTVPreferredFocus={canal.num === seleccionado}
+                    >
+                        <View style={[
+                            styles.content,
+                            { padding: 5 },
+                            canal.num === seleccionado && { backgroundColor: '#006172' }
+                        ]}>
+                            <Text style={styles.textoNum}>{canal.num}</Text>
+                            <View style={styles.imageContainer}>
+                                <FastImage
+                                    style={styles.imagen}
+                                    source={{
+                                        uri: canal.stream_icon,
+                                        priority: FastImage.priority.normal
+                                    }}
+                                    resizeMode={FastImage.resizeMode.contain}
+                                />
+                            </View>
+                            <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
+                            <View style={{ width: '10%' }}>
+                                {canal.favorito && (
+                                    <Icon name={"heart"} size={20} color={"red"} />
+                                )}
+                            </View>
+                        </View>
+                    </TouchableNativeFeedback>
                 </View>
-                <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
-                <View style={{ width: '10%' }}>
-                    {canal.favorito && (
-                        <Icon name={"heart"} size={20} color={"red"} />
-                    )}
-                </View>
-            </View>
-        </TouchableHighlight>
+            ) : (
+                // Diseño para Móvil
+                <TouchableHighlight
+                    style={[styles.wrapper, { padding: 5, backgroundColor, borderBottomColor }]}
+                    onPress={() => seleccionar(canal)}
+                    onLongPress={handleToggleFavorite}
+                    underlayColor={canal.num !== seleccionado ? "#D5700F" : "#006172"}
+                >
+                    <View style={styles.content}>
+                        <Text style={styles.textoNum}>{canal.num}</Text>
+                        <View style={styles.imageContainer}>
+                            <FastImage
+                                style={styles.imagen}
+                                source={{
+                                    uri: canal.stream_icon,
+                                    priority: FastImage.priority.normal
+                                }}
+                                resizeMode={FastImage.resizeMode.contain}
+                            />
+                        </View>
+                        <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
+                        <View style={{ width: '10%' }}>
+                            {canal.favorito && (
+                                <Icon name={"heart"} size={20} color={"red"} />
+                            )}
+                        </View>
+                    </View>
+                </TouchableHighlight>
+            )}
+        </>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    wrapper: {
         height: 50,
-        padding: 5,
         borderBottomWidth: 1,
+    },
+    content: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     textoNum: {
         width: '15%',
         color: '#FFF',
-        fontSize: 14,
+        fontSize: Platform.isTV ? 16 : 14,
         textAlign: 'right',
         fontWeight: 'bold',
         paddingRight: 5,
@@ -76,7 +140,7 @@ const styles = StyleSheet.create({
     textoName: {
         width: '65%',
         color: '#FFF',
-        fontSize: 16,
+        fontSize: Platform.isTV ? 18 : 16,
         paddingLeft: 10,
     },
     imageContainer: {
