@@ -8,3 +8,13 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# Mantiene la clase del Renderizador y su constructor para que ExoPlayer lo encuentre
+-keep public class androidx.media3.decoder.ffmpeg.** { public *; }
+
+# Mantiene todos los puentes nativos (JNI) intactos
+-keepclasseswithmembernames class * { native <methods>; }
+
+# Evita que ProGuard ofusque las librerías nativas de AndroidX
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
