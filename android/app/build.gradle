@@ -121,6 +121,7 @@ dependencies {
 
     implementation project(':react-native-google-cast')
     implementation 'com.google.android.gms:play-services-cast-framework:21.4.0'
+    implementation files('libs/lib-decoder-ffmpeg-release.aar')
 }
 
 configurations.all {
