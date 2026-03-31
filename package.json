@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "postinstall": "patch-package",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
@@ -26,6 +27,8 @@
     "@rneui/themed": "^4.0.0-rc.8",
     "install": "^0.13.0",
     "npm": "^11.2.0",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
     "react": "18.3.1",
     "react-native": "0.75.3",
     "react-native-device-info": "^13.0.0",
