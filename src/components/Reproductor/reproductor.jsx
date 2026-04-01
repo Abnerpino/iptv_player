@@ -1055,7 +1055,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             }}
                             style={styles.videoPlayer}
                             controls={false}
-                            paused={true}//isCannotReproduce ? true : paused}
+                            paused={isCannotReproduce || paused}
                             rate={playbackRate}
                             resizeMode={resizeMode.modo}
                             selectedAudioTrack={selectedAudioTrack}
@@ -1162,6 +1162,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         <Icon3 name='play-disabled' size={60} color="#fff" />
                                     ) : ((showControls || paused) && (
                                         <RippleButton
+                                            key={`play-btn-${showControls}`}
                                             secondaryStyle={{ padding: 10 }}
                                             iconLib={Icon4}
                                             name={paused ? 'play' : 'pause'}
