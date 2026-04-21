@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Image, Text, StyleSheet, TouchableOpacity, TouchableNativeFeedback, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground, Platform, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableNativeFeedback, TouchableWithoutFeedback, Vibration, BackHandler, ActivityIndicator, ImageBackground, Platform, PanResponder, findNodeHandle } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import KeyEvent from 'react-native-keyevent';
 import { Slider } from '@miblanchard/react-native-slider';
@@ -17,7 +18,14 @@ import PanelChannels from '../Panels/panel_channels';
 import PanelNextEpisode from '../Panels/panel_next-episode';
 
 const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, channelIndex, contenido, episodios, idxEpisode, onProgressUpdate, onContentChange, markAsWatched, username, triggerControls }) => {
-    const playerRef = useRef(null);
+    const playerRef = useRef(null); // Referencia para el Reproductor de Video
+    const btnPlayRef = useRef(null); // Referencia para el botón de Play/Pause en TV
+    const sliderRef = useRef(null); // Referencia para el wrapper del Slider
+    const btnPrevRef = useRef(null); // Referencia para el botón de Canal Anterior en TV
+    const btnListRef = useRef(null); // Referencia para la lista de Canales o Episodios
+    const btnAspectRef = useRef(null); // Referencia para el botón de Relación de Aspecto (Proporción)
+    const btnSpeedRef = useRef(null); // Referencia para el botón de Velocidad de Reproducción
+    const btnNextRef = useRef(null); // Referencia para el botón de Siguiente Canal o Episodio en TV
     const controlTimeout = useRef(null);
     const remoteControlTimeout = useRef(null);
     const lockTimeout = useRef(null);
@@ -33,6 +41,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const idContenido = useRef(null); // Referencia para guardar el id del contenido reproducido anteriormente (canal, pelicula o serie)
     const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
     const fullScreenRef = useRef(fullScreen); // Referencia para saber cuando la pantalla está en tamaño completo o no
+    const localChannelIndex = useRef(channelIndex); // Referencia instantánea para evitar el atasco al cambiar canales
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
@@ -42,6 +51,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true); // Estado para saber si es la primera vez que el video carga
+    const [isEnded, setIsEnded] = useState(false); // Estado para saber si el video ya terminó de reproducirse
     const [videoTracks, setVideoTracks] = useState([]); // Almacena pistas de video
     const [audioTracks, setAudioTracks] = useState([]); // Almacena pistas de audio
     const [textTracks, setTextTracks] = useState([]);   // Almacena pistas de subtítulos
@@ -51,12 +62,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [modalVisible, setModalVisible] = useState(false); // Estado para controlar la visibilidad el modal de episodios
     const [showSettings, setShowSettings] = useState(false); // Estado para controlar la visibilidad del panel de ajustes
     const [showChannels, setShowChannels] = useState(false); // Estado para controlar la visibilidad del panel de canales
+    const [showNextEpisode, setShowNextEpisode] = useState(false); // Estado para controlar la visibilidad del panel de siguiente episodio
     const [resizeMode, setResizeMode] = useState({ nombre: 'Fit Parent', modo: 'contain' }); // Estado para manejar el nombre y el modo para ajustar el tamaño del video
     const [playbackRate, setPlaybackRate] = useState(1.0); // Estado para manejar la velocidad del video
     const [isScreenLock, setIsScreenLock] = useState(false); // Estado para manejar el 'bloqueo de pantalla'
     const [showIconLock, setShowIconLock] = useState(false); // Estado para manejar la visibilidad de la notificación del 'bloqueo de pantalla'
     const [background, setBackground] = useState(''); // Estado para manejar la imagen de fondo que se muestra cuando se está transmitiendo
-    const [showNextEpisode, setShowNextEpisode] = useState(false); // Estado para controlar la visibilidad del componente
     const [countdown, setCountdown] = useState(5); // Estado para controlar el valor de la cuenta regresiva
     const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
     const [mainLinkFailed, setMainLinkFailed] = useState(false); // Estado para saber si el link principal falló
@@ -65,6 +76,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [sourceKey, setSourceKey] = useState(0); // Estado para el manejo de la llave para forzar recarga
     const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del mensaje de notificación
     const [useInternalTimer, setUseInternalTimer] = useState(false); // Estado para manejar el tiempo cuando las peliculas o episodios no tengan una duración válida
+    const [isSliderMode, setIsSliderMode] = useState(false); // Estado para saber si el Modo Slider está activo
+    const [imageError, setImageError] = useState(false); // Estado para saber si hubo un error al cargar la imagen del canal
+    const [focusTags, setFocusTags] = useState({ play: null, slider: null, prev: null, list: null, aspect: null, speed: null, next: null }); // Estado para manejar las etiquetas de los componentes para navegación explicita
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
     const client = useRemoteMediaClient(); // Maneja un objeto que es el cliente actual
     const mediaStatus = useMediaStatus(); // Maneja el estado para controlar el reproductor remoto
@@ -76,14 +90,45 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     // Mantiene la referencia mutable para poder acceder al estado actual sin causar re-renders
     const stateRef = useRef({
-        showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls
+        paused, isCannotReproduce, useInternalTimer, showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls, currentTime, duration, isSliderMode, categoria, channelIndex, isEnded
     });
 
     useEffect(() => {
         stateRef.current = {
-            showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls
+            paused, isCannotReproduce, useInternalTimer, showControls, modalVisible, showSettings, showChannels, showNextEpisode, showNotifactionMessage, showRemoteControls, currentTime, duration, isSliderMode, categoria, channelIndex, isEnded
         };
     });
+
+    // Efecto para vincular la navegación explicita
+    useEffect(() => {
+        // Si no es TV, no hace nada
+        if (!Platform.isTV) return;
+
+        // Timeout para asegurar que los componentes estén montados
+        const timer = setTimeout(() => {
+            let playTag, sliderTag, prevTag, listTag, aspectTag, speedTag, nextTag;
+
+            // Si las referencias de los componentes existen, encuentra sus etiquetas
+            if (btnPlayRef.current) playTag = findNodeHandle(btnPlayRef.current);
+            if (sliderRef.current) sliderTag = findNodeHandle(sliderRef.current);
+            if (btnPrevRef.current) prevTag = findNodeHandle(btnPrevRef.current);
+            if (btnListRef.current) listTag = findNodeHandle(btnListRef.current);
+            if (btnAspectRef.current) aspectTag = findNodeHandle(btnAspectRef.current);
+            if (btnSpeedRef.current) speedTag = findNodeHandle(btnSpeedRef.current);
+            if (btnNextRef.current) nextTag = findNodeHandle(btnNextRef.current);
+
+            // Asigna las etiquetas de los componentes
+            setFocusTags({ play: playTag, slider: sliderTag, prev: prevTag, list: listTag, aspect: aspectTag, speed: speedTag, next: nextTag });
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [showControls, isLoading, isSliderMode]);
+
+    // useEffect para destruir/reaundar el temporizador de los Controles
+    useEffect(() => {
+        if (isSliderMode) if (controlTimeout.current) clearTimeout(controlTimeout.current); // Si el Modo Slider está activo, destruye cualquier temporizador
+        else if (showControls) resetTimers(); // Si el Modo Slider está desactivado y se están mostrando los Controles, reanuda el temporizador            
+    }, [isSliderMode, showControls]);
 
     // Función centralizada para reiniciar los temporizadores que ocultan los controles
     const resetTimers = useCallback(() => {
@@ -92,10 +137,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         // Controles Locales
         if (state.showControls && !state.modalVisible && !state.showSettings && !state.showChannels && !state.showNextEpisode) {
             if (controlTimeout.current) clearTimeout(controlTimeout.current);
-            controlTimeout.current = setTimeout(() => {
-                if (!stateRef.current.showNotifactionMessage) hideMessage();
-                setShowControls(false);
-            }, 4000);
+
+            // Solo activa el temporizador si el Modo Slider está desactivado y el video aún no se ha terminado de reproducir
+            if (!state.isSliderMode && !state.isEnded) {
+                controlTimeout.current = setTimeout(() => {
+                    if (!state.showNotifactionMessage) hideMessage();
+                    setShowControls(false);
+                }, 4000);
+            }
         }
 
         // Controles Remotos (Cast)
@@ -113,8 +162,50 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
         // Escucha cualquier botón que se presione en el control remoto
         KeyEvent.onKeyDownListener((keyEvent) => {
-            // Cada vez que se presiona un botón físico, reinicia el temporizador
-            resetTimers();
+            const state = stateRef.current;
+
+            // Si los Controles, Modales y Paneles están ocultos...
+            if (!state.showControls && !state.modalVisible && !state.showSettings && !state.showChannels && !state.showNextEpisode) {
+                if (keyEvent.keyCode === 19 || keyEvent.keyCode === 20) { // 19 = Flecha Arriba, 20 = Flecha Abajo
+                    showTemporarilyControls(); // Muestra los Controles
+                } else if (keyEvent.keyCode === 21 || keyEvent.keyCode === 22) { // 21 = Flecha Izquierda, 22 = Flecha Derecha
+
+                    if (tipo !== 'live') { // Si es una pelicula/episodio...
+                        if (!state.isCannotReproduce && !state.useInternalTimer) { // Si el video se puede reproducir y no está usando el temporizador interno...
+                            setIsSliderMode(true); // Activa el Modo Slider
+                            showTemporarilyControls(); // Muestra los Controles
+                        } else showToast("¡Progreso deshabilitado! No es posible avanzar ni retroceder en la reproducción", 3); // Si no, muestra el mensaje
+
+                        return; // Sale de la función
+                    }
+
+                    if (keyEvent.keyCode === 21) // Flecha Izquierda
+                        handlePrevious(); // Retrocede al canal anterior
+                    else // Flecha Derecha
+                        handleNext(); // Avanza al siguiente canal
+                }
+            }
+            // Si los Controles están visibles y el Modo Slider está activo...
+            else if (state.showControls && state.isSliderMode) {
+                if (keyEvent.keyCode === 19 || keyEvent.keyCode === 20) { // Si se presiona la Flecha Arriba (19) o la Flecha Abajo (20)...
+                    setIsSliderMode(false); // Desactiva el Modo Slider
+                    setTimeout(() => {
+                        resetTimers(); // Reinicia el temporizador de los Controles
+                    }, 100); // Pequeño retraso para asegurar que el Modo Slider ya esté desactivado
+                } else if (keyEvent.keyCode === 21) { // Si se presiona la Flecha Izquierda...
+                    setPaused(true); // Pausa mientras se avanza/retocede el video
+                    playerRef.current?.seek(Math.max(0, state.currentTime - 15)); // Retrocede 15 segundos en el tiempo de reproducción actual
+                } else if (keyEvent.keyCode === 22) { // Si se presiona la Flecha Derecha...
+                    setPaused(true); // Pausa mientras se avanza/retocede el video
+                    playerRef.current?.seek(Math.min(state.duration, state.currentTime + 15)); // Avanza 15 segundos en el tiempo de reproducción actual
+                }
+            }
+            // Navegación normal con Controles visibles
+            else if (state.showControls && !state.isSliderMode) {
+                if (keyEvent.keyCode >= 19 && keyEvent.keyCode <= 22) { // Si se presiona alguna Flecha...
+                    resetTimers(); // Reinicia el temporizador de los Controles
+                }
+            }
         });
 
         return () => {
@@ -160,19 +251,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             }*/
 
             // Manejo normal del Reproductor
-            if (state.showControls) {
-                // Si los controles están visibles, los oculta
-                setShowControls(false);
-                if (controlTimeout.current) clearTimeout(controlTimeout.current);
+            if (!state.showControls) { // Si los Controles están ocultos...
+                if (state.paused) setPaused(false); // Si está pausado el video, lo reanuda
+                showTemporarilyControls(); // Muestra los Controles
+            } else { // Si los Controles están visibles...
+                setShowControls(false); // Oculta los Controles
+                if (controlTimeout.current) clearTimeout(controlTimeout.current); // Si existe algún temporizador, lo destruye
                 if (!state.showNotifactionMessage) hideMessage();
-            } else {
-                // Si los controles están ocultos, los muestra y arranca el temporizador de 4 segundos
-                setShowControls(true);
-                if (controlTimeout.current) clearTimeout(controlTimeout.current);
-                controlTimeout.current = setTimeout(() => {
-                    if (!stateRef.current.showNotifactionMessage) hideMessage();
-                    setShowControls(false);
-                }, 4000);
             }
         }
     }, [triggerControls, isCasting]);
@@ -192,6 +277,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         };
     }, []);
 
+    // useEffect que sincroniza la referencia instantánea del indice del canal con el prop del padre
+    useEffect(() => {
+        localChannelIndex.current = channelIndex;
+    }, [channelIndex]);
+
     useEffect(() => {
         fullScreenRef.current = fullScreen; // Mantiene actualizada la referencia del tamaño de pantalla cada vez que cambia
         hideMessage(); // Oculta los mensajes de notificación cada vez que el tamaño de pantalla cambia para evitar mostrarlos con estilos incorrectos
@@ -201,6 +291,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (tipo === 'live' || (prevContentId.current !== contenido[idKey])) {
             setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
+            setIsInitialLoad(true); // Se reinicia al cambiar contenido
+            setIsEnded(false); // Se asegura de que 'isEnded' sea falso cada vez que se cambia el contenido
             setPaused(false); // Se asegura de que 'paused' sea falso cada vez que se cambia el contenido
             setPausedByFocusLoss(false); // Se asegura de que 'pausedByFocusLoss' sea falso cada vez que se cambia el contenido
             setIsCannotReproduce(false); // Se asegura de que 'isCannotReproduce' sea falso cada vez que se cambia el contenido
@@ -215,6 +307,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             case 'live':
                 cambiarCanal(contenido);
                 setBackground(contenido.stream_icon);
+                setImageError(false);
                 break;
             case 'vod':
                 const imagen = contenido.backdrop_path ? `https://image.tmdb.org/t/p/original${contenido.backdrop_path}` : '';
@@ -256,24 +349,32 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (!fullScreen) return;
 
         const backAction = () => {
-            if (showSettings) { // Si el panel de ajustes está abierto...
+            if (showControls) { // Si los Controles están visibles...
+                if (isSliderMode) { // Si el Modo Slider está activo
+                    setIsSliderMode(false); // Desactiva el Modo Slider
+                    setTimeout(() => {
+                        resetTimers(); // Reinicia el temporizador de los Controles
+                    }, 100); // Pequeño retraso para asegurar que el Modo Slider ya esté desactivado
+                } else { // Si el Modo Slider está desactivado...
+                    if (isEnded) handleBack(); // Si ya terminó de reproducirse el video, procede con la navegación normal del Botón Regresar
+                    else setShowControls(false); // Si el video aún no termina, oculta los Controles
+                }
+            }
+            else if (showSettings) { // Si el panel de ajustes está abierto...
                 setShowSettings(false); // Cierra el panel de ajustes
-                return true;
+                if (Platform.isTV && isEnded) setShowControls(true); // Si es TV y el video ya terminó, muestra los Controles
             }
+            else if (showChannels) setShowChannels(false); // Si el panel de canales está abierto, lo cierra
+            else if (showNextEpisode) handleCancelNextEpisode(); // Si el panel de siguiente episodio está abierto, lo cierra
+            else handleBack(); // Navegación normal del Botón Regresar cuando todo está oculto
 
-            if (showChannels) { // Si el panel de canales está abierto...
-                setShowChannels(false); // Cierra el panel de canales
-                return true;
-            }
-
-            handleBack();
             return true;
         };
 
         const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
 
         return () => backHandler.remove();
-    }, [fullScreen, showSettings, showChannels]);
+    }, [fullScreen, showControls, isSliderMode, showChannels, showSettings, showNextEpisode]);
 
     // useEffect para la cuenta regresiva del panel de 'Siguiente Episodio'
     useEffect(() => {
@@ -371,7 +472,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
         if (!contenido || !contenido[item_id]) return;
 
-        if ((tipo === 'vod' || tipo === 'series') && timeToSave > 0) {
+        if (tipo !== 'live' && timeToSave > 0) {
             const time = timeToSave.toString();
             if (tipo === 'vod') {
                 updateProps(tipo, false, contenido.stream_id, { playback_time: time });
@@ -382,34 +483,25 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, [contenido, tipo, updateEpisodeProps, updateProps]);
 
     const showTemporarilyControls = () => {
-        if (modalVisible || showSettings || showChannels || showNextEpisode) return;
+        const state = stateRef.current;
+        if (state.modalVisible || state.showSettings || state.showChannels || state.showNextEpisode) return;
 
         setShowControls(true);
         if (controlTimeout.current) clearTimeout(controlTimeout.current);
-        controlTimeout.current = setTimeout(() => {
-            if (!showNotifactionMessage) {
-                hideMessage();
-            }
-            setShowControls(false);
-        }, 4000);
+
+        // Si el Modo Slider está desactivado y el video aún no se ha terminado de reproducir...
+        if (!state.isSliderMode && !state.isEnded) {
+            controlTimeout.current = setTimeout(() => {
+                if (!state.showNotifactionMessage) hideMessage();
+                setShowControls(false);
+            }, 4000);
+        }
     };
 
     const showTemporarilyRemoteControls = () => {
         setShowRemoteControls(true);
         if (remoteControlTimeout.current) clearTimeout(remoteControlTimeout.current);
         remoteControlTimeout.current = setTimeout(() => setShowRemoteControls(false), 4000);
-    };
-
-    const toggleControls = () => {
-        if (showControls) {
-            if (!showNotifactionMessage) {
-                hideMessage();
-            }
-            setShowControls(false);
-            clearTimeout(controlTimeout.current);
-        } else {
-            showTemporarilyControls();
-        }
     };
 
     const toggleRemoteControls = () => {
@@ -436,22 +528,25 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         lockTimeout.current = setTimeout(() => setShowIconLock(false), 3000);
     };
 
-    const showModalNetxEpisode = () => {
+    const showPanelNetxEpisode = () => {
         isShowingNextPanel.current = true; // Marca como verdadera la bandera para ya no entrar en esta sección
         setShowControls(false); // Oculta los controles
         setCountdown(5); // Reinicia la cuenta regresiva a 5
         setShowNextEpisode(true); // Muestra el panel
     };
 
+    // Función para reiniciar el video
+    const handleRestartVideo = () => {
+        setCurrentTime(0);
+        playerRef.current?.seek(0);
+    };
+
     // Función para Play/Pause en el reproductor local
     const togglePlayPause = () => {
         setPaused(prev => !prev);
 
-        // Si ya terminó la reproducción pero no se cierra el reproductor, al volver a darle 'Play', se reinicia
-        if (duration > 0 && (currentTime / duration) === 1) {
-            setCurrentTime(0);
-            playerRef.current?.seek(0);
-        }
+        // Si ya terminó el video pero no se cierra el reproductor, se reinicia el video
+        if (isEnded) handleRestartVideo();
     };
 
     // Función para Play/Pause en el reproductor remoto
@@ -462,6 +557,33 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         } else {
             client.play();
         }
+    };
+
+    // Función para adelantar/retroceder el canal/tiempo de reproducción en Movíl
+    const toggleNextPrevMobile = (option) => {
+        if (tipo === 'live') { // Si es un canal...
+            if (option === 1) handlePrevious(); // Si es la primera opción, llama a la función para ir al canal anterior
+            else handleNext(); // Es es la segunda opción, llama a la función para ir al siguiente canal
+        } else if (!isLoading && !isCannotReproduce && !useInternalTimer) { // Si no está cargando y se puede reproducir y no está usando el temporizador interno...
+            if (option === 1) seekTo(currentTime - 10); // Si es la primera opción, retrocede 10 segundos en el tiempo de reproducción
+            else seekTo(currentTime + 10); // Si es la segunda opción, avanza 10 segundos en el tiempo de reproducción
+        } else showToast("No es posible avanzar ni retroceder en la reproducción", 3); // Si no, muestra el mensaje
+    };
+
+    // Función para manejar la Barra de Progreso en TV
+    const toggleWrapperSlider = () => {
+        if (isCannotReproduce || useInternalTimer) { // Si ya no se puede reproducir el video o se está usando el temporizador interno...
+            showToast("¡Progreso deshabilitado! No es posible avanzar ni retroceder en la reproducción", 3); // Muestra el mensaje
+            return; // Sale de la función
+        }
+
+        if (isSliderMode) { // Si el Modo Slider está activo...
+            setIsSliderMode(false); // Desactiva el Modo Slider
+            setPaused(false); // Reanuda la reproducción
+            setTimeout(() => {
+                resetTimers(); // Reinicia el temporizador de los Controles
+            }, 100); // Pequeño retraso para asegurar que el Modo Slider ya esté desactivado
+        } else setIsSliderMode(true); // Si el Modo Slider está desactivado, lo activa
     };
 
     // Función para buscar (adelantar/retroceder) en el reproductor remoto
@@ -496,7 +618,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 }, 4000);
                 if (tipo === 'series') {
                     setTimeout(() => {
-                        showModalNetxEpisode();
+                        showPanelNetxEpisode();
                     }, 100); // Muestra el modal de siguiente episodio con 100ms de retraso
                 }
                 return newCount; // Actualiza el estado al nuevo contador
@@ -566,16 +688,14 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const handleBuffer = useCallback(({ isBuffering }) => {
         clearTimeout(bufferTimeout.current); // Limpia siempre el temporizador anterior
 
-        if (isBuffering) {
-            // El video se detuvo a cargar
-            setIsLoading(true);
+        if (isBuffering) { // Si el video se detuvo a cargar...
+            setIsLoading(true); // Indica que el video está cargando
+            setIsEnded(false); // Indica que el video no ha terminado
 
             // Inicia un temporizador, si sigue en búfer después de 5 segundos, llama a la lógica de reintento
             bufferTimeout.current = setTimeout(performRetry, 5000);
-        } else {
-            // --- ÉXITO DE BÚFER ---
-            // El video se reanudó
-            setIsLoading(false);
+        } else { // Si el video ya cargó...
+            setIsLoading(false); // Indica que el video se reanudó
 
             // Si estaba mostrando un mensaje de reintento, lo oculta
             if (retryCount > 0) {
@@ -587,9 +707,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     }, [performRetry, retryCount]);
 
     const handleEnd = () => {
-        if (tipo === 'vod' || tipo === 'series') {
+        // Si es una película o episodio...
+        if (tipo !== 'live') {
             savePlaybackTime(duration); // Guarda explícitamente la duración total como el tiempo de reproducción
             setPaused(true); // Pausa el reproductor en la UI
+            setIsEnded(true); // Indica que el video ha terminado
+            showTemporarilyControls(); // Muestra los Controles
         }
     };
 
@@ -645,14 +768,15 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             }, 4000);
             if (tipo === 'series') {
                 setTimeout(() => {
-                    showModalNetxEpisode();
-                }, 100); // Muestra el modal de siguiente episodio con 100ms de retraso
+                    showPanelNetxEpisode();
+                }, 100); // Muestra el panel de siguiente episodio con 100ms de retraso
             }
         }
     };
 
     const handleLoad = (data) => {
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
+        setIsInitialLoad(false); // Indica que ya no es la carga inicial del video
 
         // Captura las pistas disponibles
         setVideoTracks(data.videoTracks);
@@ -783,7 +907,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 !hasCanceledNextEpisode &&                     // El usuario no lo ha cancelado
                 (idxEpisode + 1) < episodios.length          // No es el último episodio
             ) {
-                showModalNetxEpisode(); // Muestra el modal del siguiente episodio
+                showPanelNetxEpisode(); // Muestra el panel del siguiente episodio
             }
         }
 
@@ -864,22 +988,41 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     };
 
     // Función para ir al canal anterior
-    const handlePrevious = () => {
-        // Fórmula para retroceder y dar la vuelta al llegar al principio
-        const newIndex = (channelIndex - 1 + categoria.canales.length) % categoria.canales.length;
-        onContentChange(categoria, categoria.canales[newIndex]);
-    };
+    const handlePrevious = useCallback(() => {
+        const state = stateRef.current;
+        if (!state.categoria || !state.categoria.canales) return;
+
+        const len = state.categoria.canales.length;
+        if (len === 0) return;
+
+        const newIndex = (localChannelIndex.current - 1 + len) % len; // Fórmula para retroceder y dar la vuelta al llegar al principio
+        localChannelIndex.current = newIndex; // Actualiza en memoria inmediatamente para el siguiente clic
+        onContentChange(state.categoria, state.categoria.canales[newIndex]); // Pasa los nuevos argumentos a la función para cambiar de canal
+    }, [onContentChange]);
 
     // Función para ir al siguiente canal
-    const handleNext = () => {
-        // Fórmula para avanzar y dar la vuelta al llegar al final
-        const newIndex = (channelIndex + 1) % categoria.canales.length;
-        onContentChange(categoria, categoria.canales[newIndex]);
-    };
+    const handleNext = useCallback(() => {
+        const state = stateRef.current;
+        if (!state.categoria || !state.categoria.canales) return;
 
-    //Función para controlar el cierre del modal de episodios
+        const len = state.categoria.canales.length;
+        if (len === 0) return;
+
+        const newIndex = (localChannelIndex.current + 1) % len; // Fórmula para avanzar y dar la vuelta al llegar al final
+        localChannelIndex.current = newIndex; // Actualiza en memoria inmediatamente para el siguiente clic
+        onContentChange(state.categoria, state.categoria.canales[newIndex]); // Pasa los nuevos argumentos a la función para cambiar de canal
+    }, [onContentChange]);
+
+    // Función para controlar el cierre del modal de episodios
     function handleCloseModal() {
         setModalVisible(false);
+        if (Platform.isTV && isEnded) setShowControls(true); // Si es TV y el video ya terminó, muestra los Controles
+    }
+
+    // Función para controlar el cierre del panel de ajustes
+    function handleClosePanelSettings() {
+        setShowSettings(false);
+        if (Platform.isTV && isEnded) setShowControls(true); // Si es TV y el video ya terminó, muestra los Controles
     }
 
     // Función para cambiar al siguiente episodio
@@ -1025,22 +1168,25 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     style={fullScreen ? styles.fullScreenVideo : styles.videoPlayerContainer}
                     onPress={() => {
                         if (showNextEpisode) return; // Si se muestra el panel de "Siguiente Episodio", no hace nada al tocar la pantalla
-                        if (showSettings) {
-                            setShowSettings(false);
-                            return
+                        if (showSettings) { // Si el Panel de Ajustes está visible...
+                            setShowSettings(false); // Oculta el Panel de Ajustes
+                            return; // Sale de la función
                         }
-                        if (showChannels) {
-                            setShowChannels(false);
-                            return
+                        if (showChannels) { // Si el Panel de Canales está visible...
+                            setShowChannels(false); // Oculta el Panel de Canales
+                            return; // Sale de la función
                         }
-                        if (!fullScreen) {
-                            setFullScreen(true);
+                        if (!fullScreen) setFullScreen(true); // Si la Pantalla está chica, la hace completa
+                        if (isScreenLock) { // Si la Pantalla está bloqueada
+                            toggleIconLock(); // Muestra la funcionalidad de Pantalla Bloqueada
+                            return; // Sale de la función
                         }
-                        if (isScreenLock) {
-                            toggleIconLock();
-                            return
+                        if (Platform.isTV) setPaused(prev => !prev); // Si es TV, pausa/reanuda el video
+                        if (!showControls) showTemporarilyControls(); // Si los Controles están ocultos, los muestra
+                        else { // Si los Controles están visibles...
+                            setShowControls(false); // Oculta los Controles
+                            if (controlTimeout.current) clearTimeout(controlTimeout.current); // Si existe algún temporizador, lo destruye
                         }
-                        toggleControls();
                     }}
                 >
                     <View style={styles.container}>
@@ -1094,20 +1240,23 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                         {/* Entra al bloque solo si la pantalla está completa, si se muestran los controles o está cargando el contendio o no se puede reproducir o está pausado, no está bloqueada y no se muestra el panel de 'Siguiente Episodio'*/}
                         {fullScreen && (showControls || isLoading || isCannotReproduce || paused) && !isScreenLock && !showNextEpisode && (
                             <View style={[styles.overlay, !showControls && { justifyContent: 'center' }]}>
-                                {/* Top */}
+                                {/* Controles de la parte superior */}
                                 {showControls && (
                                     <View style={styles.topControls}>
+                                        {/* Botón de Regresar */}
                                         <RippleButton
                                             iconLib={Icon}
                                             name="arrow-circle-left"
-                                            hasTVPreferredFocus={Platform.isTV && (isLoading || isCannotReproduce) ? true : false}
+                                            hasTVPreferredFocus={Platform.isTV && isInitialLoad}
                                             onPress={handleBack}
                                             onLongPress={() => showToast('Regresar', 1)}
                                         />
+                                        {/* Nombre del Canal */}
                                         <Text style={styles.title} numberOfLines={1}>{nombre}</Text>
+                                        {/* Iconos de la esquina superior derecha */}
                                         <View style={styles.rightIcons}>
-                                            {/* Boton de Cast */}
-                                            {!Platform.isTV && (
+                                            {/* Botón de Cast */}
+                                            {!Platform.isTV && ( // Solo se muestra para Telefonos
                                                 <TouchableOpacity
                                                     style={{ opacity: 0.5 }}
                                                     disabled={true}
@@ -1116,7 +1265,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                     <Icon2 name="cast" size={26} color="#fff" />
                                                 </TouchableOpacity>
                                             )}
-                                            {!Platform.isTV && (
+                                            {/* Botón para Bloquear Pantalla */}
+                                            {!Platform.isTV && ( // Solo se muestra para Telefonos
                                                 <TouchableOpacity
                                                     onPress={() => {
                                                         setIsScreenLock(true);
@@ -1127,6 +1277,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                     <Icon name="unlock-alt" size={26} color="#fff" />
                                                 </TouchableOpacity>
                                             )}
+                                            {/* Botón para Reiniciar el Video */}
+                                            {Platform.isTV && tipo !== 'live' && !isEnded && ( // Solo se muestra para peliculas/episodios en TV que ya hayan terminado de reproducirse
+                                                <RippleButton
+                                                    mainStyle={{ marginRight: '25%' }}
+                                                    iconLib={Icon3}
+                                                    name="restart-alt"
+                                                    onPress={handleRestartVideo}
+                                                    onLongPress={() => showToast('Reiniciar', 2)}
+                                                />
+                                            )}
+                                            {/* Botón de Ajustes */}
                                             <RippleButton
                                                 iconLib={Icon2}
                                                 name="cog-outline"
@@ -1140,87 +1301,161 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     </View>
                                 )}
 
-                                {/* Middle */}
+                                {/* Controles de la parte de en medio */}
                                 <View style={styles.middleControls}>
                                     {/* Botón para ir al canal anterior / retroceder 10 segundos */}
-                                    {showControls && (
+                                    {!Platform.isTV && showControls && ( // Se muestra solo para Telefonos
                                         <RippleButton
                                             mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                            disabled={(tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? true : false}
                                             iconLib={Icon3}
                                             name={tipo === 'live' ? "skip-previous" : "replay-10"}
                                             size={60}
                                             rippleColor="#FFFFFF00"
-                                            onPress={tipo === 'live' ? handlePrevious : () => seekTo(currentTime - 10)}
+                                            onPress={() => toggleNextPrevMobile(1)}
                                         />
                                     )}
 
-                                    {/* Animación de carga, Icono de reproducción deshabilitada o Botón de play/pausa */}
-                                    {isLoading ? (
+                                    {/* Icono/Botón central dinámico */}
+                                    {isLoading ? ( // Se muestra solo cuando está cargando
+                                        // Animación de carga
                                         <ActivityIndicator size={50} color="#fff" />
-                                    ) : isCannotReproduce ? (
+                                    ) : isCannotReproduce ? ( // Se muestra solo si ya no se puede reproducir el stream
+                                        // Icono de reproducción deshabilitada
                                         <Icon3 name='play-disabled' size={60} color="#fff" />
-                                    ) : ((showControls || paused) && (
+                                    ) : (!Platform.isTV && (showControls || paused) && ( // Se muestra solo para Telefonos, con los Controles visibles u ocultos si está en pausa
+                                        // Botón de Play/Pausa/Reinicio
                                         <RippleButton
-                                            key={`play-btn-${showControls}`}
                                             secondaryStyle={{ padding: 10 }}
-                                            iconLib={Icon4}
-                                            name={paused ? 'play' : 'pause'}
-                                            size={45}
-                                            hasTVPreferredFocus={Platform.isTV}
+                                            iconLib={isEnded ? Icon3 : Icon4}
+                                            name={isEnded ? 'restart-alt' : paused ? 'play' : 'pause'}
+                                            size={isEnded ? 60 : 45}
                                             rippleColor="#FFFFFF00"
                                             onPress={togglePlayPause}
                                         />
                                     ))}
 
                                     {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
-                                    {showControls && (
+                                    {!Platform.isTV && showControls && ( // Se muestra solo para Telefonos
                                         <RippleButton
                                             mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                            disabled={(tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? true : false}
                                             iconLib={Icon3}
                                             name={tipo === 'live' ? "skip-next" : "forward-10"}
                                             size={60}
                                             rippleColor="#FFFFFF00"
-                                            onPress={tipo === 'live' ? handleNext : () => seekTo(currentTime + 10)}
+                                            onPress={() => toggleNextPrevMobile(2)}
                                         />
                                     )}
                                 </View>
 
-                                {/* Bottom */}
+                                {/* Controles de la parte inferior */}
                                 {showControls && (
                                     <View>
-                                        {tipo === 'live' ? (
-                                            <View style={styles.bottomControlsLive}>
-                                                <Image
-                                                    style={styles.imagen}
-                                                    source={{ uri: contenido.stream_icon }}
-                                                    resizeMode="contain"
+                                        <View style={{ flexDirection: 'row', paddingHorizontal: Platform.isTV ? '3%' : 0, }}>
+                                            {/* Botón de Play/Pausa/Reinicio para TV */}
+                                            {Platform.isTV && showControls && ( // Se muestra solo para TV
+                                                <RippleButton
+                                                    ref={btnPlayRef}
+                                                    mainStyle={{ marginRight: '2%', opacity: (isLoading || isCannotReproduce) ? 0.25 : 1 }}
+                                                    secondaryStyle={{ padding: 2.5 }}
+                                                    disabled={isLoading || isCannotReproduce}
+                                                    iconLib={isEnded ? Icon3 : Icon4}
+                                                    name={isEnded ? 'restart-alt' : paused ? 'play' : 'pause'}
+                                                    size={isEnded ? 32 : 26}
+                                                    hasTVPreferredFocus={Platform.isTV && !isInitialLoad && !isLoading && !isCannotReproduce && !isSliderMode}
+                                                    rippleColor="#FFFFFF00"
+                                                    onPress={togglePlayPause}
+                                                    nextFocusDown={tipo === 'live' ? focusTags.prev : tipo === 'vod' ? focusTags.aspect : focusTags.list}
+                                                    nextFocusLeft={focusTags.play}
+                                                    nextFocusRight={tipo === 'live' ? focusTags.prev : focusTags.slider}
                                                 />
-                                                <View style={styles.barra} />
-                                            </View>
-                                        ) : (
-                                            <View style={styles.bottomControls}>
-                                                <Text style={styles.time}>{formatTime(currentTime)}</Text>
-                                                <Slider
-                                                    value={currentTime}
-                                                    minimumValue={0}
-                                                    maximumValue={duration}
-                                                    disabled={isCannotReproduce || useInternalTimer}
-                                                    onSlidingComplete={seekTo}
-                                                    trackStyle={styles.track}
-                                                    thumbStyle={styles.thumb}
-                                                    minimumTrackTintColor="#00c0fe"
-                                                    maximumTrackTintColor="#888"
-                                                    containerStyle={{ flex: 1 }}
-                                                />
-                                                <Text style={styles.time}>{formatTime(duration)}</Text>
-                                            </View>
-                                        )}
+                                            )}
+                                            {/* Barra de Progreso */}
+                                            {tipo === 'live' ? ( // Se muestra solo para canales
+                                                <View style={styles.bottomControlsLive}>
+                                                    <FastImage
+                                                        style={styles.imagen}
+                                                        source={contenido.stream_icon && !imageError ? {
+                                                            uri: contenido.stream_icon,
+                                                            priority: FastImage.priority.normal
+                                                        } : require('../../assets/icono.png')}
+                                                        resizeMode={FastImage.resizeMode.contain}
+                                                        onError={() => setImageError(true)}
+                                                    />
+                                                    <View style={styles.barra} />
+                                                </View>
+                                            ) : ( // Se muestra para películas y episodios
+                                                <View style={styles.bottomControls}>
+                                                    {/* Texto que indica el tiempo transcurrido del video */}
+                                                    <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                                    {/* Envoltorio de la Barra de Progreso del video */}
+                                                    <TouchableNativeFeedback
+                                                        ref={sliderRef}
+                                                        onPress={toggleWrapperSlider}
+                                                        background={Platform.isTV ? TouchableNativeFeedback.Ripple(isSliderMode ? 'rgba(255, 255, 255, 0)' : 'rgba(255, 255, 255, 0.3)', false) : undefined}
+                                                        useForeground={false}
+                                                        hasTVPreferredFocus={Platform.isTV && isSliderMode}
+                                                        nextFocusUp={isSliderMode ? focusTags.play : undefined}
+                                                        nextFocusDown={isSliderMode ? focusTags.play : tipo === 'vod' ? focusTags.speed : focusTags.aspect}
+                                                        nextFocusLeft={isSliderMode ? focusTags.slider : focusTags.play}
+                                                        nextFocusRight={focusTags.slider}
+                                                    >
+                                                        <View
+                                                            style={[
+                                                                styles.sliderWrapper,
+                                                                isSliderMode && Platform.isTV && { backgroundColor: 'rgba(255, 255, 255, 0.3)' }
+                                                            ]}
+                                                        >
+                                                            {/* pointerEvents="none" en TV evita que el Slider bloquee el foco del envoltorio */}
+                                                            <View style={{ flex: 1 }} pointerEvents={Platform.isTV ? "none" : "auto"}>
+                                                                <Slider
+                                                                    value={currentTime}
+                                                                    minimumValue={0}
+                                                                    maximumValue={duration}
+                                                                    disabled={isCannotReproduce || useInternalTimer}
+                                                                    onSlidingComplete={seekTo}
+                                                                    trackStyle={styles.track}
+                                                                    thumbStyle={{
+                                                                        height: Platform.isTV ? 17.5 : 15,
+                                                                        width: Platform.isTV ? 17.5 : 15,
+                                                                        backgroundColor: Platform.isTV && isSliderMode ? '#00F' : '#fff'
+                                                                    }}
+                                                                    minimumTrackTintColor={isSliderMode ? "#FFD700" : "#00c0fe"}
+                                                                    maximumTrackTintColor="#888"
+                                                                    containerStyle={{ flex: 1 }}
+                                                                />
+                                                            </View>
+                                                        </View>
+                                                    </TouchableNativeFeedback>
+                                                    {/* Texto que indica la duración del video */}
+                                                    <Text style={styles.time}>{formatTime(duration)}</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        {/* Botón de Canal Anterior */}
                                         <View style={styles.bottomIcons}>
+                                            {Platform.isTV && tipo === 'live' && ( // Solo se muestra para canales en TV
+                                                <View style={styles.wrapper}>
+                                                    <TouchableNativeFeedback
+                                                        ref={btnPrevRef}
+                                                        onPress={handlePrevious}
+                                                        background={focusRipple}
+                                                        useForeground={false}
+                                                        nextFocusUp={focusTags.play}
+                                                        nextFocusLeft={focusTags.play}
+                                                        nextFocusRight={focusTags.list}
+                                                    >
+                                                        <View style={styles.innerContent}>
+                                                            <Icon3 name="skip-previous" size={26} color="#fff" style={styles.iconMargin} />
+                                                            <Text style={styles.textIcon}>Canal anterior</Text>
+                                                        </View>
+                                                    </TouchableNativeFeedback>
+                                                </View>
+                                            )}
+                                            {/* Botón de Lista de Canales/Episodios */}
                                             {tipo !== 'vod' && ( // Solo se muestra para canales y episodios
                                                 <View style={styles.wrapper}>
                                                     <TouchableNativeFeedback
+                                                        ref={btnListRef}
                                                         onPress={() => {
                                                             setShowControls(false);
                                                             if (tipo === 'live') {
@@ -1231,19 +1466,27 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                         }}
                                                         background={focusRipple}
                                                         useForeground={false}
+                                                        nextFocusUp={focusTags.play}
+                                                        nextFocusLeft={tipo === 'live' ? focusTags.prev : focusTags.list}
+                                                        nextFocusRight={focusTags.aspect}
                                                     >
                                                         <View style={styles.innerContent}>
                                                             <Icon2 name="card-multiple" size={26} color="#fff" style={styles.iconMargin} />
-                                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'EPISODIOS'}</Text>
+                                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Lista de canales' : 'Lista de Episodios'}</Text>
                                                         </View>
                                                     </TouchableNativeFeedback>
                                                 </View>
                                             )}
+                                            {/* Botón de Relación de Aspecto (Proporción) */}
                                             <View style={styles.wrapper}>
                                                 <TouchableNativeFeedback
+                                                    ref={btnAspectRef}
                                                     onPress={cycleAspectRatio}
                                                     background={focusRipple}
                                                     useForeground={false}
+                                                    nextFocusUp={tipo !== 'series' ? focusTags.play : focusTags.slider}
+                                                    nextFocusLeft={tipo === 'vod' ? focusTags.play : focusTags.list}
+                                                    nextFocusRight={tipo === 'live' ? focusTags.next : focusTags.speed}
                                                 >
                                                     <View style={styles.innerContent}>
                                                         <Icon3 name="aspect-ratio" size={26} color="#fff" style={styles.iconMargin} />
@@ -1251,12 +1494,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                     </View>
                                                 </TouchableNativeFeedback>
                                             </View>
-                                            {tipo !== 'live' && ( // Solo se muestra para peliculas y episodios
+                                            {/* Botón de Velocidad de Reproducción */}
+                                            {tipo !== 'live' && ( // Solo se muestra para películas y episodios
                                                 <View style={styles.wrapper}>
                                                     <TouchableNativeFeedback
+                                                        ref={btnSpeedRef}
                                                         onPress={cyclePlaybackSpeed}
                                                         background={focusRipple}
                                                         useForeground={false}
+                                                        nextFocusUp={focusTags.slider}
+                                                        nextFocusLeft={focusTags.aspect}
+                                                        nextFocusRight={tipo === 'vod' ? focusTags.speed : focusTags.next}
                                                     >
                                                         <View style={styles.innerContent}>
                                                             <Icon3 name="speed" size={26} color="#fff" style={styles.iconMargin} />
@@ -1265,17 +1513,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                     </TouchableNativeFeedback>
                                                 </View>
                                             )}
-                                            {tipo === 'series' && ( // Solo se muestra para episodios
+                                            {/* Botón de Siguiente Canal/Episodio */}
+                                            {((Platform.isTV && tipo === 'live') || tipo === 'series') && ( // Solo se muestra para canales en TV o episodios
                                                 <View style={styles.wrapper}>
                                                     <TouchableNativeFeedback
-                                                        onPress={nextEpisode}
-                                                        disabled={(idxEpisode + 1) < episodios.length ? false : true}
+                                                        ref={btnNextRef}
+                                                        onPress={tipo === 'live' ? handleNext : nextEpisode}
+                                                        disabled={tipo === 'series' && !(idxEpisode + 1 < episodios.length)}
                                                         background={focusRipple}
                                                         useForeground={false}
+                                                        nextFocusUp={tipo === 'live' ? focusTags.play : focusTags.slider}
+                                                        nextFocusLeft={tipo === 'live' ? focusTags.aspect : focusTags.speed}
+                                                        nextFocusRight={focusTags.next}
                                                     >
-                                                        <View style={[styles.innerContent, { opacity: (idxEpisode + 1) < episodios.length ? 1 : 0.5 }]}>
+                                                        <View style={[styles.innerContent, { opacity: tipo === 'series' && !(idxEpisode + 1 < episodios.length) ? 0.5 : 1 }]}>
                                                             <Icon3 name="skip-next" size={26} color="#fff" style={styles.iconMargin} />
-                                                            <Text style={styles.textIcon}>Siguiente episodio</Text>
+                                                            <Text style={styles.textIcon}>{tipo === 'live' ? 'Siguiente canal' : 'Siguiente episodio'}</Text>
                                                         </View>
                                                     </TouchableNativeFeedback>
                                                 </View>
@@ -1286,7 +1539,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             </View>
                         )}
 
-                        {isScreenLock && showIconLock && fullScreen && ( // Muestra la notificación de pantalla bloqueda solo si está activada y en panatalla grande
+                        {/* Botón para Desbloquear Pantalla */}
+                        {isScreenLock && showIconLock && fullScreen && ( // Se muestra solo si la pantalla está bloqueada y en fullscreen
                             <View style={styles.lockContainer}>
                                 <TouchableOpacity
                                     style={styles.lockIcon}
@@ -1306,7 +1560,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             )}
             {showSettings && (
                 <PanelSettings
-                    onClose={() => setShowSettings(false)}
+                    onClose={handleClosePanelSettings}
                     videoTracks={videoTracks}
                     audioTracks={audioTracks}
                     textTracks={textTracks}
@@ -1430,6 +1684,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bottomControls: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -1437,8 +1692,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: '0.75%',
-        paddingRight: '1%',
+        paddingHorizontal: '1%',
     },
     imagen: {
         width: 40,
@@ -1453,12 +1707,19 @@ const styles = StyleSheet.create({
     },
     time: {
         color: '#fff',
-        width: '7%',
         textAlign: 'center',
-        fontSize: 12,
+        fontSize: Platform.isTV ? 16 : 14,
+    },
+    sliderWrapper: {
+        flex: 1,
+        marginHorizontal: 10,
+        paddingHorizontal: 10,
+        justifyContent: 'center',
+        height: 35,
+        borderRadius: 20
     },
     track: {
-        height: 4,
+        height: Platform.isTV ? 5 : 4,
         borderRadius: 2
     },
     thumb: {
