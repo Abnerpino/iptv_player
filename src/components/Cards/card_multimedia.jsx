@@ -9,7 +9,7 @@ const CardMultimedia = forwardRef(({ index, navigation, tipo, fondo, onStartLoad
     const { getStreamingByType } = useXtream();
     const [lastUpdateTime, setLastUpdateTime] = useState(null); // Estado para guardar la marca de tiempo (timestamp) de la última actualización
     const [timeAgo, setTimeAgo] = useState('Última actualización: nunca'); // Estado para guardar el texto formateado
-    const [isLoading, setIsLoading] = useState(false); // Estado para mostrar/ocultar la barra
+    const [isLoading, setIsLoading] = useState(false); // Estado para mostrar/ocultar la barra de progreso
     const [nextFocusIds, setNextFocusIds] = useState({ update: null, main: null }); // Estado para manejar los ids de los componentes para el foco de atención
     const progressAnim = useRef(new Animated.Value(0)).current; // Referencia para la animación
     const mainTouchableRef = useRef(null); // Referencia para el componente principal
@@ -37,7 +37,7 @@ const CardMultimedia = forwardRef(({ index, navigation, tipo, fondo, onStartLoad
         }, 100);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [isLoading]);
 
     // Efecto para cargar la última fecha de actualización guardada cuando el componente se monta
     useEffect(() => {
