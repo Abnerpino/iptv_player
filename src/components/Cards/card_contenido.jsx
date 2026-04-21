@@ -126,7 +126,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                             source={imagen && !error ? {
                                 uri: imagen,
                                 priority: FastImage.priority.normal
-                            } : require('../../assets/not_image.png')}
+                            } : tipo === 'live' ? require('../../assets/icono.png') : require('../../assets/not_image.png')}
                             resizeMode={imagen && !error ? (tipo === 'live' ? FastImage.resizeMode.contain : FastImage.resizeMode.cover) : FastImage.resizeMode.contain}
                             onError={() => setError(true)}
                         />

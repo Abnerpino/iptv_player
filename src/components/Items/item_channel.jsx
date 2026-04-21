@@ -11,6 +11,7 @@ const ItemChannel = ({ canal, index, seleccionado, seleccionar, upTag, rightTag,
     const categories = useQuery(categoryModel);
     const favoritos = categories.find(categoria => categoria.category_id === '0.3');
     const [favorite, setFavorite] = useState(canal?.favorito ?? false);
+    const [error, setError] = useState(false);
     const [focusTags, setFocusTags] = useState({ up: null, right: null }); // Estado para manejar las etiqueta de los elementos para la navegación
 
     const backgroundColor = canal.num === seleccionado ? '#006172' : 'rgba(16,16,16,0)'; // Cambia el color según la selección
@@ -70,11 +71,12 @@ const ItemChannel = ({ canal, index, seleccionado, seleccionar, upTag, rightTag,
                             <View style={styles.imageContainer}>
                                 <FastImage
                                     style={styles.imagen}
-                                    source={{
+                                    source={canal.stream_icon && !error ?{
                                         uri: canal.stream_icon,
                                         priority: FastImage.priority.normal
-                                    }}
+                                    } : require('../../assets/icono.png')}
                                     resizeMode={FastImage.resizeMode.contain}
+                                    onError={() => setError(true)}
                                 />
                             </View>
                             <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
@@ -104,6 +106,7 @@ const ItemChannel = ({ canal, index, seleccionado, seleccionar, upTag, rightTag,
                                     priority: FastImage.priority.normal
                                 }}
                                 resizeMode={FastImage.resizeMode.contain}
+                                onError={() => setError(true)}
                             />
                         </View>
                         <Text style={styles.textoName} numberOfLines={1}>{canal.name}</Text>
