@@ -9,7 +9,7 @@ import ProgressBar from '../ProgressBar/progress_bar';
 import { getDataMovie, getDataSerie } from '../../services/controllers/tmdbController';
 import ErrorLogger from '../../services/logger/errorLogger';
 
-const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio, onStartLoading, onFinishLoading, hideMessage, showModal, username }) => {
+const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio, onStartLoading, onFinishLoading, hideMessage, showModal, username, newHeight }) => {
     const { getEpisodes } = useXtream();
     const { updateProps } = useStreaming();
     const [error, setError] = useState(false);
@@ -112,7 +112,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
     const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#00000080', false);
 
     return (
-        <View style={[styles.container, { height: tipo === 'live' ? (Platform.isTV ? 120 : 100) : (Platform.isTV ? 180 : 160) }]}>
+        <View style={[styles.container, { height: newHeight }]}>
             <TouchableNativeFeedback
                 onPress={handleNavigateToScreen}
                 onLongPress={idCategory === '0.2' ? handleModalConfirmation : handleToggleFavorite}

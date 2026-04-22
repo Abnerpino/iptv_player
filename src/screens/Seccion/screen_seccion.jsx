@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, FlatList, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard, findNodeHandle, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableWithoutFeedback, StyleSheet, Image, ImageBackground, Vibration, BackHandler, Keyboard, findNodeHandle, Platform, useWindowDimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@realm/react';
@@ -26,9 +26,11 @@ const Seccion = ({ navigation, route }) => {
     const [itemToDelete, setItemToDelete] = useState(null); //Estado para manejar el item seleccionado
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const [focusRightTag, setFocusRightTag] = useState(null); // Estado para manejar la etiqueta del icono de la Barra de Búsqueda
+    const [newHeight, setNewHeight] = useState(0); // Estado para guardar la nueva altura de la imagen del Card de Contenido
     const iconBarRef = useRef(null); // Referencia para el icono de la Barra de Búsqueda
     const flatListRef = useRef(null); //Referencia al FlatList del contenido
 
+    const { width, height } = useWindowDimensions();
     const { getModelName, getWatchedItems, getFavoriteItems, getLastPlayedEpisode, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
     const categoryModel = getModelName(type, true);
     const categories = useQuery(categoryModel);
@@ -68,6 +70,19 @@ const Seccion = ({ navigation, route }) => {
             setCategory(categories[3]);
         }
     }, [type, categories]);
+
+    // useEffect que calcula dinamicamente un nuevo valor para la altura de la imagen del Card de Contenido, basada en las medidas de cada dispositivo
+    useEffect(() => {
+        // Validación de seguridad
+        if (height <= 0 || width <= 0) {
+            setNewHeight(type === 'live' ? (Platform.isTV ? 120 : 100) : (Platform.isTV ? 180 : 160));
+            return;
+        }
+
+        // Cálculo seguro
+        const altura = Math.ceil(type === 'live' ? (width / height) * ((width - (height / 1.5)) / 10) : (width / height) * (width / 10));
+        setNewHeight(altura);
+    }, []);
 
     // Memo para guardar y mantener actualizado el contenido de la categoría de Favoritos
     const favoritos = useMemo(() => {
@@ -347,6 +362,7 @@ const Seccion = ({ navigation, route }) => {
                                             hideMessage={() => hideMessage()}
                                             showModal={handleShowModal}
                                             username={username}
+                                            newHeight={newHeight}
                                         />
                                     )}
                                     getItemLayout={getItemLayout}
