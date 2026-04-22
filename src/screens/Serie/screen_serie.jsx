@@ -347,7 +347,9 @@ const Serie = ({ navigation, route }) => {
                                                     </Text>
                                                 </View>
                                                 {parseFloat(selectedEpisode.playback_time) > 0 && (
-                                                    <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
+                                                    <View style={styles.progressBarContainer}>
+                                                        <ProgressBar isVod={false} duration={duration} playback={parseFloat(selectedEpisode.playback_time)} />
+                                                    </View>
                                                 )}
                                             </View>
                                         </View>
@@ -628,6 +630,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 10,
         paddingHorizontal: 5,
+    },
+    progressBarContainer: {
+        width: '100%',
+        position: 'absolute',
+        bottom: 0,
     },
     textButton: {
         fontSize: Platform.isTV ? 18 : 16,
