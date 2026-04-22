@@ -7,9 +7,7 @@ const ProgressBar = ({ isVod, duration, playback }) => {
         ? duration * 60 // Convierte minutos a segundos para películas
         : Number(duration); // Usa segundos directamente para episodios
 
-    const playbackTime = playback; // Obtiene el tiempo de reproducción
-
-    const progressPercentage = totalDuration > 0 ? (playbackTime / totalDuration) * 100 : 0; // Calcula el porcentaje de progreso
+    const progressPercentage = totalDuration > 0 && playback <= totalDuration ? (playback / totalDuration) * 100 : 0; // Calcula el porcentaje de progreso
 
     return (
         <View style={styles.container}>
