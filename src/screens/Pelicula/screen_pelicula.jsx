@@ -201,14 +201,12 @@ const Pelicula = ({ navigation, route }) => {
                         <ScrollView>
                             {/* Vista en fila dentro del ScrollView */}
                             <View style={styles.containerDetailsMovie}>
-                                <View style={styles.containerPoster}>
-                                    <Image
-                                        source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
-                                        style={styles.poster}
-                                        onError={() => setError(true)}
-                                        resizeMode='contain'
-                                    />
-                                </View>
+                                <Image
+                                    source={poster && !error ? { uri: poster } : require('../../assets/not_image.png')} // URL de la imagen
+                                    style={styles.poster}
+                                    onError={() => setError(true)}
+                                    resizeMode='stretch'
+                                />
                                 <View style={styles.details}>
                                     <View style={styles.column}>
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Título original:</Text>
@@ -352,14 +350,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'stretch',
     },
-    containerPoster: {
-        flex: 0.175,
-        height: '100%',
-    },
     poster: {
-        flex: 1,
-        width: '100%',
-        height: '100%',
+        flex: 0.175,
         borderRadius: 5,
         borderColor: '#fff',
         borderWidth: 0.5,
