@@ -25,7 +25,7 @@ const TrackOption = ({ track, isSelected, onSelect, trackType }) => {
             }
 
             parts.push(track.bitrate ? `${Math.round(track.bitrate / 1000)} kb/s` : 'N/A'); // Bitrate
-            parts.push(track.width && track.height ? `${track.width} x ${track.height}` : 'N/A'); // Resolución
+            parts.push(track.width && track.width > 0 && track.height && track.height > 0 ? `${track.width} x ${track.height}` : 'N/A'); // Resolución
         }
 
         if (trackType === 'audio') {
