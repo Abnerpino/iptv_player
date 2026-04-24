@@ -778,13 +778,40 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         setIsLoading(false); // Indica que el video cargó y se debe ocultar el spinner
         setIsInitialLoad(false); // Indica que ya no es la carga inicial del video
 
+        // Respalda las pistas de video y audio originales
+        let currentVideoTracks = data.videoTracks ? [...data.videoTracks] : [];
+        let currentAudioTracks = data.audioTracks ? [...data.audioTracks] : [];
+
+        // Fallback para Pistas de Video vacías
+        if (currentVideoTracks.length === 0 && data.naturalSize) {
+            // Construye una pista de video por defecto
+            currentVideoTracks.push({
+                index: 0,
+                codecs: "default",
+                bitrate: null,
+                width: `${data.naturalSize.width}`,
+                height: `${data.naturalSize.height}`
+            });
+        }
+
+        // Fallback para Pistas de Audio vacías
+        if (currentAudioTracks.length === 0) {
+            // Construye una pista de audio por defecto
+            currentAudioTracks.push({
+                index: 0,
+                type: "unknown",
+                title: "default",
+                language: null
+            });
+        }
+
         // Captura las pistas disponibles
-        setVideoTracks(data.videoTracks);
-        setAudioTracks(data.audioTracks);
+        setVideoTracks(currentVideoTracks);
+        setAudioTracks(currentAudioTracks);
         setTextTracks(data.textTracks);
 
         // Si hay una o más pistas de video, selecciona la primera por defecto
-        if (data.videoTracks.length > 0) {
+        if (currentVideoTracks.length > 0) {
             setSelectedVideoTrack({
                 type: 'index',
                 value: 0 //El índice 0 es la primera pista
@@ -792,7 +819,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         }
 
         // Si hay una o más pistas de audio, selecciona la primera por defecto
-        if (data.audioTracks.length > 0) {
+        if (currentAudioTracks.length > 0) {
             setSelectedAudioTrack({
                 type: 'index',
                 value: 0 //El índice 0 es la primera pista
@@ -1570,6 +1597,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     onSelectVideoTrack={setSelectedVideoTrack}
                     onSelectAudioTrack={setSelectedAudioTrack}
                     onSelectTextTrack={setSelectedTextTrack}
+                    initialLoad={isInitialLoad}
                 />
             )}
             {showChannels && (
