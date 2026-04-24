@@ -6,7 +6,7 @@ import Icon3 from 'react-native-vector-icons/MaterialIcons';
 import RippleButton from '../RippleButton/ripple_button';
 import TrackOption from '../TrackOption';
 
-const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selectedVideoTrack, selectedAudioTrack, selectedTextTrack, onSelectVideoTrack, onSelectAudioTrack, onSelectTextTrack, }) => {
+const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selectedVideoTrack, selectedAudioTrack, selectedTextTrack, onSelectVideoTrack, onSelectAudioTrack, onSelectTextTrack, initialLoad }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -24,7 +24,7 @@ const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selected
                     <Icon2 name="video" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE VIDEO</Text>
                 </View>
-                {videoTracks && videoTracks.length > 0 ? (
+                {!initialLoad && videoTracks && videoTracks.length > 0 ? (
                     <>
                         {videoTracks.map((track) => (
                             <TrackOption
@@ -46,7 +46,7 @@ const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selected
                     <Icon3 name="audiotrack" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE AUDIO</Text>
                 </View>
-                {audioTracks && audioTracks.length > 0 ? (
+                {!initialLoad && audioTracks && audioTracks.length > 0 ? (
                     <>
                         <TrackOption
                             isSelected={selectedAudioTrack?.value === -1}
@@ -72,7 +72,7 @@ const PanelSettings = ({ onClose, videoTracks, audioTracks, textTracks, selected
                     <Icon3 name="closed-caption" size={26} color="#FFF" />
                     <Text style={styles.sectionTitle}>PISTAS DE SUBTÍTULOS</Text>
                 </View>
-                {textTracks && textTracks.length > 0 ? (
+                {!initialLoad && textTracks && textTracks.length > 0 ? (
                     <>
                         <TrackOption
                             isSelected={!selectedTextTrack}
