@@ -72,6 +72,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [hasCanceledNextEpisode, setHasCanceledNextEpisode] = useState(false); // Estado para recordar si el usuario canceló
     const [mainLinkFailed, setMainLinkFailed] = useState(false); // Estado para saber si el link principal falló
     const [isCannotReproduce, setIsCannotReproduce] = useState(false); // Estado para saber cuando un contenido ya no puede ser reproducido
+    const [messageCannotReproduce, setMessageCannotReproduce] = useState(''); // Estado para guardar el mensaje de reproducción deshabilitada
     const [retryCount, setRetryCount] = useState(0); // Estado para el manejo del contador de reintentos
     const [sourceKey, setSourceKey] = useState(0); // Estado para el manejo de la llave para forzar recarga
     const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del mensaje de notificación
@@ -600,8 +601,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     // Función que centraliza la lógica de reintento
     const performRetry = useCallback(() => {
-        let toastMessage = '';
-
         // Usar la actualización funcional para OBTENER y ESTABLECER el estado más reciente de 'retryCount'
         setRetryCount(currentCount => {
             const newCount = currentCount + 1; // Obtiene el valor más reciente
@@ -611,11 +610,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 console.log('Fallaron todos los reintentos de búfer.');
                 setIsLoading(false);
                 setIsCannotReproduce(true);
-                toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`, 3;
-                setShowNotifactionMessage(true);
-                setTimeout(() => {
-                    setShowNotifactionMessage(false);
-                }, 4000);
+                setMessageCannotReproduce(`¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`);
                 if (tipo === 'series') {
                     setTimeout(() => {
                         showPanelNetxEpisode();
@@ -625,7 +620,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
             } else {
                 // --- LÓGICA DE REINTENTO ESCALONADO ---
-                toastMessage = `Error de reproducción, reintentando conexión (${newCount}/5)`, 3;
+                showToast(`Error de reproducción, reintentando conexión (${newCount}/5)`, 3);
                 setShowNotifactionMessage(true); // Muestra el mensaje de reintento
 
                 if (newCount <= 3) {
@@ -647,10 +642,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 return newCount; // Actualiza el estado al nuevo contador
             }
         });
-
-        if (toastMessage) {
-            showToast(toastMessage, 3);
-        }
     }, [tipo]);
 
     const handleBack = () => {
@@ -761,11 +752,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             }
 
             // Muestra y oculta el mensaje de error
-            showToast(toastMessage, 3);
-            setShowNotifactionMessage(true);
-            setTimeout(() => {
-                setShowNotifactionMessage(false);
-            }, 4000);
+            setMessageCannotReproduce(toastMessage);
+            
             if (tipo === 'series') {
                 setTimeout(() => {
                     showPanelNetxEpisode();
@@ -1347,8 +1335,11 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         // Animación de carga
                                         <ActivityIndicator size={50} color="#fff" />
                                     ) : isCannotReproduce ? ( // Se muestra solo si ya no se puede reproducir el stream
-                                        // Icono de reproducción deshabilitada
-                                        <Icon3 name='play-disabled' size={60} color="#fff" />
+                                        // Icono de reproducción deshabilitada con su respectivo mensaje 
+                                        <View style={{ alignItems: 'center' }}>
+                                            <Icon3 name='play-disabled' size={60} color="#fff" />
+                                            <Text style={styles.message}>{messageCannotReproduce}</Text>
+                                        </View>
                                     ) : (!Platform.isTV && (showControls || paused) && ( // Se muestra solo para Telefonos, con los Controles visibles u ocultos si está en pausa
                                         // Botón de Play/Pausa/Reinicio
                                         <RippleButton
@@ -1849,6 +1840,10 @@ const styles = StyleSheet.create({
         paddingBottom: 5,
         marginBottom: '7.5%',
         marginRight: '5%'
+    },
+    message: {
+        color: '#FFF',
+        fontSize: Platform.isTV ? 18 : 16
     }
 });
 
