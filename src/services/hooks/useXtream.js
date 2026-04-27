@@ -109,7 +109,7 @@ export const useXtream = () => {
 
             stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids, direct_source }) => {
                 newLive.push({
-                    num: num.toString(),
+                    num: num,
                     name: name ? name : stream_id.toString(),
                     stream_id: stream_id.toString(),
                     stream_icon,
@@ -143,7 +143,7 @@ export const useXtream = () => {
             const stream = await response.json();
             stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, direct_source, container_extension }) => {
                 newVod.push({
-                    num: num.toString(),
+                    num: num,
                     name: name ? name : stream_id.toString(),
                     title,
                     year,
@@ -197,7 +197,7 @@ export const useXtream = () => {
                 const regex = /Saga|Collection/i; // La 'i' hace que sea case-insensitive
 
                 newSeries.push({
-                    num: num.toString(),
+                    num: num,
                     name: name ? name : series_id.toString(),
                     title,
                     year,

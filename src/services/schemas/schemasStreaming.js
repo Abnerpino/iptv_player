@@ -48,7 +48,7 @@ export const CanalSchema = {
     name: 'Canal',
     primaryKey: 'stream_id',
     properties: {
-        num: 'string',
+        num: 'int',
         name: 'string',
         stream_id: 'string',
         stream_icon: 'string?',
@@ -77,7 +77,7 @@ export const PeliculaSchema = {
     name: 'Pelicula',
     primaryKey: 'stream_id',
     properties: {
-        num: 'string',
+        num: 'int',
         name: 'string',
         title: 'string?',
         year: 'string?',
@@ -153,7 +153,7 @@ export const SerieSchema = {
     name: 'Serie',
     primaryKey: 'series_id',
     properties: {
-        num: 'string',
+        num: 'int',
         name: 'string',
         title: 'string?',
         year: 'string?',
