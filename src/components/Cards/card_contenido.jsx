@@ -105,7 +105,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
-
+console.log('newFavoriteStatus: ' + newFavoriteStatus + ', !item.favorito: ' + !item.favorito + ', currentTotal: ' + currentTotal + ', newTotal: ' + newTotal);
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item, favoritos]);
 
@@ -247,25 +247,19 @@ const styles = StyleSheet.create({
 
 // Función para comparar si las props cambiaron realmente
 const arePropsEqual = (prevProps, nextProps) => {
-    // Si cambia el ID, significa que es otro item y debe renderizar de nuevo
-    const isSameId = prevProps.item.stream_id === nextProps.item.stream_id ||
-        prevProps.item.series_id === nextProps.item.series_id;
-
-    if (!isSameId) return false;
-
-    // Si 'favorito' o 'visto' cambian, renderiza
-    const isSameStatus =
+    // Verifica si es el mismo objeto de datos de Realm
+    const isSameItem = prevProps.item === nextProps.item;
+    // Verifica si el estado de favorito o visto cambió
+    const isSameStatus = 
         prevProps.item.favorito === nextProps.item.favorito &&
         prevProps.item.visto === nextProps.item.visto;
+    // Verifica si cambió la categoría donde estaba el usuario
+    const isSameCategory = prevProps.idCategory === nextProps.idCategory;
+    // Verifica si el contador de favoritos cambió
+    const isSameTotal = prevProps.favoritos?.total === nextProps.favoritos?.total;
 
-    // Compára también si el ultimo episodio reproducido (en caso de ser serie) ha cambiado
-    const prevEpId = prevProps.episodio ? prevProps.episodio.id : null;
-    const nextEpId = nextProps.episodio ? nextProps.episodio.id : null;
-    const isSameEpisode = prevEpId === nextEpId;
-
-    // Retorna TRUE si son iguales (NO renderizar)
-    // Retorna FALSE si algo cambió (SÍ renderizar)
-    return isSameStatus && isSameEpisode;
+    // Si todo es igual, NO renderiza. Si algo cambió, SÍ renderiza
+    return isSameItem && isSameStatus && isSameCategory && isSameTotal;    
 };
 
 export default React.memo(CardContenido, arePropsEqual);
