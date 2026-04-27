@@ -93,19 +93,13 @@ const Seccion = ({ navigation, route }) => {
     const contentToShow = useMemo(() => {
         if (!category) return [];
 
-        let contenido = category[contentField]; //Obtiene el contenido de Realm de acuerdo al tipo
+        let contenido = [];
 
-        if (category.category_id === '0.2') {
-            contenido = getWatchedItems(type); //Filtra el contenido 'Recientemente Visto'
-        }
+        if (category.category_id === '0.2') contenido = getWatchedItems(type); // Filtra el contenido 'Recientemente Visto'
+        else if (category.category_id === '0.3') contenido = getFavoriteItems(type); // Filtra el contenido 'Favoritos'
+        else contenido = category[contentField].sorted('num'); // Obtiene el contenido de cualquier otra categoría, ordenado por la propiedad 'num'
 
-        if (category.category_id === '0.3') {
-            contenido = getFavoriteItems(type); //Filtra el contenido 'Favorito'
-        }
-
-        if (searchCont.trim() !== '') {
-            contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); //Filtra por el término de búqueda si es que existe
-        }
+        if (searchCont.trim() !== '') contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); // Filtra por el término de búqueda si es que existe
 
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
     }, [type, category, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
