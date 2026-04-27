@@ -79,7 +79,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                     }
                 }
                 const response = await getEpisodes(item.series_id);
-                response ? console.log('Episodios agregados') : console.log('No se agregaron los episodios');
+                console.log(response ? 'Episodios agregados' : 'No se agregaron los episodios');
                 navigation.navigate('Serie', { idContent: item.series_id, username });
             } catch (error) {
                 ErrorLogger.log(`CardContenido - handleNavigateToScreen (Series_${item?.series_id})`, error);
@@ -105,7 +105,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
 
         const currentTotal = favoritos.total;
         let newTotal = newFavoriteStatus ? currentTotal + 1 : Math.max(0, currentTotal - 1);
-console.log('newFavoriteStatus: ' + newFavoriteStatus + ', !item.favorito: ' + !item.favorito + ', currentTotal: ' + currentTotal + ', newTotal: ' + newTotal);
+
         updateProps(tipo, true, favoritos.category_id, { total: newTotal }); // Actualiza el total de la categoría Favoritos
     }, [tipo, item, favoritos]);
 
