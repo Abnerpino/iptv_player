@@ -5,18 +5,17 @@ export const getDataMovie = async (apiKey, title, year, poster, release) => {
     const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
 
     try {
-        //Se buscan peliculas que coincidan con el nombre y año
+        //Se buscan peliculas que coincidan con el titulo y el año
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
-        //Selecciona la que coincida con el poster o con la fecha de estreno o con el título
-        const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date || title === result.title);
-        if (movie) {
+        if (searchData.total_results > 0) {
+            //Selecciona el resultado que coincida con el poster o con la fecha de estreno o con el título, si no hay coincidencias, asigna el primero
+            const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date || title === result.title) || searchData.results[0];
+            //Obtiene la información completa de la pelicula seleccionada usando su id
             const info = await getDataMovieById(movie.id, apiKey);
             return info;
-        } else {
-            return null;
-        }
+        } else return null;
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataMovie', error);
     }
@@ -35,6 +34,7 @@ const getDataMovieById = async (tmdbID, apiKey) => {
             runtime: detalles.runtime,
             genres: detalles.genres.map(genre => genre.name).join(', '),
             vote_average: detalles.vote_average,
+            release_date: detalles.release_date,
             cast: JSON.stringify(creditos)
         };
     } catch (error) {
@@ -43,21 +43,21 @@ const getDataMovieById = async (tmdbID, apiKey) => {
 };
 
 //Obtiene la informacion de una serie
-export const getDataSerie = async (apiKey, title, year, release) => {
+export const getDataSerie = async (apiKey, title, year, release, poster, backdrop) => {
     const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
 
     try {
-        //Se buscan series que coincidan con el nombre y año
+        //Se buscan series que coincidan con el nombre y el año
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
-        const serie = searchData.results.find(result => release === result.first_air_date); //Selecciona la que coincida con la fecha de estreno
-        if (serie) {
+        if (searchData.total_results > 0) {
+            //Selecciona el resultado que coincida con la fecha de estreno o con el poster o con la imagen de fondo, si no hay coincidencias, asigna el primero
+            const serie = searchData.results.find(result => release === result.first_air_date || poster === result.poster_path || backdrop === result.backdrop_path) || searchData.results[0];
+            //Obtiene la información completa de la serie seleccionada usando su id
             const info = await getDataSerieById(serie.id, apiKey);
             return info;
-        } else {
-            return null;
-        }
+        } else return null;
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataSerie', error);
     }
@@ -75,6 +75,7 @@ const getDataSerieById = async (tmdbID, apiKey) => {
             vote_average: detalles.vote_average,
             genres: detalles.genres.map(genre => genre.name).join(', '),
             overview: detalles.overview,
+            first_air_date: detalles.first_air_date,
             cast: JSON.stringify(creditos)
         };
     } catch (error) {
@@ -87,8 +88,8 @@ const getDetailsMovie = async (id, apiKey) => {
     const detailsUrl = `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=es-MX`;
 
     try {
-        const detailsRespone = await fetch(detailsUrl);
-        const detailsData = await detailsRespone.json();
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json();
         //Se guardan solo los detalles que son relevantes
         const details = {
             tmdb_id: detailsData.id,
@@ -98,6 +99,7 @@ const getDetailsMovie = async (id, apiKey) => {
             poster_path: detailsData.poster_path,
             runtime: detailsData.runtime,
             vote_average: detailsData.vote_average,
+            release_date: detailsData.release_date,
             genres: detailsData.genres
         };
         return details; //Se retorna el objeto con los detalles
@@ -111,8 +113,8 @@ const getDetailsSerie = async (id, apiKey) => {
     const detailsUrl = `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=es-MX`;
 
     try {
-        const detailsRespone = await fetch(detailsUrl);
-        const detailsData = await detailsRespone.json();
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json();
         //Se guardan solo los detalles que son relevantes
         const details = {
             tmdb_id: detailsData.id,
@@ -121,6 +123,7 @@ const getDetailsSerie = async (id, apiKey) => {
             vote_average: detailsData.vote_average,
             poster_path: detailsData.poster_path,
             genres: detailsData.genres,
+            first_air_date: detailsData.first_air_date,
             overview: detailsData.overview
         };
         return details; //Se retorna el objeto con los detalles
