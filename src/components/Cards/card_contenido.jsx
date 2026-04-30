@@ -43,6 +43,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                                 runtime: info.runtime.toString(),
                                 genres: info.genres,
                                 vote_average: info.vote_average.toString(),
+                                release_date_aux: info.release_date,
                                 cast: info.cast
                             }
                         );
@@ -59,7 +60,9 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.saga && !item.tmdb_id) {
-                    const info = await getDataSerie(apiKey, item.title, item.year, item.release_date); //Obtiene la información general de la pelicula
+                    const poster = (item.cover || "").split('/').pop(); // Obtiene la última parte de la url del poster
+                    const backdrop = (item.backdrop_path || "").split('/').pop(); // Obtiene la última parte de la url de la imagen de fondo
+                    const info = await getDataSerie(apiKey, item.title, item.year, item.release_date, `/${poster}`, `/${backdrop}`,); //Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
@@ -73,6 +76,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                                 vote_average: info.vote_average.toString(),
                                 genres: info.genres,
                                 overview: info.overview,
+                                first_air_date: info.first_air_date,
                                 cast: info.cast
                             }
                         );
