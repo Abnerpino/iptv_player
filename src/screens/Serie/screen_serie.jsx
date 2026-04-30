@@ -20,12 +20,13 @@ const Serie = ({ navigation, route }) => {
     const { idContent, username } = route.params;
     const serie = useObject('Serie', idContent); // Encuentra la serie usando su Modelo y su ID
 
-    const poster = serie.cover !== "" ? serie.cover : serie.poster_path !== "" ? `https://image.tmdb.org/t/p/original${serie.poster_path}` : null;
-    const background = serie.backdrop_path !== "" ? serie.backdrop_path : serie.backdrop_path_aux !== "" ? `https://image.tmdb.org/t/p/original${serie.backdrop_path_aux}` : null;
-    const originalName = serie.original_name;
-    const genres = serie.genre !== "" ? serie.genre : serie.genres !== "" ? serie.genres : null;
-    const overview = serie.plot !== "" ? serie.plot : serie.overview;
-    const rating = serie.rating !== "" ? Number(serie.rating) : Number(serie.vote_average);
+    const poster = serie.cover ? serie.cover : serie.poster_path ? `https://image.tmdb.org/t/p/original${serie.poster_path}` : null;
+    const background = serie.backdrop_path ? serie.backdrop_path : serie.backdrop_path_aux ? `https://image.tmdb.org/t/p/original${serie.backdrop_path_aux}` : null;
+    const originalName = serie.original_name ? serie.original_name : 'N/A';
+    const release_date = serie.release_date ? serie.release_date : serie.first_air_date;
+    const genres = serie.genre ? serie.genre : serie.genres ? serie.genres : 'N/A';
+    const overview = serie.plot ? serie.plot : serie.overview ? serie.overview : 'Trama no disponible';
+    const rating = serie.rating && serie.rating !== '0' ? Number(serie.rating) : serie.vote_average ? Number(serie.vote_average) : 0;
     const cast = serie.cast ? JSON.parse(serie.cast) : [];
     const seasons = serie?.temporadas ?? [];
     const season_idx = serie?.last_ep_played[0] ?? 0; // Indice de la temporada del último episodio reproducido
@@ -195,13 +196,23 @@ const Serie = ({ navigation, route }) => {
         navigation.goBack();
     };
 
-    const getDate = (date) => {
-        const fecha = new Date(date);
-        const day = fecha.getDate().toString().padStart(2, '0');
-        const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
-        const year = fecha.getFullYear();
-        const newDate = `${day}/${month}/${year}`;
-        return newDate;
+    const convertDate = (date) => {
+        const regex = /^\d{4}-\d{2}-\d{2}$/; // Formato AAAA-MM-DD
+
+        // Verifica que la fecha no sea null ni cadena vacía y que tenga el formato correcto
+        if (date && regex.test(date)) {
+            const [y, m, d] = date.split('-').map(Number); // Separa la fecha por año, mes y día
+            const fecha = new Date(y, m - 1, d);
+            // Si el mes o el día cambiaron, la fecha original es inválida
+            if (fecha.getFullYear() === y && (fecha.getMonth() + 1) === m && fecha.getDate() === d) {
+                const day = d.toString().padStart(2, '0');
+                const month = m.toString().padStart(2, '0');
+                return `${day}/${month}/${y}`; // Nuevo formato AA/MM/AAAA
+            }
+        }
+
+        // Plan B en caso de que la fecha no sea válida
+        return serie.year ? serie.year : 'N/A';
     };
 
     //Función para controlar el cierre del modal de la trama
@@ -299,12 +310,12 @@ const Serie = ({ navigation, route }) => {
 
                                     </View>
                                     <View style={[styles.column, { marginLeft: '18.5%', }]}>
-                                        <Text style={styles.text}>{originalName ? originalName : 'N/A'}</Text>
-                                        <Text style={styles.text}>{serie.release_date ? getDate(`${serie.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
-                                        <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
-                                        <StarRating rating={rating ? rating : 0} size={20} />
-                                        <Text style={styles.overview} numberOfLines={2} >{overview ? overview : 'Trama no disponible'}</Text>
-                                        {overview ? (
+                                        <Text style={styles.text}>{originalName}</Text>
+                                        <Text style={styles.text}>{convertDate(release_date)}</Text>
+                                        <Text style={styles.text}>{genres}</Text>
+                                        <StarRating rating={rating} size={20} />
+                                        <Text style={styles.overview} numberOfLines={2} >{overview}</Text>
+                                        {overview !== 'Trama no disponible' ? (
                                             <View style={styles.textWrapper}>
                                                 <TouchableNativeFeedback
                                                     ref={readMoreRef}

@@ -16,13 +16,14 @@ const Pelicula = ({ navigation, route }) => {
     const { idContent, username } = route.params;
     const pelicula = useObject('Pelicula', idContent); // Encuentra la pelicula usando su Modelo y su ID
 
-    const poster = pelicula.stream_icon !== "" ? pelicula.stream_icon : pelicula.poster_path !== "" ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
+    const poster = pelicula.stream_icon ? pelicula.stream_icon : pelicula.poster_path ? `https://image.tmdb.org/t/p/original${pelicula.poster_path}` : null;
     const background = pelicula.backdrop_path;
-    const originalTitle = pelicula.original_title;
-    const genres = pelicula.genre !== "" ? pelicula.genre : pelicula.genres !== "" ? pelicula.genres : null;
-    const runtime = pelicula.episode_run_time !== "" ? Number(pelicula.episode_run_time) : pelicula.runtime !== "" ? Number(pelicula.runtime) : 0;
-    const overview = pelicula.plot !== "" ? pelicula.plot : pelicula.overview;
-    const rating = pelicula.rating !== "" ? Number(pelicula.rating) : Number(pelicula.vote_average);
+    const originalTitle = pelicula.original_title ? pelicula.original_title : 'N/A';
+    const release_date = pelicula.release_date ? pelicula.release_date : pelicula.release_date_aux;
+    const genres = pelicula.genre ? pelicula.genre : pelicula.genres ? pelicula.genres : 'N/A';
+    const runtime = pelicula.episode_run_time && pelicula.episode_run_time !== '0' ? Number(pelicula.episode_run_time) : pelicula.runtime ? Number(pelicula.runtime) : 0;
+    const overview = pelicula.plot ? pelicula.plot : pelicula.overview ? pelicula.overview : 'Sinopsis no disponible';
+    const rating = pelicula.rating && pelicula.rating !== '0' ? Number(pelicula.rating) : pelicula.vote_average ? Number(pelicula.vote_average) : 0;
     const cast = pelicula.cast ? JSON.parse(pelicula.cast) : [];
 
     const { getModelName, updateProps } = useStreaming();
@@ -132,23 +133,36 @@ const Pelicula = ({ navigation, route }) => {
         navigation.goBack();
     };
 
-    const getDate = (date) => {
-        const fecha = new Date(date);
-        const day = fecha.getDate().toString().padStart(2, '0');
-        const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
-        const year = fecha.getFullYear();
-        const newDate = `${day}/${month}/${year}`;
-        return newDate;
+    const convertDate = (date) => {
+        const regex = /^\d{4}-\d{2}-\d{2}$/; // Formato AAAA-MM-DD
+
+        // Verifica que la fecha no sea null ni cadena vacía y que tenga el formato correcto
+        if (date && regex.test(date)) {
+            const [y, m, d] = date.split('-').map(Number); // Separa la fecha por año, mes y día
+            const fecha = new Date(y, m - 1, d);
+            // Si el mes o el día cambiaron, la fecha original es inválida
+            if (fecha.getFullYear() === y && (fecha.getMonth() + 1) === m && fecha.getDate() === d) {
+                const day = d.toString().padStart(2, '0');
+                const month = m.toString().padStart(2, '0');
+                return `${day}/${month}/${y}`; // Nuevo formato AA/MM/AAAA
+            }
+        }
+        
+        // Plan B en caso de que la fecha no sea válida
+        return pelicula.year ? pelicula.year : 'N/A';
     };
 
     const convertDuration = (minutes) => {
-        if (minutes) {
-            const hours = Math.floor(minutes / 60); // Obtener las horas
-            const minutesRemaining = minutes % 60; // Obtener los minutos restantes
-            return `${hours}h ${minutesRemaining}m`; // Formato de salida
-        } else {
-            return '0m';
-        }
+        if (minutes > 0) {
+            let duration = '';
+            const hours = Math.floor(minutes / 60); // Obtiene las horas
+            const minutesRemaining = minutes % 60; // Obtiene los minutos restantes
+
+            if (hours > 0) duration = `${hours}h `; // Formatea las horas
+            if (minutesRemaining > 0) duration += `${minutesRemaining}m` // Formatea los minutos
+
+            return duration.trim(); // Devuelva la duración completa, formateada y sin espacios al final
+        } else return '0m';
     };
 
     const handleProgressUpdate = (time) => {
@@ -216,11 +230,11 @@ const Pelicula = ({ navigation, route }) => {
                                         <Text style={[styles.text, { fontWeight: 'bold' }]}>Calificación:</Text>
                                     </View>
                                     <View style={[styles.column, { marginLeft: '18.5%', }]}>
-                                        <Text style={styles.text}>{originalTitle ? originalTitle : 'N/A'}</Text>
-                                        <Text style={styles.text}>{pelicula.release_date ? getDate(`${pelicula.release_date}T06:00:00.000Z`) : 'N/A'}</Text>
+                                        <Text style={styles.text}>{originalTitle}</Text>
+                                        <Text style={styles.text}>{convertDate(release_date)}</Text>
                                         <Text style={[styles.text, styles.runtime]}>{convertDuration(runtime)}</Text>
-                                        <Text style={styles.text}>{genres ? genres : 'N/A'}</Text>
-                                        <StarRating rating={rating ? rating : 0} size={20} />
+                                        <Text style={styles.text}>{genres}</Text>
+                                        <StarRating rating={rating} size={20} />
                                     </View>
                                 </View>
                             </View>
@@ -275,7 +289,7 @@ const Pelicula = ({ navigation, route }) => {
                                 </View>
                             </View>
                             <View style={{ paddingVertical: 10, }}>
-                                <Text style={styles.overview}>{overview ? overview : 'Sinopsis no disponible'}</Text>
+                                <Text style={styles.overview}>{overview}</Text>
                             </View>
                             {/* Vista en columna con texto y FlatList */}
                             {Array.isArray(cast) && cast.length > 0 ? (
