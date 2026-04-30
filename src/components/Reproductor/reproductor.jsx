@@ -50,6 +50,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [showRemoteControls, setShowRemoteControls] = useState(true);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [bufferTime, setBufferTime] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Estado para saber si es la primera vez que el video carga
     const [isEnded, setIsEnded] = useState(false); // Estado para saber si el video ya terminó de reproducirse
@@ -876,7 +877,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         setIsLoading(true);
     };
 
-    const handleProgress = ({ currentTime: reportedTime }) => {
+    const handleProgress = ({ currentTime: reportedTime, playableDuration }) => {
         // Si el id es diferente, el contenido cambió y se debe actualizar su fecha de visualización
         if (idContenido.current !== contenido.stream_id) {
             const fecha = new Date(); // Obtiene la fecha (tiempo) actual 
@@ -909,6 +910,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             reliableCurrentTime = reportedTime;
         }
 
+        setBufferTime(playableDuration);
         latestTime.current = reliableCurrentTime;
 
         if (tipo === 'series') {
@@ -983,7 +985,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         const formattedMins = mins < 10 ? '0' + mins : mins;
         const formattedSecs = secs < 10 ? '0' + secs : secs;
 
-        if (hours > 0) {
+        if (hours > 0 || duration > 3559) {
             const formattedHours = hours < 10 ? '0' + hours : hours;
             return `${formattedHours}:${formattedMins}:${formattedSecs}`;
         } else {
@@ -1214,6 +1216,21 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                     'User-Agent': customUserAgent
                                 }
                             }}
+                            bufferConfig={{
+                                minBufferMs: tipo === 'live' ? 1500 : 15000,
+                                maxBufferMs: tipo === 'live' ? 10000 : 50000,
+                                bufferForPlaybackMs: tipo === 'live' ? 1000 : 2500,
+                                bufferForPlaybackAfterRebufferMs: tipo === 'live' ? 1500 : 5000,
+                                ...(tipo === 'live' ? {
+                                    live: {
+                                        targetOffsetMs: 2000
+                                    }
+                                } : {
+                                    cacheSizeMB: 100
+                                })
+                            }}
+                            bufferingStrategy='Default'
+                            automaticallyWaitsToMinimizeStalling={true}
                             style={styles.videoPlayer}
                             controls={false}
                             paused={isCannotReproduce || paused}
@@ -1404,7 +1421,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                             ) : ( // Se muestra para películas y episodios
                                                 <View style={styles.bottomControls}>
                                                     {/* Texto que indica el tiempo transcurrido del video */}
-                                                    <Text style={styles.time}>{formatTime(currentTime)}</Text>
+                                                    <Text style={[styles.time, { width: duration > 3559 ? '7%' : '5%' }]}>{formatTime(currentTime)}</Text>
                                                     {/* Envoltorio de la Barra de Progreso del video */}
                                                     <TouchableNativeFeedback
                                                         ref={sliderRef}
@@ -1424,7 +1441,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                             ]}
                                                         >
                                                             {/* pointerEvents="none" en TV evita que el Slider bloquee el foco del envoltorio */}
-                                                            <View style={{ flex: 1 }} pointerEvents={Platform.isTV ? "none" : "auto"}>
+                                                            <View style={{ flex: 1, justifyContent: 'center' }} pointerEvents={Platform.isTV ? "none" : "auto"}>
+                                                                {/* Barra de Fondo (reemplaza al maximumTrackTintColor) */}
+                                                                <View style={styles.backgroundBar} />
+                                                                {/* Barra de Buffer (crece según el porcentaje cargado) */}
+                                                                <View
+                                                                    style={[
+                                                                        styles.bufferBar,
+                                                                        { width: duration > 0 ? `${(bufferTime / duration) * 100}%` : '0%' }
+                                                                    ]}
+                                                                />
+                                                                {/* Slider Transparente superpuesto */}
                                                                 <Slider
                                                                     value={currentTime}
                                                                     minimumValue={0}
@@ -1435,17 +1462,17 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                                     thumbStyle={{
                                                                         height: Platform.isTV ? 17.5 : 15,
                                                                         width: Platform.isTV ? 17.5 : 15,
-                                                                        backgroundColor: Platform.isTV && isSliderMode ? '#00F' : '#fff'
+                                                                        backgroundColor: Platform.isTV && isSliderMode ? '#00F' : '#FFF'
                                                                     }}
-                                                                    minimumTrackTintColor={isSliderMode ? "#FFD700" : "#00c0fe"}
-                                                                    maximumTrackTintColor="#888"
+                                                                    minimumTrackTintColor={isSliderMode ? "#FFD700" : "#00C0FE"}
+                                                                    maximumTrackTintColor="transparent"
                                                                     containerStyle={{ flex: 1 }}
                                                                 />
                                                             </View>
                                                         </View>
                                                     </TouchableNativeFeedback>
                                                     {/* Texto que indica la duración del video */}
-                                                    <Text style={styles.time}>{formatTime(duration)}</Text>
+                                                    <Text style={[styles.time, { width: duration > 3559 ? '7%' : '5%' }]}>{formatTime(duration)}</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -1737,9 +1764,24 @@ const styles = StyleSheet.create({
         height: 35,
         borderRadius: 20
     },
+    backgroundBar: {
+        position: 'absolute',
+        height: Platform.isTV ? 5 : 4,
+        width: '100%',
+        backgroundColor: '#888',
+        borderRadius: 2,
+    },
+    bufferBar: {
+        position: 'absolute',
+        height: Platform.isTV ? 5 : 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        borderRadius: 2,
+        left: 10,
+    },
     track: {
         height: Platform.isTV ? 5 : 4,
-        borderRadius: 2
+        borderRadius: 2,
+        backgroundColor: 'transparent'
     },
     thumb: {
         height: 15,
