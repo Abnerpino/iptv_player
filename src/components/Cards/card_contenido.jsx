@@ -28,7 +28,8 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.tmdb_id) {
                     const poster = item.stream_icon.split('/').pop(); // Obtiene la última parte de la url del poster
-                    const info = await getDataMovie(apiKey, item.title, item.year, `/${poster}`, item.release_date); //Obtiene la información general de la pelicula
+                    const title = item.title.match(/^([^(]+)/) ? item.title.match((/^([^(]+)/))[1].trim() : item.title; // Obtiene solo la parte esencial del titulo en caso traer algo adicional
+                    const info = await getDataMovie(apiKey, title, item.year, `/${poster}`, item.release_date); // Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
                             tipo,
