@@ -17,6 +17,14 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
     const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
 
+    const getTitle = (title) => {
+        // Si el titulo contiene el patrón "S##E## - ", extrae todo lo demás, en caso contrario, asigna el titulo original
+        const newTitle = title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i) ? title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i)[1].trim() : title;
+
+        // Si el nuevo titulo contiene algún '(' o '-', devuelve todo antes del caracter, en caso contrario, devuelve el nuevo titulo completo
+        return newTitle.match(/^([^(|-]+)/) ? newTitle.match((/^([^(|-]+)/))[1].trim() : newTitle;  
+    };
+
     const handleNavigateToScreen = useCallback(async () => {
         hideMessage();
         const apiKey = await AsyncStorage.getItem('key_tmdb_api'); // Obtiene la key de la API de TMDB del almacenamiento asíncrono
@@ -28,7 +36,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
                 if (!item.tmdb_id) {
                     const poster = item.stream_icon.split('/').pop(); // Obtiene la última parte de la url del poster
-                    const title = item.title.match(/^([^(]+)/) ? item.title.match((/^([^(]+)/))[1].trim() : item.title; // Obtiene solo la parte esencial del titulo en caso traer algo adicional
+                    const title = getTitle(item.title); // Obtiene solo la parte esencial del titulo en caso de que contenga algo adicional
                     const info = await getDataMovie(apiKey, title, item.year, `/${poster}`, item.release_date); // Obtiene la información general de la pelicula
                     if (info) {
                         updateProps(
