@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableNativeFeedback, ImageBackground, Vibration, BackHandler, Platform, findNodeHandle } from 'react-native';
+import TextTicker from 'react-native-text-ticker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import { useObject, useQuery } from '@realm/react';
@@ -275,7 +276,7 @@ const Serie = ({ navigation, route }) => {
                     <View style={[styles.container, { backgroundColor: background ? 'rgba(16,16,16,0.9)' : 'rgba(16,16,16,0.5)' }]}>
                         {/* Vista principal en columna */}
                         <View style={styles.containerBackButton}>
-                            {/* Fila con el botón de regreso y el titulo de la serie */}
+                            {/* Fila con el botón de Regresar, el logo de la App y el titulo de la Serie */}
                             <RippleButton
                                 ref={backBtnRef}
                                 mainStyle={styles.backButton}
@@ -285,8 +286,21 @@ const Serie = ({ navigation, route }) => {
                                 onLongPress={() => showToast('Regresar')}
                                 nextFocusRight={focusTags.back}
                             />
+                            <Image
+                                source={require('../../assets/imagotipo.png')}
+                                style={styles.logo}
+                            />
                             <View style={styles.containerTitle}>
-                                <Text style={styles.title}>{serie.name}</Text>
+                                <TextTicker
+                                    style={styles.title}
+                                    duration={25000}
+                                    loop
+                                    bounce={false}
+                                    repeatSpacer={200}
+                                    marqueeDelay={250}
+                                >
+                                    {serie.name}
+                                </TextTicker>
                             </View>
                         </View>
 
@@ -557,15 +571,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 10
     },
+    logo: {
+        height: '100%',
+        width: '14%',
+        resizeMode: 'contain'
+    },
     containerTitle: {
-        flex: 1,
-        justifyContent: 'center'
+        width: '83.5%',
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     title: {
         fontSize: Platform.isTV ? 22 : 20,
         color: '#fff',
         fontWeight: 'bold',
-        textAlign: 'center'
     },
     containerDetailsMovie: {
         flexDirection: 'row',
