@@ -262,6 +262,7 @@ const Pelicula = ({ navigation, route }) => {
                                         hasTVPreferredFocus={Platform.isTV}
                                         nextFocusLeft={focusTags.play}
                                         nextFocusDown={focusTags.card}
+                                        nextFocusUp={focusTags.back}
                                     >
                                         <View style={styles.borderSimulator}>
                                             <View style={styles.innerContentButton}>
@@ -288,6 +289,7 @@ const Pelicula = ({ navigation, route }) => {
                                         useForeground={!Platform.isTV}
                                         nextFocusRight={focusTags.fav}
                                         nextFocusDown={focusTags.card}
+                                        nextFocusUp={focusTags.back}
                                     >
                                         <View style={styles.borderSimulator}>
                                             <View style={[styles.innerContentButton, { backgroundColor: 'rgb(80,80,100)' }]}>

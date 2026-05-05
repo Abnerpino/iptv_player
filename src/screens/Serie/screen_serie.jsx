@@ -336,6 +336,7 @@ const Serie = ({ navigation, route }) => {
                                                     onPress={() => setModalVisibleO(true)}
                                                     background={focusRipple}
                                                     useForeground={!Platform.isTV}
+                                                    nextFocusUp={focusTags.back}
                                                     nextFocusDown={focusTags.play}
                                                     nextFocusLeft={focusTags.read}
                                                     nextFocusRight={focusTags.read}
