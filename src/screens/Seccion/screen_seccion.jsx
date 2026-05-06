@@ -33,7 +33,10 @@ const Seccion = ({ navigation, route }) => {
     const { width, height } = useWindowDimensions();
     const { getModelName, getWatchedItems, getFavoriteItems, getLastPlayedEpisode, unmarkItemsAsWatched, unmarkItemsAsFavorite, updateProps } = useStreaming();
     const categoryModel = getModelName(type, true);
-    const categories = useQuery(categoryModel);
+    const categories = useQuery({
+        type: categoryModel,
+        query: (collection) => collection.sorted('order'),
+    });
 
     const handleStartLoading = useCallback(() => setLoading(true), []); //Cambia el valor a verdadero para que se muestre el modal de carga
     const handleFinishLoading = useCallback(() => setLoading(false), []); //Cambia el valor a falso para que se cierre el modal de carga

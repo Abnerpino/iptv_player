@@ -97,7 +97,7 @@ export const useStreaming = () => {
                     const missingCategories = allCategoriesOfType.filtered(`NOT (category_id IN $0)`, newCategoriesIds); //Filtra las categorias actuales que ya no se encuentran en las nuevas categorias
                     realm.delete(missingCategories); //Elimina las categorias faltantes
 
-                    categories.forEach(cat => {
+                    categories.forEach((cat, index) => {
                         // Filtra los items que pertenecen a esta categoría
                         let itemsForThisCategory = [];
 
@@ -119,6 +119,7 @@ export const useStreaming = () => {
                         realm.create(categoryModel, {
                             category_id: cat.category_id,
                             category_name: cat.category_name,
+                            order: index,
                             total: itemsForThisCategory.length,
                             [contentField]: itemsForThisCategory, // Asigna la lista de items vinculados
                         }, 'modified');

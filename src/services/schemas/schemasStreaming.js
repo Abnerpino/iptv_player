@@ -68,6 +68,7 @@ export const CatsLiveSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
+        order: { type: 'int', default: 0 },
         total: 'int',
         canales: { type: 'list', objectType: 'Canal' }
     },
@@ -115,6 +116,7 @@ export const CatsVodSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
+        order: { type: 'int', default: 0 },
         total: 'int',
         peliculas: { type: 'list', objectType: 'Pelicula' }
     },
@@ -191,6 +193,7 @@ export const CatsSerieSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
+        order: { type: 'int', default: 0 },
         total: 'int',
         series: { type: 'list', objectType: 'Serie' }
     },
