@@ -153,15 +153,16 @@ const Seccion = ({ navigation, route }) => {
 
     //Obtiene el último episodio reproducido de una serie
     const ultimoEpisodioReproducido = (item) => {
-        if (tipo === 'series' && category.category_id === '0.2' && item.visto) {
+        if (type === 'series' && category.category_id === '0.2' && item.visto) {
             const episodio = getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]);
+            
             return {
                 duration_secs: episodio.duration_secs,
                 playback_time: episodio.playback_time
             }
-        } else {
-            return null;
         }
+        
+        return null;
     };
 
     const handleBack = () => {
@@ -353,7 +354,7 @@ const Seccion = ({ navigation, route }) => {
                                                 total: favoritos.total
                                             }}
                                             idCategory={category.category_id}
-                                            episodio={() => ultimoEpisodioReproducido(item)}
+                                            episodio={ultimoEpisodioReproducido(item)}
                                             onStartLoading={handleStartLoading}
                                             onFinishLoading={handleFinishLoading}
                                             hideMessage={() => hideMessage()}

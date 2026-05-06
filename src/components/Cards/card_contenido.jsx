@@ -22,7 +22,7 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
         const newTitle = title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i) ? title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i)[1].trim() : title;
 
         // Si el nuevo titulo contiene algún '(' o '-', devuelve todo antes del caracter, en caso contrario, devuelve el nuevo titulo completo
-        return newTitle.match(/^([^(|-]+)/) ? newTitle.match((/^([^(|-]+)/))[1].trim() : newTitle;  
+        return newTitle.match(/^([^(|-]+)/) ? newTitle.match((/^([^(|-]+)/))[1].trim() : newTitle;
     };
 
     const handleNavigateToScreen = useCallback(async () => {
@@ -170,8 +170,8 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
                             <ProgressBar
                                 isVod={tipo === 'vod' ? true : false}
                                 duration={tipo === 'vod'
-                                    ? (item.episode_run_time !== "" ? Number(item.episode_run_time) : item.runtime !== "" ? Number(item.runtime) : 0)
-                                    : (episodio.duration_secs !== "" ? Number(episodio.duration_secs) : 0)}
+                                    ? (item.episode_run_time !== '0' ? Number(item.episode_run_time) : item.runtime ? Number(item.runtime) : 0)
+                                    : (episodio.duration_secs ? Number(episodio.duration_secs) : 0)}
                                 playback={tipo === 'vod' ? parseFloat(item.playback_time) : parseFloat(episodio.playback_time)}
                             />
                         )}
@@ -263,7 +263,7 @@ const arePropsEqual = (prevProps, nextProps) => {
     // Verifica si es el mismo objeto de datos de Realm
     const isSameItem = prevProps.item === nextProps.item;
     // Verifica si el estado de favorito o visto cambió
-    const isSameStatus = 
+    const isSameStatus =
         prevProps.item.favorito === nextProps.item.favorito &&
         prevProps.item.visto === nextProps.item.visto;
     // Verifica si cambió la categoría donde estaba el usuario
@@ -272,7 +272,7 @@ const arePropsEqual = (prevProps, nextProps) => {
     const isSameTotal = prevProps.favoritos?.total === nextProps.favoritos?.total;
 
     // Si todo es igual, NO renderiza. Si algo cambió, SÍ renderiza
-    return isSameItem && isSameStatus && isSameCategory && isSameTotal;    
+    return isSameItem && isSameStatus && isSameCategory && isSameTotal;
 };
 
 export default React.memo(CardContenido, arePropsEqual);
