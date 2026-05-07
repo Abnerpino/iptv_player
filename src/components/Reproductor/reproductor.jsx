@@ -42,6 +42,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const bufferTimeout = useRef(null); // Referencia para el manejo del temporizador del "búfer"
     const fullScreenRef = useRef(fullScreen); // Referencia para saber cuando la pantalla está en tamaño completo o no
     const localChannelIndex = useRef(channelIndex); // Referencia instantánea para evitar el atasco al cambiar canales
+    const seekTimeout = useRef(null); // Referencia para el manejo del temporizador para ejecutar el salto final
+    const targetSeekTime = useRef(null); // Referencia para guardar el tiempo acumulado de salto
+    const initialTimeForSeek = useRef(null); // Referencia para calcular la diferencia entre los tiempos
+    const isSeeking = useRef(false); // Referencia para bloquear las actualizaciones de tiempo
     const { updateProps, updateEpisodeProps } = useStreaming();
     const [nombre, setNombre] = useState(contenido.name);
     const [paused, setPaused] = useState(false);
@@ -79,6 +83,8 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const [showNotifactionMessage, setShowNotifactionMessage] = useState(false); // Estado para manejar la visibilidad del mensaje de notificación
     const [useInternalTimer, setUseInternalTimer] = useState(false); // Estado para manejar el tiempo cuando las peliculas o episodios no tengan una duración válida
     const [isSliderMode, setIsSliderMode] = useState(false); // Estado para saber si el Modo Slider está activo
+    const [accumulatedTime, setAccumulatedTime] = useState(0); // Estado para guardar el valor total del tiempo acumulado
+    const [showSeekIndicator, setShowSeekIndicator] = useState(false); // Estado para manejar la visibilidad del texto con el tiempo a saltar
     const [imageError, setImageError] = useState(false); // Estado para saber si hubo un error al cargar la imagen del canal
     const [focusTags, setFocusTags] = useState({ play: null, slider: null, prev: null, list: null, aspect: null, speed: null, next: null }); // Estado para manejar las etiquetas de los componentes para navegación explicita
     const castState = useCastState(); // Maneja el estado actual de la conexión ('connected', 'connecting', 'notConnected', etc.)
@@ -196,10 +202,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     }, 100); // Pequeño retraso para asegurar que el Modo Slider ya esté desactivado
                 } else if (keyEvent.keyCode === 21) { // Si se presiona la Flecha Izquierda...
                     setPaused(true); // Pausa mientras se avanza/retocede el video
-                    playerRef.current?.seek(Math.max(0, state.currentTime - 15)); // Retrocede 15 segundos en el tiempo de reproducción actual
+                    handleAccumulatedSeek(-15); // Acumula 15 segundos en el tiempo de reproducción actual para retroceder
                 } else if (keyEvent.keyCode === 22) { // Si se presiona la Flecha Derecha...
                     setPaused(true); // Pausa mientras se avanza/retocede el video
-                    playerRef.current?.seek(Math.min(state.duration, state.currentTime + 15)); // Avanza 15 segundos en el tiempo de reproducción actual
+                    handleAccumulatedSeek(15); // Acumula 15 segundos en el tiempo de reproducción actual para avanzar
                 }
             }
             // Navegación normal con Controles visibles
@@ -547,6 +553,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     const togglePlayPause = () => {
         setPaused(prev => !prev);
 
+        // Si hay un salto de tiempo pendiente en TV, lo aplica
+        if (Platform.isTV) applyPendingSeek();
+
         // Si ya terminó el video pero no se cierra el reproductor, se reinicia el video
         if (isEnded) handleRestartVideo();
     };
@@ -566,9 +575,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (tipo === 'live') { // Si es un canal...
             if (option === 1) handlePrevious(); // Si es la primera opción, llama a la función para ir al canal anterior
             else handleNext(); // Es es la segunda opción, llama a la función para ir al siguiente canal
-        } else if (!isLoading && !isCannotReproduce && !useInternalTimer) { // Si no está cargando y se puede reproducir y no está usando el temporizador interno...
-            if (option === 1) seekTo(currentTime - 10); // Si es la primera opción, retrocede 10 segundos en el tiempo de reproducción
-            else seekTo(currentTime + 10); // Si es la segunda opción, avanza 10 segundos en el tiempo de reproducción
+        } else if (!isCannotReproduce && !useInternalTimer) { // Si se puede reproducir y no está usando el temporizador interno...
+            if (option === 1) handleAccumulatedSeek(-10); // Si es la primera opción, acumula 10 segundos en el tiempo de reproducción para retroceder
+            else handleAccumulatedSeek(10); // Si es la segunda opción, acumula 10 segundos en el tiempo de reproducción para avanzar
         } else showToast("No es posible avanzar ni retroceder en la reproducción", 3); // Si no, muestra el mensaje
     };
 
@@ -582,6 +591,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
         if (isSliderMode) { // Si el Modo Slider está activo...
             setIsSliderMode(false); // Desactiva el Modo Slider
             setPaused(false); // Reanuda la reproducción
+            applyPendingSeek(); // Aplica el salto de tiempo acumulado
             setTimeout(() => {
                 resetTimers(); // Reinicia el temporizador de los Controles
             }, 100); // Pequeño retraso para asegurar que el Modo Slider ya esté desactivado
@@ -754,7 +764,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
             // Muestra y oculta el mensaje de error
             setMessageCannotReproduce(toastMessage);
-            
+
             if (tipo === 'series') {
                 setTimeout(() => {
                     showPanelNetxEpisode();
@@ -885,6 +895,12 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             idContenido.current = contenido.stream_id; // Actualiza la referencia para el próximo cambio de contenido
         }
 
+        // Ignora el progreso real del video mientras el usuario acumula saltos
+        if (isSeeking.current) {
+            setBufferTime(playableDuration);
+            return;
+        }
+
         // Si se llega al 99% de reproducción del episodio y el panel de configuración o de canales o el modal de episodios está abierto, los cierra o si la pantalla está bloqueada la desbloquea, para que se mustre el panel de 'Siguiente Episodio'
         if (tipo === 'series' && (currentTime / contenido.episode_run_time) >= 0.99 && (showSettings || showChannels || modalVisible || isScreenLock)) {
             setShowSettings(false);
@@ -962,6 +978,61 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             }, 3000);
         }
     };
+
+    // Función que ejecuta el salto real en el reproductor nativo y limpia los estados
+    const applyPendingSeek = useCallback(() => {
+        // Si existe un tiempo objetivo para hacer el salto...
+        if (targetSeekTime.current !== null) {
+            // Al terminar la ráfaga de clics, ejecuta el salto real en el reproductor nativo
+            if (playerRef.current) {
+                playerRef.current.seek(targetSeekTime.current);
+            }
+            // Limpia estados e indicador
+            targetSeekTime.current = null;
+            initialTimeForSeek.current = null;
+            setShowSeekIndicator(false);
+            setAccumulatedTime(0);
+            // Da un pequeño margen (500ms) antes de reactivar el progreso nativo para evitar saltos visuales en la UI
+            setTimeout(() => {
+                isSeeking.current = false;
+            }, 500);
+        }
+    }, []);
+
+    // Función que maneja los saltos acumulados (Debounced Seek)
+    const handleAccumulatedSeek = useCallback((secondsToAdd) => {
+        const state = stateRef.current;
+
+        // Si es el primer clic de la ráfaga...
+        if (targetSeekTime.current === null) {
+            targetSeekTime.current = state.currentTime; // Inicializa el tiempo objetivo
+            initialTimeForSeek.current = state.currentTime; // Guardamo el tiempo actual como inicio
+        }
+
+        let newTime = targetSeekTime.current + secondsToAdd; // Suma o resta los segundos acumulados
+
+        newTime = Math.max(0, Math.min(state.duration, newTime)); // Limita el tiempo entre 0 y la duración total del contenido
+
+        // Actualiza las referencias y el estado local para mover la barra al instante
+        targetSeekTime.current = newTime;
+        isSeeking.current = true; // Bloquea el progreso real del video
+
+        // Calcula cuánto tiempo se ha acumulado en total desde el primer clic
+        const diff = Math.round(newTime - initialTimeForSeek.current);
+        setAccumulatedTime(diff);
+        setShowSeekIndicator(true);
+
+        setCurrentTime(newTime); // Actualiza la barra de progreso visualmente al instante
+
+        if (seekTimeout.current) clearTimeout(seekTimeout.current); // Reinicia el temporizador de ejecución
+
+        // Si es TV, la acumulación se queda esperando a que el usuario presione Enter, si es Móvil, se aplica automáticamente
+        if (!Platform.isTV) {
+            seekTimeout.current = setTimeout(() => {
+                applyPendingSeek();
+            }, 700); // 700ms de espera después del último toque
+        }
+    }, [applyPendingSeek]);
 
     const seekTo = (time) => {
         // Si se está usando el temporizador interno, sigfinica que su duración y tiempo actual es inválido...
@@ -1198,7 +1269,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                             toggleIconLock(); // Muestra la funcionalidad de Pantalla Bloqueada
                             return; // Sale de la función
                         }
-                        if (Platform.isTV) setPaused(prev => !prev); // Si es TV, pausa/reanuda el video
+                        if (Platform.isTV) { // Si es TV...
+                            setPaused(prev => !prev); // Pausa/reanuda el video
+                            applyPendingSeek(); // Aplica el salto de tiempo acumulado
+                        }
                         if (!showControls) showTemporarilyControls(); // Si los Controles están ocultos, los muestra
                         else { // Si los Controles están visibles...
                             setShowControls(false); // Oculta los Controles
@@ -1335,16 +1409,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
                                 {/* Controles de la parte de en medio */}
                                 <View style={styles.middleControls}>
-                                    {/* Botón para ir al canal anterior / retroceder 10 segundos */}
-                                    {!Platform.isTV && showControls && ( // Se muestra solo para Telefonos
-                                        <RippleButton
-                                            mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                            iconLib={Icon3}
-                                            name={tipo === 'live' ? "skip-previous" : "replay-10"}
-                                            size={60}
-                                            rippleColor="#FFFFFF00"
-                                            onPress={() => toggleNextPrevMobile(1)}
-                                        />
+                                    {!Platform.isTV && showControls && (tipo === 'live' || !isInitialLoad) && ( // Se muestra solo para Telefonos una vez que el video cargue por primera vez
+                                        <View>
+                                            {/* Indicador Visual de Tiempo Acumulado */}
+                                            {showSeekIndicator && accumulatedTime < 0 && ( // Solo se muestra si el indicador está activo y el tiempo acumulado es menor a 0 (retroceder)
+                                                <Text style={styles.seekIndicatorText}>{accumulatedTime}s</Text>
+                                            )}
+                                            {/* Botón para ir al canal anterior / retroceder 10 segundos */}
+                                            <RippleButton
+                                                mainStyle={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                                iconLib={Icon3}
+                                                name={tipo === 'live' ? "skip-previous" : "replay-10"}
+                                                size={60}
+                                                rippleColor="#FFFFFF20"
+                                                onPress={() => toggleNextPrevMobile(1)}
+                                            />
+                                        </View>
                                     )}
 
                                     {/* Icono/Botón central dinámico */}
@@ -1369,16 +1449,22 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                         />
                                     ))}
 
-                                    {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
-                                    {!Platform.isTV && showControls && ( // Se muestra solo para Telefonos
-                                        <RippleButton
-                                            mainStyle={{ opacity: (tipo !== 'live' && (isLoading || isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
-                                            iconLib={Icon3}
-                                            name={tipo === 'live' ? "skip-next" : "forward-10"}
-                                            size={60}
-                                            rippleColor="#FFFFFF00"
-                                            onPress={() => toggleNextPrevMobile(2)}
-                                        />
+                                    {!Platform.isTV && showControls && (tipo === 'live' || !isInitialLoad) && ( // Se muestra solo para Telefonos una vez que el video cargue por primera vez
+                                        <View>
+                                            {/* Indicador Visual de Tiempo Acumulado */}
+                                            {showSeekIndicator && accumulatedTime > 0 && (  // Solo se muestra si el indicador está activo y el tiempo acumulado es mayor a 0 (avanzar)
+                                                <Text style={styles.seekIndicatorText}>+{accumulatedTime}s</Text>
+                                            )}
+                                            {/* Botón para ir al siguiente canal / avanzar 10 segundos */}
+                                            <RippleButton
+                                                mainStyle={{ opacity: (tipo !== 'live' && (isCannotReproduce || useInternalTimer)) ? 0.5 : 1 }}
+                                                iconLib={Icon3}
+                                                name={tipo === 'live' ? "skip-next" : "forward-10"}
+                                                size={60}
+                                                rippleColor="#FFFFFF20"
+                                                onPress={() => toggleNextPrevMobile(2)}
+                                            />
+                                        </View>
                                     )}
                                 </View>
 
@@ -1448,7 +1534,10 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                                 <View
                                                                     style={[
                                                                         styles.bufferBar,
-                                                                        { width: duration > 0 ? `${(bufferTime / duration) * 100}%` : '0%' }
+                                                                        {
+                                                                            width: duration > 0 ? `${(bufferTime / duration) * 100}%` : '0%',
+                                                                            left: currentTime / duration >= 0.975 ? 0 : 10
+                                                                        }
                                                                     ]}
                                                                 />
                                                                 {/* Slider Transparente superpuesto */}
@@ -1729,6 +1818,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'center',
     },
+    seekIndicatorText: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: '100%',
+        color: '#fff',
+        textAlign: 'center',
+    },
     bottomControls: {
         flex: 1,
         flexDirection: 'row',
@@ -1776,7 +1873,6 @@ const styles = StyleSheet.create({
         height: Platform.isTV ? 5 : 4,
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
         borderRadius: 2,
-        left: 10,
     },
     track: {
         height: Platform.isTV ? 5 : 4,
