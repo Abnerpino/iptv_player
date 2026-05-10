@@ -61,15 +61,15 @@ export const useStreaming = () => {
                 const oldItem = realm.objectForPrimaryKey(model, item[idField]);
                 let dataToSave = { ...item };
 
-                // Preserva estado de las propiedades 'visto', 'favorito', 'fecha_visto', 'playback_time' y 'temporadas'
+                // Preserva estado de las propiedades 'visto', 'favorito', 'fecha_visto', 'playback_time', 'runtime' y 'temporadas'
                 if (oldItem) {
                     dataToSave.visto = oldItem.visto;
                     dataToSave.favorito = oldItem.favorito;
                     dataToSave.fecha_visto = oldItem.fecha_visto;
                     if (type === 'vod') {
                         dataToSave.playback_time = oldItem.playback_time;
-                    }
-                    if (type === 'series' && oldItem.temporadas && oldItem.visto) {
+                        oldItem.runtime && (dataToSave.runtime = oldItem.runtime);
+                    } else if (type === 'series' && oldItem.temporadas && oldItem.visto) {
                         dataToSave.temporadas = oldItem.temporadas.toJSON();
                         dataToSave.last_ep_played = oldItem.last_ep_played.toJSON();
                     }
