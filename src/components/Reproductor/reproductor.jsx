@@ -167,6 +167,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
     // useEffect para interceptar los botones fisicos del control de TV
     useEffect(() => {
         if (!Platform.isTV) return; // Si no es TV, no hace nada
+        if (!fullScreen) return; // Si no está en pantalla completa, no hace nada
 
         // Escucha cualquier botón que se presione en el control remoto
         KeyEvent.onKeyDownListener((keyEvent) => {
@@ -177,7 +178,6 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 if (keyEvent.keyCode === 19 || keyEvent.keyCode === 20) { // 19 = Flecha Arriba, 20 = Flecha Abajo
                     showTemporarilyControls(); // Muestra los Controles
                 } else if (keyEvent.keyCode === 21 || keyEvent.keyCode === 22) { // 21 = Flecha Izquierda, 22 = Flecha Derecha
-
                     if (tipo !== 'live') { // Si es una pelicula/episodio...
                         if (!state.isCannotReproduce && !state.useInternalTimer) { // Si el video se puede reproducir y no está usando el temporizador interno...
                             setIsSliderMode(true); // Activa el Modo Slider
@@ -220,7 +220,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             // Limpieza al desmontar el componente
             KeyEvent.removeKeyDownListener();
         };
-    }, [resetTimers]);
+    }, [fullScreen, resetTimers]);
 
     // PanResponder para detectar los gestos táctiles en teléfonos
     const panResponder = useRef(
@@ -297,7 +297,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
 
     useEffect(() => {
         if (tipo === 'live' || (prevContentId.current !== contenido[idKey])) {
-            setMainLinkFailed(false); // Cada vez que el contenido cambia, resetea el estado de 'link fallido' para que SIEMPRE intente el link principal primero
+            setMainLinkFailed(!contenido.link); // Si el link principal no existe, lo marca como fallido para usar el link auxiliar
             setIsLoading(true); // Se asegura de que el 'loading' se muestre, ya que cargará un nuevo contenido
             setIsInitialLoad(true); // Se reinicia al cambiar contenido
             setIsEnded(false); // Se asegura de que 'isEnded' sea falso cada vez que se cambia el contenido
@@ -694,8 +694,13 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
             setIsLoading(true); // Indica que el video está cargando
             setIsEnded(false); // Indica que el video no ha terminado
 
-            // Inicia un temporizador, si sigue en búfer después de 5 segundos, llama a la lógica de reintento
-            bufferTimeout.current = setTimeout(performRetry, 5000);
+            let waitTime = 5000; // Almacena el tiempo de espera del búfer (por defecto 5 segundos)
+            
+            // Si es la primera vez que carga el video o ya es el quinto reintento, aumenta a 10 segundos el tiempo de espera del búfer
+            if ((isInitialLoad && retryCount === 0) || retryCount === 5) waitTime = 10000;
+
+            // Inicia un temporizador, si sigue en búfer después del tiempo de espera, llama a la lógica de reintento
+            bufferTimeout.current = setTimeout(performRetry, waitTime);
         } else { // Si el video ya cargó...
             setIsLoading(false); // Indica que el video se reanudó
 
@@ -706,7 +711,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                 hideMessage(); // Oculta el mensaje inmediatamente
             }
         }
-    }, [performRetry, retryCount]);
+    }, [performRetry, retryCount, isInitialLoad]);
 
     const handleEnd = () => {
         // Si es una película o episodio...
@@ -756,6 +761,9 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                     break;
                 case '24001':
                     toastMessage = '¡Error de reproducción! Pista de audio no soportada';
+                    break;
+                case '24003':
+                    toastMessage = '¡Error de reproducción! Pista de video no soportada';
                     break;
                 default:
                     toastMessage = `¡ERROR! No se pudo reproducir ${tipo === 'live' ? 'el canal' : tipo === 'vod' ? 'la película' : 'el episodio'}`;
@@ -1507,7 +1515,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                             ) : ( // Se muestra para películas y episodios
                                                 <View style={styles.bottomControls}>
                                                     {/* Texto que indica el tiempo transcurrido del video */}
-                                                    <Text style={[styles.time, { width: duration > 3559 ? '7%' : '5%' }]}>{formatTime(currentTime)}</Text>
+                                                    <Text style={[styles.time, { width: duration > 3559 ? '8%' : '5%' }]}>{formatTime(currentTime)}</Text>
                                                     {/* Envoltorio de la Barra de Progreso del video */}
                                                     <TouchableNativeFeedback
                                                         ref={sliderRef}
@@ -1561,7 +1569,7 @@ const Reproductor = ({ tipo, fullScreen, setFullScreen, setMostrar, categoria, c
                                                         </View>
                                                     </TouchableNativeFeedback>
                                                     {/* Texto que indica la duración del video */}
-                                                    <Text style={[styles.time, { width: duration > 3559 ? '7%' : '5%' }]}>{formatTime(duration)}</Text>
+                                                    <Text style={[styles.time, { width: duration > 3559 ? '8%' : '5%' }]}>{formatTime(duration)}</Text>
                                                 </View>
                                             )}
                                         </View>
