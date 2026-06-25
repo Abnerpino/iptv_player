@@ -1,20 +1,43 @@
 import ErrorLogger from "../logger/errorLogger";
 
 //Obtiene la informacion de una pelicula
-export const getDataMovie = async (apiKey, title, year, poster, release) => {
-    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
+export const getDataMovie = async (apiKey, title, year, poster, release, rating) => {
+    const propYear = year ? `&year=${year}` : '';
+    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}${propYear}&language=es-MX`;
 
     try {
         //Se buscan peliculas que coincidan con el titulo y el año
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
+        // Si hay por lo menos un resultado...
         if (searchData.total_results > 0) {
-            //Selecciona el resultado que coincida con el poster o con la fecha de estreno o con el título, si no hay coincidencias, asigna el primero
-            const movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date || title === result.title) || searchData.results[0];
+            // Busca alguna pelicula que coincida con el poster o con la fecha de estreno o con el título o con el titulo original
+            let movie = searchData.results.find(result => poster === result.poster_path || release === result.release_date || title === result.title || title === result.original_title);
+            // Si hay más de un resultado...
+            if (searchData.total_results > 1) {
+                // Agrupa las propiedades originales claves en un objeto
+                const originalProps = {
+                    poster_path: poster,
+                    release_date: release
+                };
+                // Busca coincidencias entre las propiedades originales y las del resultado
+                const matchs = movie ? Object.keys(movie).filter(prop => movie[prop] === originalProps[prop]).length : 0;
+                // Si no existe la fecha de estreno y existe el rating y no hay coincidencias entre las props originales y las del resultado...
+                if (!release && rating && matchs < 1) {
+                    const votos = searchData.results.map(v => v.vote_average); // Genera un nuevo arreglo de los valores del promedio de votos
+                    const approxVote = votos.reduce((previo, actual) => {
+                        return Math.abs(actual - rating) < Math.abs(previo - rating) ? actual : previo; // Obtiene el voto más aproximado al original
+                    });
+                    const index = votos.indexOf(approxVote); // Obtiene el indice del voto aproximado
+                    movie = searchData.results[index]; // Asigna la pelicula que contiene el voto aproximado
+                }
+            }
+            // Si todavía no se ha asignado alguna pelicula, asigna la primera del array
+            if (!movie) movie = searchData.results[0];
             //Obtiene la información completa de la pelicula seleccionada usando su id
             const info = await getDataMovieById(movie.id, apiKey);
-            return info;
+            return info; // Retorna la información completa de la pelicula
         } else return null;
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataMovie', error);
@@ -43,20 +66,44 @@ const getDataMovieById = async (tmdbID, apiKey) => {
 };
 
 //Obtiene la informacion de una serie
-export const getDataSerie = async (apiKey, title, year, release, poster, backdrop) => {
-    const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}&language=es-MX`;
+export const getDataSerie = async (apiKey, title, year, release, poster, backdrop, rating) => {
+    const propYear = year ? `&year=${year}` : '';
+    const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(title)}${propYear}&language=es-MX`;
 
     try {
         //Se buscan series que coincidan con el nombre y el año
         const searchResponse = await fetch(searchUrl);
         const searchData = await searchResponse.json();
 
+        // Si hay por lo menos un resultado...
         if (searchData.total_results > 0) {
-            //Selecciona el resultado que coincida con la fecha de estreno o con el poster o con la imagen de fondo, si no hay coincidencias, asigna el primero
-            const serie = searchData.results.find(result => release === result.first_air_date || poster === result.poster_path || backdrop === result.backdrop_path) || searchData.results[0];
-            //Obtiene la información completa de la serie seleccionada usando su id
+            // Busca alguna serie que coincida con la fecha de estreno o con el poster o con la imagen de fondo con el nombre o con el nombre original
+            let serie = searchData.results.find(result => release === result.first_air_date || poster === result.poster_path || backdrop === result.backdrop_path || title === result.name || title === result.original_name);
+            // Si hay más de un resultado...
+            if (searchData.total_results > 1) {
+                // Agrupa las propiedades originales claves en un objeto
+                const originalProps = {
+                    first_air_date: release,
+                    poster_path: poster,
+                    backdrop_path: backdrop
+                };
+                // Busca coincidencias entre las propiedades originales y las del resultado
+                const matchs = serie ? Object.keys(serie).filter(prop => serie[prop] === originalProps[prop]).length : 0;
+                // Si no existe la fecha de estreno y existe el rating y no hay coincidencias entre las props originales y las del resultado...
+                if (!release && rating && matchs < 1) {
+                    const votos = searchData.results.map(v => v.vote_average); // Genera un nuevo arreglo de los valores del promedio de votos
+                    const approxVote = votos.reduce((previo, actual) => {
+                        return Math.abs(actual - rating) < Math.abs(previo - rating) ? actual : previo; // Obtiene el voto más aproximado al original
+                    });
+                    const index = votos.indexOf(approxVote); // Obtiene el indice del voto aproximado
+                    serie = searchData.results[index]; // Asigna la serie que contiene el voto aproximado
+                }
+            }
+            // Si todavía no se ha asignado alguna serie, asigna la primera del array
+            if (!serie) serie = searchData.results[0];
+            // Obtiene la información completa de la serie seleccionada usando su id
             const info = await getDataSerieById(serie.id, apiKey);
-            return info;
+            return info; // Retorna la información completa de la serie
         } else return null;
     } catch (error) {
         ErrorLogger.log('TMDBController - getDataSerie', error);
