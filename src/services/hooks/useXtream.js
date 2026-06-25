@@ -81,7 +81,7 @@ export const useXtream = () => {
             const categories = await response.json();
 
             const categorias = categories.map(({ category_id, category_name }) => ({
-                category_id,
+                category_id: category_id.toString(),
                 category_name,
                 total: 0,
                 [contentField]: []
@@ -109,12 +109,12 @@ export const useXtream = () => {
 
             stream.forEach(({ num, name, stream_id, stream_icon, category_id, category_ids, direct_source }) => {
                 newLive.push({
-                    num: num,
+                    num: Number(num),
                     name: name ? name : stream_id.toString(),
                     stream_id: stream_id.toString(),
                     stream_icon,
-                    category_id,
-                    category_ids: category_ids.map(category => category.toString()),
+                    category_id: category_id.toString(),
+                    category_ids: category_ids && Array.isArray(category_ids) ? category_ids.map(category => category.toString()) : [],
                     link: direct_source ?? '',
                     aux_link: `${usuario[0]?.host}/live/${usuario[0]?.user}/${usuario[0]?.password}/${stream_id}.ts`,
                     favorito: false,
@@ -143,10 +143,10 @@ export const useXtream = () => {
             const stream = await response.json();
             stream.forEach(({ num, name, title, year, stream_id, stream_icon, rating, plot, genre, category_id, category_ids, release_date, episode_run_time, direct_source, container_extension }) => {
                 newVod.push({
-                    num: num,
+                    num: Number(num),
                     name: name ? name : stream_id.toString(),
                     title,
-                    year,
+                    year: year ? year.toString() : '',
                     stream_id: stream_id.toString(),
                     stream_icon,
                     rating: rating ? rating.toString() : '0',
@@ -154,8 +154,8 @@ export const useXtream = () => {
                     genre,
                     release_date,
                     episode_run_time: episode_run_time ? episode_run_time.toString() : '0',
-                    category_id,
-                    category_ids: category_ids.map(category => category.toString()),
+                    category_id: category_id.toString(),
+                    category_ids: category_ids && Array.isArray(category_ids) ? category_ids.map(category => category.toString()) : [],
                     tmdb_id: '',
                     backdrop_path: '',
                     original_title: '',
@@ -198,19 +198,19 @@ export const useXtream = () => {
                 const regex = /Saga|Collection/i; // La 'i' hace que sea case-insensitive
 
                 newSeries.push({
-                    num: num,
+                    num: Number(num),
                     name: name ? name : series_id.toString(),
                     title,
-                    year,
+                    year: year ? year.toString() : '',
                     series_id: series_id.toString(),
                     cover,
                     plot,
                     genre,
                     release_date,
                     rating,
-                    backdrop_path: backdrop_path[0],
-                    category_id,
-                    category_ids: category_ids.map(category => category.toString()),
+                    backdrop_path: backdrop_path && Array.isArray(backdrop_path) ? backdrop_path[0] : '',
+                    category_id: category_id.toString(),
+                    category_ids: category_ids && Array.isArray(category_ids) ? category_ids.map(category => category.toString()) : [],
                     tmdb_id: '',
                     original_name: '',
                     backdrop_path_aux: '',
@@ -265,9 +265,9 @@ export const useXtream = () => {
         Object.keys(data.episodes).forEach((seasonKey) => {
             // Para cada temporada, mapea los episodios y extrae solo la información requerida
             const episodesInSeason = data.episodes[seasonKey].map((ep) => ({
-                id: ep.id,
-                episode_num: ep.episode_num,
-                title: ep.title ? ep.title : ep.id,
+                id: ep.id.toString(),
+                episode_num: ep.episode_num.toString(),
+                title: ep.title ? ep.title : ep.id.toString(),
                 plot: ep.info?.plot ?? '',
                 duration_secs: ep.info?.duration_secs?.toString() ?? '0',
                 movie_image: ep.info?.movie_image ?? '',
