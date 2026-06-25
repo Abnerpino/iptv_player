@@ -1,17 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, ScrollView, Text, Image, StyleSheet, TouchableNativeFeedback, ImageBackground, ToastAndroid, Pressable, Platform } from 'react-native';
+import { View, ScrollView, Text, Image, StyleSheet, TouchableNativeFeedback, ImageBackground, ToastAndroid, Pressable, Linking, Platform, useWindowDimensions } from 'react-native';
+import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
+import Clipboard from '@react-native-clipboard/clipboard';
 import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/Octicons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
-import Clipboard from '@react-native-clipboard/clipboard';
-import { Linking } from 'react-native';
-import { getCrashlytics, log } from '@react-native-firebase/crashlytics';
 import RippleButton from '../../components/RippleButton/ripple_button';
 import ModalLogger from '../../components/Modals/modal_logger';
 
 const About = ({ navigation }) => {
+    const { height } = useWindowDimensions();
     const [modalVisible, setModalVisible] = useState(false); // Estado para manejar el modal de la bitácora
 
     const version = DeviceInfo.getVersion();
@@ -39,14 +39,10 @@ const About = ({ navigation }) => {
     return (
         <ImageBackground
             source={require('../../assets/fondo3.jpg')}
-            style={{
-                flex: 1,
-                width: '100%',
-                height: '100%',
-            }}
+            style={styles.imageBackground}
             resizeMode='cover'
         >
-            <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0)', }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(16,16,16,0)' }}>
                 <View style={styles.header}>
                     <RippleButton
                         mainStyle={{ paddingHorizontal: 15, paddingVertical: 12.5 }}
@@ -56,8 +52,8 @@ const About = ({ navigation }) => {
                     />
                     <Text style={styles.sectionTitle}>ACERCA DE</Text>
                 </View>
-                <ScrollView style={styles.body}>
-                    <View style={styles.topContainer}>
+                <ScrollView>
+                    <View style={[styles.topContainer, { height: height * 0.3 }]}>
                         <Image
                             source={require('../../assets/icono.jpg')}
                             style={{ height: '100%', width: '100%', resizeMode: 'contain', alignSelf: 'center' }}
@@ -67,24 +63,24 @@ const About = ({ navigation }) => {
                             <Text style={styles.version}>Versión: {version}</Text>
                         </View>
                     </View>
-                    <View style={styles.middleContainer}>
+                    <View style={{ height: height * 0.45, justifyContent: 'center' }}>
                         <Text style={styles.description}>IPTV Player es una aplicación para ver canales en vivo, películas y series, todo a través de una conexión a Internet.</Text>
-                        <View style={{ flexDirection: 'row', alignSelf: 'center', }}>
+                        <View style={{ flexDirection: 'row', alignSelf: 'center' }}>
                             <View style={{ alignItems: '', paddingRight: 25, }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Icon3 name="engineering" size={24} color="white" />
-                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Desarrollador:</Text>
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5 }]}>Desarrollador:</Text>
                                 </View>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
                                     <Icon3 name="email" size={24} color="white" />
-                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Correo:</Text>
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5 }]}>Correo:</Text>
                                 </View>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
                                     <Icon3 name="rocket-launch" size={24} color="white" />
-                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5, }]}>Lanzamiento:</Text>
+                                    <Text style={[styles.info, { fontWeight: 'bold', marginLeft: 5 }]}>Lanzamiento:</Text>
                                 </View>
                             </View>
-                            <View style={{ alignItems: 'flex-start', paddingLeft: 25, }}>
+                            <View style={{ alignItems: 'flex-start', paddingLeft: 25 }}>
                                 <Text style={styles.info}>Ing. Abner Pino Federico</Text>
                                 {Platform.isTV ? (
                                     <View>
@@ -132,12 +128,14 @@ const About = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+    imageBackground: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    body: {
-        paddingVertical: 10,
     },
     sectionTitle: {
         color: '#FFF',
@@ -160,14 +158,9 @@ const styles = StyleSheet.create({
         marginLeft: 5
     },
     topContainer: {
-        height: '40%',
         justifyContent: 'center',
         paddingTop: 30,
         paddingBottom: 10
-    },
-    middleContainer: {
-        height: Platform.isTV ? '85%' : '70%',
-        justifyContent: 'center'
     },
     description: {
         color: '#FFF',
@@ -194,7 +187,6 @@ const styles = StyleSheet.create({
         paddingBottom: 5,
     },
     bottomContainer: {
-        height: '15%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: '5%',

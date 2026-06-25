@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard, BackHandler } from 'react-native';
+import { View, Text, TextInput, TouchableNativeFeedback, ImageBackground, Image, ScrollView, StyleSheet, Pressable, Vibration, KeyboardAvoidingView, Keyboard, BackHandler, Platform, findNodeHandle, useWindowDimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Icon2 from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon3 from 'react-native-vector-icons/MaterialIcons';
@@ -17,12 +17,16 @@ import RNExitApp from 'react-native-exit-app';
 import { useStreaming } from '../../services/hooks/useStreaming';
 import { actualizarCliente, validarUsername, registrarCliente, verificarCliente, agregarClienteANotificaciones, obtenerNotificaciones } from '../../services/controllers/hostingController';
 import ModalLoading from '../../components/Modals/modal_loading';
+import RippleButton from '../../components/RippleButton/ripple_button';
+import ItemDropdown from '../../components/Items/item_dropdown';
 
 const Activation = ({ navigation, route }) => {
   const isReactivation = route.params.reactivation; // Recupera el valor que indica si es 'reactivación' o 'activación'
   const usuario = useQuery('Usuario');
   const { upsertNotifications, updateUserProps, getResellers } = useStreaming();
+  const { width, height } = useWindowDimensions();
   const resellers = getResellers();
+  const [isRegistered, setIsRegistered] = useState(usuario[0]?.is_registered || false); // Estado local para saber cuando el usuario esté registrado
   const [name, setName] = useState(''); // Estado para manejar el nombre ingresado
   const [localUsername, setLocalUsername] = useState(''); // Estado para manejar el nombre de usuario ingresado
   const [error, setError] = useState(''); // Estado para el manejo de los mensajes de error
@@ -31,25 +35,78 @@ const Activation = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false); // Estado para manejar el modal de carga
   const [keyboardPadding, setKeyboardPadding] = useState(0); // Estado para manejar el valor del padding cuando se muestra/oculta el teclado
   const [selectedReseller, setSelectedReseller] = useState(resellers[0]); // Estado para manejar el reseller seleccionado
-
+  const [focusTags, setFocusTags] = useState({ back: null, wrapperName: null, wrapperUser: null, info: null, register: null, dropAct: null, dropReact: null, continue: null }); // Estado para manejar las etiquetas de los botones para la navegación
+  const [focusedTag, setFocusedTag] = useState(null); // Estado para saber a cuál etiqueta apuntar automaticamenté al cerrar Input o DropDown
   const handleStartLoading = () => setLoading(true); //Cambia el valor a verdadero para que se muestre el modal de carga
   const handleFinishLoading = () => setLoading(false); //Cambia el valor a falso para que se cierre el modal de carga
+  const backBtnRef = useRef(null); // Referencia para el botón de Regresar
+  const nameWrapperRef = useRef(null); // Referencia para wrapper del input del nombre
+  const userWrapperRef = useRef(null); // Referencia para el wrapper del input del usuario
+  const nameInputRef = useRef(null); // Referencia para el Input del nombre
+  const userInputRef = useRef(null); // Referencia para el Input del usuario
+  const infoBtnRef = useRef(null); // Referencia para botón de Información
+  const registerBtnRef = useRef(null); // Referencia para el botón de Registro
+  const dropActWrapperRef = useRef(null); // Referencia para el wrapper del DropDown de la pantalla Activación
+  const activationDropdowndRef = useRef(null); // Referencia para el DropDown de la pantalla Activación
+  const dropReactWrapperRef = useRef(null); // Referencia para wrapper del DropDown de la pantalla Reactivación
+  const reactivationDropdowndRef = useRef(null); // Referencia para el DropDown de la pantalla Reactivación
+  const continueBtnRef = useRef(null); // Referencia para el botón de Continuar
+
+  const focusRipple = Platform.isTV ? TouchableNativeFeedback.Ripple('#FFD700', false) : TouchableNativeFeedback.Ripple('#FFFFFF40', false);
+  // Evalua de forma estricta qué pantalla se está mostrando actualmente
+  const currentScreenState = !isRegistered ? 'registro' : (isReactivation ? 'reactivacion' : 'activacion');
 
   // Se ejecuta cada vez que la pantalla Activation está enfocada
   useFocusEffect(
     useCallback(() => {
       const crashlytics = getCrashlytics(); // Obtiene la instancia de Crashlytics
-      let estado = '';
-      if (!usuario[0]?.is_registered) {
-        estado = 'Registro';
-      } else if (isReactivation) {
-        estado = 'Reactivación';
-      } else {
-        estado = 'Activación';
-      }
-      log(crashlytics, `Activation (${estado})`); // Establece el mensaje
-    }, [usuario[0]?.is_registered, isReactivation]) // Se reejecuta cada vez que cambian la dependencias
+      log(crashlytics, `Activation (${currentScreenState})`); // Establece el mensaje
+    }, [isRegistered, isReactivation]) // Se reejecuta cada vez que cambian la dependencias
   );
+
+  // useEffect para vincular los botones para navegación explicita
+  useEffect(() => {
+    // Si no es TV, no hace nada
+    if (!Platform.isTV) return;
+
+    let timeoutId;
+    let intentos = 0;
+    const maxIntentos = 15; // Intentará hasta por 1.5 segundos (15 * 100ms)
+
+    const mapearNodos = () => {
+      // Intenta capturar los IDs nativos
+      let tags = {
+        back: backBtnRef.current ? findNodeHandle(backBtnRef.current) : null,
+        wrapperName: nameWrapperRef.current ? findNodeHandle(nameWrapperRef.current) : null,
+        wrapperUser: userWrapperRef.current ? findNodeHandle(userWrapperRef.current) : null,
+        info: infoBtnRef.current ? findNodeHandle(infoBtnRef.current) : null,
+        register: registerBtnRef.current ? findNodeHandle(registerBtnRef.current) : null,
+        dropAct: dropActWrapperRef.current ? findNodeHandle(dropActWrapperRef.current) : null,
+        dropReact: dropReactWrapperRef.current ? findNodeHandle(dropReactWrapperRef.current) : null,
+        continue: continueBtnRef.current ? findNodeHandle(continueBtnRef.current) : null,
+      };
+
+      // Valída los nodos según la vista en la que se encuentre el usuario
+      const registroListo = currentScreenState === 'registro' && tags.wrapperName && tags.wrapperUser && tags.info && tags.register;
+      const activacionLista = currentScreenState === 'activacion' && !isReactivation && tags.dropAct && tags.continue;
+      const reactivacionLista = currentScreenState === 'reactivacion' && isReactivation && tags.dropReact && tags.continue;
+
+      // Si la vista actual ya pintó sus nodos en Android o se acabaron los intentos...
+      if (registroListo || activacionLista || reactivacionLista || intentos >= maxIntentos) {
+        setFocusTags(tags); // Guarda las etiquetas de los nodos
+      } else { // Si los nodos siguen siendo null...
+        // Espera 100ms y vuelve a intentarlo
+        intentos++;
+        timeoutId = setTimeout(mapearNodos, 100);
+      }
+    };
+
+    // Arranca el primer intento rápido (50ms)
+    timeoutId = setTimeout(mapearNodos, 50);
+
+    // Limpieza al desmontar o cambiar de vista
+    return () => clearTimeout(timeoutId);
+  }, [isRegistered, isReactivation]);
 
   // Escucha los eventos del Teclado
   useEffect(() => {
@@ -76,8 +133,6 @@ const Activation = ({ navigation, route }) => {
       const filtered = localUsername.replace(/[^a-zA-Z0-9_\-.]/g, '');
       if (filtered.length < 4) {
         setError('La longitud mínima es de 4 caracteres');
-      } else if (filtered.length > 12) {
-        setError('La longitud máxima es de 12 caracteres');
       } else {
         setError('');
       }
@@ -129,7 +184,7 @@ const Activation = ({ navigation, route }) => {
 
   // Función para validar el registro
   const validateRegistration = async () => {
-    if (error !== '') return; // Si ya hay error de formato, no continua
+    if (name.length < 1 || localUsername.length < 1 || error.length > 0) return; // Si algún campo está vacío o hay un error de formato, no continua
 
     hideMessage(); // Oculta el mensaje de notificación si se está mostrando
     handleStartLoading?.(); // Inicia el modal de carga
@@ -153,6 +208,7 @@ const Activation = ({ navigation, route }) => {
         is_registered: true,
       });
       setError('');
+      setIsRegistered(true);
     } else {
       setError('¡Ocurrió un error en el registro! Intente de nuevo');
     }
@@ -182,6 +238,8 @@ const Activation = ({ navigation, route }) => {
   };
 
   const validateActivation = async () => {
+    if (timer > 0) return; // Si el temporizador está activo, no hace nada
+
     hideMessage();
     handleStartLoading?.(); // Inicia el modal de carga
 
@@ -282,71 +340,146 @@ const Activation = ({ navigation, route }) => {
   return (
     <ImageBackground
       source={require('../../assets/fondo.jpg')}
-      style={{
-        flex: 1,
-        width: '100%',
-        height: '100%',
-      }}
+      style={styles.imageBackground}
       resizeMode='cover'
     >
       <KeyboardAvoidingView style={{ flex: 1 }}>
-        <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }} keyboardShouldPersistTaps="handled" >
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ flexGrow: 1, padding: height * 0.0463, paddingBottom: keyboardPadding, }}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Encabezado */}
-          <TouchableOpacity
-            style={{ position: 'absolute', top: isReactivation ? '7.5%' : '10%', left: 0, zIndex: 99 }}
+          <RippleButton
+            ref={backBtnRef}
+            mainStyle={{ position: 'absolute', top: height * (isReactivation ? 0.13 : 0.16), left: width * 0.05, zIndex: 99 }}
+            iconLib={Icon}
+            name="arrow-circle-left"
             onPress={handleBack}
             onLongPress={() => showToast(3, 'Salir de la App')}
-          >
-            <Icon name="arrow-circle-left" size={26} color="white" />
-          </TouchableOpacity>
-          <View style={{ justifyContent: 'center', height: isReactivation ? '20%' : '25%', }}>
+            nextFocusUp={focusTags.back}
+            nextFocusLeft={focusTags.back}
+            nextFocusRight={focusTags.back}
+            nextFocusDown={focusTags.wrapperName || focusTags.dropAct || focusTags.dropReact || focusTags.continue}
+          />
+          <View style={{ justifyContent: 'center', height: height * (isReactivation ? 0.20 : 0.25) }}>
             <Image
               source={require('../../assets/imagotipo_welcome.png')}
               style={{ height: '100%', width: '50%', resizeMode: 'contain', alignSelf: 'center', }}
             />
           </View>
-          {!usuario[0]?.is_registered ? (
+          {!isRegistered ? (
             // Registro
-            <View style={{ marginTop: 20, }}>
-              <Text style={styles.indication}>¡Para comenzar a disfrutar de todo el contenido, el primer paso es registrarse! Llene los campos a continuación y después pulse el botón para finalizar el registro.</Text>
-              <View style={{ alignSelf: 'center', width: '32.5%', marginTop: 25, }}>
-                <TextInput
-                  style={[styles.input, { backgroundColor: '#FFF', }]}
-                  placeholder='Ingrese su nombre y apellido'
-                  placeholderTextColor="#888"
-                  value={name}
-                  disableFullscreenUI={true}
-                  onChangeText={(text) => setName(filterName(text))}
-                  onPressIn={() => hideMessage()}
-                />
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 5, marginBottom: 20 }}>
-                  <TextInput
-                    style={{ color: '#000', fontSize: 18, paddingVertical: 10, paddingLeft: 10, }}
-                    placeholder='Ingrese un nombre de usuario'
-                    placeholderTextColor="#888"
-                    value={localUsername}
-                    disableFullscreenUI={true}
-                    onChangeText={filterUsername}
-                    onPressIn={() => hideMessage()}
-                  />
-                  <TouchableOpacity onPress={() => showToast(1, 'Longitud mínima de 4 caracteres y máxima de 12, se permiten letras, números, guiones y puntos.')} style={{ marginLeft: 8 }}>
-                    <Icon name="question-circle" size={18} color="rgb(80,80,100)" />
-                  </TouchableOpacity>
+            <View style={{ marginTop: height * 0.0463 }}>
+              <Text style={[styles.indication, { marginHorizontal: width * 0.0288 }]}>
+                ¡Para comenzar a disfrutar de todo el contenido, el primer paso es registrarse! Llene los campos a continuación y después pulse el botón para finalizar el registro.
+              </Text>
+              <View style={{ alignSelf: 'center', marginTop: height * 0.0579, }}>
+                <View style={[styles.wrapper, { marginBottom: height * 0.0463 }]}>
+                  <TouchableNativeFeedback
+                    ref={nameWrapperRef}
+                    onPress={() => nameInputRef.current?.focus()}
+                    background={focusRipple}
+                    useForeground={!Platform.isTV}
+                    hasTVPreferredFocus={Platform.isTV && !focusedTag}
+                    nextFocusUp={focusTags.back}
+                    nextFocusLeft={focusTags.wrapperName}
+                    nextFocusRight={focusTags.wrapperName}
+                    nextFocusDown={focusTags.wrapperUser}
+                  >
+                    <View style={styles.borderSimulator}>
+                      <View style={styles.innerContent}>
+                        <TextInput
+                          ref={nameInputRef}
+                          style={[styles.input, { height: '100%', padding: height * 0.0232, borderRadius: 3, backgroundColor: '#FFF' }]}
+                          placeholder='Ingrese su nombre y apellido'
+                          placeholderTextColor="#888"
+                          value={name}
+                          disableFullscreenUI={true}
+                          onChangeText={(text) => setName(filterName(text))}
+                          onPressIn={() => hideMessage()}
+                          onSubmitEditing={() => setFocusedTag(focusTags.wrapperUser)}
+                          maxLength={24}
+                        />
+                      </View>
+                    </View>
+                  </TouchableNativeFeedback>
                 </View>
+                <View style={[styles.wrapper, { marginBottom: height * 0.0463 }]}>
+                  <TouchableNativeFeedback
+                    ref={userWrapperRef}
+                    onPress={() => userInputRef.current?.focus()}
+                    background={focusRipple}
+                    useForeground={!Platform.isTV}
+                    hasTVPreferredFocus={Platform.isTV && focusedTag && focusTags.wrapperUser === focusedTag}
+                    nextFocusUp={focusTags.wrapperName}
+                    nextFocusLeft={focusTags.wrapperUser}
+                    nextFocusRight={focusTags.info}
+                    nextFocusDown={focusTags.register}
+                  >
+                    <View style={styles.borderSimulator}>
+                      <View style={styles.innerContent}>
+                        <View style={styles.inputContent}>
+                          <TextInput
+                            ref={userInputRef}
+                            style={[styles.input, { padding: height * 0.0232 }]}
+                            placeholder='Ingrese un nombre de usuario'
+                            placeholderTextColor="#888"
+                            value={localUsername}
+                            disableFullscreenUI={true}
+                            onChangeText={filterUsername}
+                            onPressIn={() => hideMessage()}
+                            onSubmitEditing={() => setFocusedTag(focusTags.register)}
+                            maxLength={12}
+                          />
+                          <RippleButton
+                            ref={infoBtnRef}
+                            mainStyle={{ marginLeft: '1%' }}
+                            iconLib={Icon}
+                            name="question-circle"
+                            size={18}
+                            color="rgb(80,80,100)"
+                            onPress={() => showToast(1, 'Longitud mínima de 4 caracteres y máxima de 12, se permiten letras, números, guiones y puntos.')}
+                            nextFocusUp={focusTags.wrapperName}
+                            nextFocusLeft={focusTags.wrapperUser}
+                            nextFocusRight={focusTags.info}
+                            nextFocusDown={focusTags.register}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableNativeFeedback>
+                </View>
+              </View>
+              <View style={{ alignItems: 'center' }}>
                 {error.length > 0 && (
-                  <View style={{ flexDirection: 'row', marginTop: -15, marginBottom: 20, }}>
+                  <View style={{ flexDirection: 'row', marginTop: -(height * 0.0348), marginBottom: height * 0.0463 }}>
                     <Icon3 name="report-gmailerrorred" size={16} color="red" />
                     <Text style={styles.error}>{error}</Text>
                   </View>
                 )}
-                <TouchableOpacity
-                  style={[styles.button, { alignSelf: 'center', opacity: (name.length > 0 && localUsername.length > 0 && error.length < 1) ? 1 : 0.5 }]}
-                  disabled={(name.length > 0 && localUsername.length > 0 && error.length < 1) ? false : true}
-                  onPress={validateRegistration}
-                >
-                  <Icon2 name="file-check" size={22} color="#FFF" />
-                  <Text style={[styles.textButton, { marginLeft: 2.5 }]}>Finalizar registro</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonWrapper}>
+                  <TouchableNativeFeedback
+                    ref={registerBtnRef}
+                    onPress={validateRegistration}
+                    background={focusRipple}
+                    useForeground={!Platform.isTV}
+                    hasTVPreferredFocus={Platform.isTV && focusedTag && focusTags.register === focusedTag}
+                    nextFocusUp={focusTags.wrapperUser}
+                    nextFocusLeft={focusTags.register}
+                    nextFocusRight={focusTags.register}
+                    nextFocusDown={focusTags.register}
+                  >
+                    <View style={{ padding: Platform.isTV ? 3 : 0 }}>
+                      <View style={styles.innerContentButton}>
+                        <View style={[styles.button, { alignSelf: 'center', opacity: (name.length > 0 && localUsername.length > 0 && error.length < 1) ? 1 : 0.5, padding: height * 0.0232 }]}>
+                          <Icon2 name="file-check" size={22} color="#FFF" />
+                          <Text style={[styles.textButton, { marginLeft: 2.5 }]}>Finalizar registro</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableNativeFeedback>
+                </View>
                 {error.length === 50 && (
                   <View style={{ flexDirection: 'row', marginTop: 5, }}>
                     <Icon3 name="report-gmailerrorred" size={16} color="red" />
@@ -356,121 +489,239 @@ const Activation = ({ navigation, route }) => {
               </View>
             </View>
           ) : (
-            <View style={{ marginTop: isReactivation ? 0 : 10, }}>
+            <View style={{ marginTop: isReactivation ? 0 : height * 0.0232, }}>
               {isReactivation ? (
                 // Reactivación
                 <>
-                  <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Su cuenta se encuentra desactivada! Siga las siguientes instrucciones para reactivarla:</Text>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Realice el pago correspondiente por transferencia a la siguiente cuenta.</Text>
-                  <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-evenly' }}>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(2)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                  <Text style={[styles.indication, { textAlign: 'center', marginHorizontal: width * 0.0288, marginBottom: height * 0.0232 }]}>
+                    ¡Su cuenta se encuentra desactivada! Siga las siguientes instrucciones para reactivarla:
+                  </Text>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    1. Realice el pago correspondiente por transferencia a {resellers.length > 1 ? 'una de las siguientes cuentas' : 'la siguiente cuenta'}.
+                  </Text>
+                  <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-evenly', marginTop: 5, marginBottom: 2 }}>
+                    <Pressable
+                      style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115, marginTop: 0, marginBottom: 0 }]}
+                      onPress={() => copyInfo(2)}
+                      onLongPress={() => showToast(3, 'Presione para copiar')}
+                    >
                       <Icon name="credit-card-alt" size={22} color="#FFF" />
                       <Text style={styles.info}>{selectedReseller?.number_card.match(/.{1,4}/g).join(" ")}</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(3)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                    <Pressable
+                      style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115, marginTop: 0, marginBottom: 0 }]}
+                      onPress={() => copyInfo(3)}
+                      onLongPress={() => showToast(3, 'Presione para copiar')}
+                    >
                       <Icon name="bank" size={22} color="#FFF" />
                       <Text style={styles.info}>{selectedReseller?.bank}</Text>
                     </Pressable>
                     {resellers.length > 1 ? (
-                      <Dropdown
-                        style={styles.dropdown}
-                        selectedTextStyle={styles.info}
-                        selectedTextProps={{ numberOfLines: 1 }}
-                        containerStyle={{ borderRadius: 5 }}
-                        itemTextStyle={{ color: 'black' }}
-                        activeColor='rgba(0,255,255,0.25)'
-                        renderLeftIcon={() => (
-                          <Icon name="vcard" size={22} color="#FFF" />
-                        )}
-                        data={resellers}
-                        labelField="name"
-                        valueField="id"
-                        placeholder='Selecciona un Reseller'
-                        value={selectedReseller?.id}
-                        onChange={item => {
-                          setSelectedReseller(item);
-                        }}
-                      />
+                      <View style={{ borderRadius: 7.5, overflow: 'hidden' }}>
+                        <TouchableNativeFeedback
+                          ref={dropReactWrapperRef}
+                          onPress={() => reactivationDropdowndRef.current?.open()}
+                          background={focusRipple}
+                          useForeground={!Platform.isTV}
+                          hasTVPreferredFocus={Platform.isTV}
+                          nextFocusUp={focusTags.back}
+                          nextFocusRight={focusTags.dropReact}
+                          nextFocusLeft={focusTags.dropReact}
+                          nextFocusDown={focusTags.continue}
+                        >
+                          <View style={{ padding: Platform.isTV ? 3 : 0 }}>
+                            <View style={{ flex: 1, borderRadius: 7.5 }}>
+                              <Dropdown
+                                ref={reactivationDropdowndRef}
+                                style={[styles.dropdown, { width: width * (width > 700 ? 0.30 : 0.35), paddingHorizontal: width * 0.0115 }]}
+                                selectedTextStyle={styles.info}
+                                selectedTextProps={{ numberOfLines: 1 }}
+                                containerStyle={{ borderRadius: 5 }}
+                                data={resellers}
+                                labelField="name"
+                                valueField="id"
+                                placeholder='Selecciona un Reseller'
+                                value={selectedReseller?.id}
+                                renderLeftIcon={() => (
+                                  <Icon name="vcard" size={22} color="#FFF" />
+                                )}
+                                renderItem={(item) => (
+                                  <ItemDropdown
+                                    item={item}
+                                    isSelected={selectedReseller?.id === item.id}
+                                    onSelect={(selectedItem) => {
+                                      setSelectedReseller(selectedItem);
+                                      reactivationDropdowndRef.current?.close();
+                                      setFocusedTag(focusTags.continue)
+                                    }}
+                                  />
+                                )}
+                              />
+                            </View>
+                          </View>
+                        </TouchableNativeFeedback>
+                      </View>
                     ) : (
-                      <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                      <Pressable
+                        style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                        onPress={() => copyInfo(4)}
+                        onLongPress={() => showToast(3, 'Presione para copiar')}
+                      >
                         <Icon name="vcard" size={22} color="#FFF" />
                         <Text style={styles.info}>{selectedReseller?.name}</Text>
                       </Pressable>
                     )}
                   </View>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>2. En el concepto (o motivo) del pago, escriba su nombre de usuario o su nombre completo.</Text>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    2. En el concepto (o motivo) del pago, escriba su nombre de usuario o su nombre completo.
+                  </Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(1)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                    <Pressable
+                      style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                      onPress={() => copyInfo(1)}
+                      onLongPress={() => showToast(3, 'Presione para copiar')}
+                    >
                       <Icon4 name="user" size={22} color="#FFF" />
                       <Text style={styles.info}>{usuario[0]?.username}</Text>
                     </Pressable>
-                    <Pressable style={styles.infoConteiner} onPress={() => copyInfo(5)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                    <Pressable
+                      style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                      onPress={() => copyInfo(5)}
+                      onLongPress={() => showToast(3, 'Presione para copiar')}
+                    >
                       <Icon name="vcard" size={22} color="#FFF" />
                       <Text style={styles.info}>{usuario[0]?.client_name}</Text>
                     </Pressable>
                   </View>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Tome captura del comprobante de pago y envíela al siguiente número de WhatsApp:</Text>
-                  <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    3. Tome captura del comprobante de pago y envíela al siguiente número de WhatsApp:
+                  </Text>
+                  <Pressable
+                    style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                    onPress={openWhatsApp}
+                    onLongPress={() => showToast(3, 'Presione para abrir')}
+                  >
                     <Icon name="whatsapp" size={22} color="#FFF" />
                     <Text style={styles.info}>{getWhatsApp()}</Text>
                   </Pressable>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>4. Una vez que se le indique que su cuenta fue reactivada, pulse el botón 'Continuar'.</Text>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    4. Una vez que se le indique que su cuenta fue reactivada, pulse el botón 'Continuar'.
+                  </Text>
                 </>
               ) : (
                 // Activación
                 <>
-                  <Text style={[styles.indication, { textAlign: 'center', marginBottom: 10 }]}>¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:</Text>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>1. Copie su nombre de usuario (pulse para copiarlo al portapapeles).</Text>
-                  <Pressable style={styles.infoConteiner} onPress={() => copyInfo()} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                  <Text style={[styles.indication, { textAlign: 'center', marginHorizontal: width * 0.0288, marginBottom: height * 0.0232 }]}>
+                    ¡Se completó el registro! El segundo paso es activar su cuenta, siga las siguientes instrucciones para realizar la activación:
+                  </Text>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    1. {Platform.isTV ? 'Revise y anote su nombre de usuario' : 'Copie su nombre de usuario (pulse para copiarlo al portapapeles)'}.
+                  </Text>
+                  <Pressable
+                    style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                    onPress={() => copyInfo()}
+                    onLongPress={() => showToast(3, 'Presione para copiar')}
+                  >
                     <Icon4 name="user" size={22} color="#FFF" />
                     <Text style={styles.info}>{usuario[0]?.username}</Text>
                   </Pressable>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>2. Envíelo al siguiente WhatsApp (pulse para abrir el chat) y siga las indicaciones que se le den.</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    2. Envíelo {resellers.length > 1 ? 'a uno de los siguientes números de' : 'al siguiente número de'} WhatsApp{!Platform.isTV && ' (pulse para abrir el chat)'} y siga las indicaciones que se le den.
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 5, marginBottom: 2 }}>
                     {resellers.length > 1 ? (
-                      <Dropdown
-                        style={styles.dropdown}
-                        selectedTextStyle={styles.info}
-                        selectedTextProps={{ numberOfLines: 1 }}
-                        containerStyle={{ borderRadius: 5 }}
-                        itemTextStyle={{ color: 'black' }}
-                        activeColor='rgba(0,255,255,0.25)'
-                        renderLeftIcon={() => (
-                          <Icon name="vcard" size={22} color="#FFF" />
-                        )}
-                        data={resellers}
-                        labelField="name"
-                        valueField="id"
-                        placeholder='Selecciona un Reseller'
-                        value={selectedReseller?.id}
-                        onChange={item => {
-                          setSelectedReseller(item);
-                        }}
-                      />
+                      <View style={{ borderRadius: 7.5, overflow: 'hidden' }}>
+                        <TouchableNativeFeedback
+                          ref={dropActWrapperRef}
+                          onPress={() => activationDropdowndRef.current?.open()}
+                          background={focusRipple}
+                          useForeground={!Platform.isTV}
+                          hasTVPreferredFocus={Platform.isTV}
+                          nextFocusUp={focusTags.back}
+                          nextFocusRight={focusTags.dropAct}
+                          nextFocusLeft={focusTags.dropAct}
+                          nextFocusDown={focusTags.continue}
+                        >
+                          <View style={{ padding: Platform.isTV ? 3 : 0 }}>
+                            <View style={{ flex: 1, borderRadius: 7.5 }}>
+                              <Dropdown
+                                ref={activationDropdowndRef}
+                                style={[styles.dropdown, { width: width * (width > 700 ? 0.30 : 0.35), paddingHorizontal: width * 0.0115 }]}
+                                selectedTextStyle={styles.info}
+                                selectedTextProps={{ numberOfLines: 1 }}
+                                containerStyle={{ borderRadius: 5 }}
+                                data={resellers}
+                                labelField="name"
+                                valueField="id"
+                                placeholder='Selecciona un Reseller'
+                                value={selectedReseller?.id}
+                                renderLeftIcon={() => (
+                                  <Icon name="vcard" size={22} color="#FFF" />
+                                )}
+                                renderItem={(item) => (
+                                  <ItemDropdown
+                                    item={item}
+                                    isSelected={selectedReseller?.id === item.id}
+                                    onSelect={(selectedItem) => {
+                                      setSelectedReseller(selectedItem);
+                                      activationDropdowndRef.current?.close();
+                                      setFocusedTag(focusTags.continue)
+                                    }}
+                                  />
+                                )}
+                              />
+                            </View>
+                          </View>
+                        </TouchableNativeFeedback>
+                      </View>
                     ) : (
-                      <Pressable style={styles.infoConteiner} onPress={() => copyInfo(4)} onLongPress={() => showToast(3, 'Presione para copiar')}>
+                      <Pressable
+                        style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115 }]}
+                        onPress={() => copyInfo(4)}
+                        onLongPress={() => showToast(3, 'Presione para copiar')}
+                      >
                         <Icon name="vcard" size={22} color="#FFF" />
                         <Text style={styles.info}>{selectedReseller?.name}</Text>
                       </Pressable>
                     )}
-                    <Pressable style={styles.infoConteiner} onPress={openWhatsApp} onLongPress={() => showToast(3, 'Presione para abrir')}>
+                    <Pressable
+                      style={[styles.infoConteiner, { paddingHorizontal: width * 0.0115, marginTop: 0, marginBottom: 0 }]}
+                      onPress={openWhatsApp}
+                      onLongPress={() => showToast(3, 'Presione para abrir')}
+                    >
                       <Icon name="whatsapp" size={22} color="#FFF" />
                       <Text style={styles.info}>{getWhatsApp()}</Text>
                     </Pressable>
                   </View>
-                  <Text style={[styles.indication, { textAlign: 'justify', }]}>3. Una vez que se le indique que su cuenta fue activada, pulse el botón 'Continuar'.</Text>
+                  <Text style={[styles.indication, { textAlign: 'justify', marginHorizontal: width * 0.0288 }]}>
+                    3. Una vez que se le indique que su cuenta fue activada, pulse el botón 'Continuar'.
+                  </Text>
                 </>
               )}
               {/* Botón y mensaje de error */}
-              <View style={{ width: '35%', alignItems: 'center', alignSelf: 'center', marginTop: 5, }}>
-                <TouchableOpacity
-                  style={[styles.button, { opacity: timer > 0 ? 0.5 : 1 }]}
-                  disabled={timer > 0 ? true : false}
-                  onPress={validateActivation}
-                >
-                  <Text style={[styles.textButton, { marginRight: 2.5 }]}>Continuar</Text>
-                  <Icon5 name="enter-outline" size={22} color="#FFF" />
-                </TouchableOpacity>
+              <View style={{ width: width * 0.35, alignItems: 'center', alignSelf: 'center', marginTop: 5 }}>
+                <View style={styles.buttonWrapper}>
+                  <TouchableNativeFeedback
+                    ref={continueBtnRef}
+                    onPress={validateActivation}
+                    background={focusRipple}
+                    useForeground={!Platform.isTV}
+                    hasTVPreferredFocus={Platform.isTV && (resellers.length < 2 || (focusedTag && focusedTag === focusTags.continue))}
+                    nextFocusUp={focusTags.dropAct || focusTags.dropReact || focusTags.back}
+                    nextFocusRight={focusTags.continue}
+                    nextFocusLeft={focusTags.continue}
+                    nextFocusDown={focusTags.continue}
+                  >
+                    <View style={{ padding: Platform.isTV ? 3 : 0 }}>
+                      <View style={styles.innerContentButton}>
+                        <View style={[styles.button, { opacity: timer > 0 ? 0.5 : 1, padding: height * 0.0232 }]}>
+                          <Text style={[styles.textButton, { marginRight: 2.5 }]}>Continuar</Text>
+                          <Icon5 name="enter-outline" size={22} color="#FFF" />
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableNativeFeedback>
+                </View>
                 {error.length > 0 && (
                   <View style={{ flexDirection: 'row', marginTop: 5, }}>
                     <Icon3 name="report-gmailerrorred" size={16} color="red" />
@@ -488,30 +739,43 @@ const Activation = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  imageBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
     backgroundColor: 'rgba(16,16,16,0.5)',
-    padding: 20,
-  },
-  textHeader: {
-    fontSize: 25,
-    fontWeight: 'bold',
-    color: '#FFF',
-    paddingTop: 15,
   },
   indication: {
     fontSize: 18,
     color: '#FFF',
-    marginHorizontal: 25,
     textAlign: 'center'
+  },
+  wrapper: {
+    borderRadius: 5,
+    overflow: 'hidden',
+    height: Platform.isTV ? 55 : 50,
+  },
+  borderSimulator: {
+    flex: 1,
+    padding: Platform.isTV ? 3 : 0,
+  },
+  innerContent: {
+    flex: 1,
+    borderRadius: 3
+  },
+  inputContent: {
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 3,
+    backgroundColor: '#FFF'
   },
   input: {
     color: '#000',
     fontSize: 18,
-    paddingVertical: 10,
-    paddingLeft: 10,
-    borderRadius: 5,
-    marginBottom: 20
   },
   error: {
     fontSize: 12,
@@ -521,13 +785,21 @@ const styles = StyleSheet.create({
     paddingBottom: 1,
     paddingLeft: 2,
   },
+  buttonWrapper: {
+    borderRadius: 5,
+    overflow: 'hidden'
+  },
+  innerContentButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 3,
+    backgroundColor: 'rgb(80,80,100)',
+  },
   button: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 5,
-    padding: 10,
-    width: '60%',
     backgroundColor: 'rgb(80,80,100)',
   },
   textButton: {
@@ -543,15 +815,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(80,80,100,0.5)',
     marginTop: 5,
     marginBottom: 2,
-    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 5,
   },
   dropdown: {
-    width: '30%',
-    borderWidth: 3,
+    height: 35,
     borderRadius: 7.5,
-    paddingHorizontal: 10,
     backgroundColor: 'rgba(80,80,100,0.5)'
   },
   info: {
