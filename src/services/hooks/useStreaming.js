@@ -112,7 +112,7 @@ export const useStreaming = () => {
                                 itemsForThisCategory = realm.objects(contentModel).filtered('favorito == true');
                                 break;
                             default:
-                                itemsForThisCategory = realm.objects(contentModel).filtered('$0 IN category_ids', cat.category_id);
+                                itemsForThisCategory = realm.objects(contentModel).filtered('$0 IN category_ids OR category_id == $0', cat.category_id);
                         }
 
                         // Crea o actualiza la categoría en Realm
