@@ -17,9 +17,12 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
     const imagen = tipo === 'series' ? item.cover : item.stream_icon;
     const item_id = tipo === 'series' ? 'series_id' : 'stream_id';
 
-    const getTitle = (title) => {
+    const getTitle = () => {
+        // Si el titulo está vacío o no existe, devuelve el nombre
+        if (!item.title) return item.name;
+
         // Si el titulo contiene el patrón "S##E## - ", extrae todo lo demás, en caso contrario, asigna el titulo original
-        const newTitle = title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i) ? title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i)[1].trim() : title;
+        const newTitle = item.title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i) ? title.match(/^[sS]\d+[eE]\d+\s*-\s*(.*)$/i)[1].trim() : item.title;
 
         // Si el nuevo titulo contiene algún '(' o '-', devuelve todo antes del caracter, en caso contrario, devuelve el nuevo titulo completo
         return newTitle.match(/^([^(|-]+)/) ? newTitle.match((/^([^(|-]+)/))[1].trim() : newTitle;
@@ -29,36 +32,42 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
         hideMessage();
         const apiKey = await AsyncStorage.getItem('key_tmdb_api'); // Obtiene la key de la API de TMDB del almacenamiento asíncrono
         if (tipo === 'live') {
-            navigation.navigate('Canal', { idContent: item.stream_id, idCategory, username });
+            navigation.navigate('Canal', { idContent: item.stream_id, idCategory, username }); // Navega a la pantalla de Canales
         }
         else if (tipo === 'vod') {
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
+                // Si la pelicula todavía no descarga información de TMDB API...
                 if (!item.tmdb_id) {
-                    const poster = item.stream_icon.split('/').pop(); // Obtiene la última parte de la url del poster
-                    const title = getTitle(item.title); // Obtiene solo la parte esencial del titulo en caso de que contenga algo adicional
-                    const info = await getDataMovie(apiKey, title, item.year, `/${poster}`, item.release_date); // Obtiene la información general de la pelicula
-                    if (info) {
-                        updateProps(
-                            tipo,
-                            false,
-                            item.stream_id,
-                            {
-                                tmdb_id: info.tmdb_id.toString(),
-                                backdrop_path: info.backdrop_path,
-                                original_title: info.original_title,
-                                overview: info.overview,
-                                poster_path: info.poster_path,
-                                runtime: info.runtime.toString(),
-                                genres: info.genres,
-                                vote_average: info.vote_average.toString(),
-                                release_date_aux: info.release_date,
-                                cast: info.cast
-                            }
-                        );
+                    const poster = item.stream_icon?.split('/').pop(); // Obtiene la última parte de la url del poster
+                    const title = getTitle(); // Obtiene solo la parte esencial del titulo en caso de que contenga algo adicional
+                    // Si existe el titulo de la pelicula...
+                    if (title) {
+                        const info = await getDataMovie(apiKey, title, item.year, `/${poster}`, item.release_date, item.rating); // Obtiene la información general de la pelicula
+                        // Si se devuelve información de la pelicula...
+                        if (info) {
+                            // Actualiza las propiedades de la pelicula en la BD local
+                            updateProps(
+                                tipo,
+                                false,
+                                item.stream_id,
+                                {
+                                    tmdb_id: info.tmdb_id.toString(),
+                                    backdrop_path: info.backdrop_path,
+                                    original_title: info.original_title,
+                                    overview: info.overview,
+                                    poster_path: info.poster_path,
+                                    runtime: info.runtime.toString(),
+                                    genres: info.genres,
+                                    vote_average: info.vote_average.toString(),
+                                    release_date_aux: info.release_date,
+                                    cast: info.cast
+                                }
+                            );
+                        }
                     }
                 }
-                navigation.navigate('Pelicula', { idContent: item.stream_id, username });
+                navigation.navigate('Pelicula', { idContent: item.stream_id, username }); // Navega a la pantalla de Peliculas
             } catch (error) {
                 ErrorLogger.log(`CardContenido - handleNavigateToScreen (VOD_${item?.stream_id})`, error);
             } finally {
@@ -68,32 +77,39 @@ const CardContenido = ({ navigation, tipo, item, favoritos, idCategory, episodio
         else {
             try {
                 onStartLoading?.(); // Avisa a Seccion que inicie el modal de carga
+                // Si la serie no es una saga y todavía no descarga información de TMDB API...
                 if (!item.saga && !item.tmdb_id) {
-                    const poster = (item.cover || "").split('/').pop(); // Obtiene la última parte de la url del poster
-                    const backdrop = (item.backdrop_path || "").split('/').pop(); // Obtiene la última parte de la url de la imagen de fondo
-                    const info = await getDataSerie(apiKey, item.title, item.year, item.release_date, `/${poster}`, `/${backdrop}`,); //Obtiene la información general de la pelicula
-                    if (info) {
-                        updateProps(
-                            tipo,
-                            false,
-                            item.series_id,
-                            {
-                                tmdb_id: info.tmdb_id.toString(),
-                                original_name: info.original_name,
-                                backdrop_path_aux: info.backdrop_path,
-                                poster_path: info.poster_path,
-                                vote_average: info.vote_average.toString(),
-                                genres: info.genres,
-                                overview: info.overview,
-                                first_air_date: info.first_air_date,
-                                cast: info.cast
-                            }
-                        );
+                    const poster = item.cover?.split('/').pop(); // Obtiene la última parte de la url del poster
+                    const backdrop = item.backdrop_path?.split('/').pop(); // Obtiene la última parte de la url de la imagen de fondo
+                    const title = item.title ? item.title : item.name; // Asigna el tituto de la serie
+                    // Si existe el titulo de la serie...
+                    if (title) {
+                        const info = await getDataSerie(apiKey, title, item.year, item.release_date, `/${poster}`, `/${backdrop}`, item.rating); // Obtiene la información general de la serie
+                        // Si se devuelve información de la serie...
+                        if (info) {
+                            // Actualiza las propiedades de la serie en la BD local
+                            updateProps(
+                                tipo,
+                                false,
+                                item.series_id,
+                                {
+                                    tmdb_id: info.tmdb_id.toString(),
+                                    original_name: info.original_name,
+                                    backdrop_path_aux: info.backdrop_path,
+                                    poster_path: info.poster_path,
+                                    vote_average: info.vote_average.toString(),
+                                    genres: info.genres,
+                                    overview: info.overview,
+                                    first_air_date: info.first_air_date,
+                                    cast: info.cast
+                                }
+                            );
+                        }
                     }
                 }
-                const response = await getEpisodes(item.series_id);
+                const response = await getEpisodes(item.series_id); // Obtiene los episodios de la serie
                 console.log(response ? 'Episodios agregados' : 'No se agregaron los episodios');
-                navigation.navigate('Serie', { idContent: item.series_id, username });
+                navigation.navigate('Serie', { idContent: item.series_id, username }); // Navega a la pantalla de Series
             } catch (error) {
                 ErrorLogger.log(`CardContenido - handleNavigateToScreen (Series_${item?.series_id})`, error);
             } finally {
