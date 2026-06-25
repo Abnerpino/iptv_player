@@ -1,12 +1,21 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Animated, StyleSheet, View, Text, Platform } from 'react-native';
+import { Animated, StyleSheet, View, Text, Platform, Modal } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 const ModalLoading = ({ visible }) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const animationRef = useRef(null);
     const intervalRef = useRef(null);
+    const modalTrapRef = useRef(null);
     const [dots, setDots] = useState(''); // Estado para manejar los puntos del mensaje "Cargando"
+
+    // Control del foco de atención
+    useEffect(() => {
+        // Cuando el modal se hace visible en TV, roba el foco hacia él
+        if (visible && Platform.isTV) {
+            setTimeout(() => modalTrapRef.current?.focus(), 100);
+        }
+    }, [visible]);
 
     // Control de la animación de rotación
     useEffect(() => {
@@ -55,26 +64,25 @@ const ModalLoading = ({ visible }) => {
         outputRange: ['0deg', '360deg'],
     });
 
-    // Si el modal no está abierto, no renderiza nada
-    if (!visible) return null;
-
     return (
-        <View style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
-            <View style={styles.touchableBackground}>
-                <Animated.View style={[styles.circleContainer, { transform: [{ rotate: spin }] }]}>
-                    <Svg width={Platform.isTV ? 120 : 100} height={Platform.isTV ? 120 : 100} viewBox="0 0 100 100">
-                        <Path
-                            d="M50 10 A 40 40 0 0 1 90 50"
-                            fill="none"
-                            stroke="#FFF"
-                            strokeWidth={5}
-                            strokeLinecap="round"
-                        />
-                    </Svg>
-                </Animated.View>
-                <Text style={styles.text}>Cargando{dots}</Text>
+        <Modal visible={visible} transparent={true} animationType="fade">
+            <View ref={modalTrapRef} focusable={Platform.isTV} style={[styles.modalOverlay, StyleSheet.absoluteFill]}>
+                <View style={styles.touchableBackground}>
+                    <Animated.View style={[styles.circleContainer, { transform: [{ rotate: spin }] }]}>
+                        <Svg width={Platform.isTV ? 120 : 100} height={Platform.isTV ? 120 : 100} viewBox="0 0 100 100">
+                            <Path
+                                d="M50 10 A 40 40 0 0 1 90 50"
+                                fill="none"
+                                stroke="#FFF"
+                                strokeWidth={5}
+                                strokeLinecap="round"
+                            />
+                        </Svg>
+                    </Animated.View>
+                    <Text style={styles.text}>Cargando{dots}</Text>
+                </View>
             </View>
-        </View>
+        </Modal>
     );
 };
 
