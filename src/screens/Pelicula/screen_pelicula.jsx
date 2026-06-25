@@ -71,7 +71,7 @@ const Pelicula = ({ navigation, route }) => {
         }, 100);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [showReproductor]);
 
     // Efecto para marcar como vista una pelicula
     useEffect(() => {

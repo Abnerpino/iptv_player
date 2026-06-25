@@ -110,7 +110,7 @@ const Serie = ({ navigation, route }) => {
         }, 100);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [showReproductor]);
 
     useEffect(() => {
         if (playbackInfo.episodeId !== selectedEpisode.id) return;
