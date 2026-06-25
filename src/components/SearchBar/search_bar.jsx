@@ -113,7 +113,7 @@ const SearchBar = ({ message, searchText, setSearchText, playerTag, getBarTag, f
 const styles = StyleSheet.create({
     wrapper: {
         width: '100%',
-        borderRadius: 10,
+        borderRadius: 20,
         overflow: 'hidden',
         marginVertical: 5,
         borderColor: '#FFF',
