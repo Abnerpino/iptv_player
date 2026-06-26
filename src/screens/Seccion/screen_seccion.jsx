@@ -26,7 +26,6 @@ const Seccion = ({ navigation, route }) => {
     const [itemToDelete, setItemToDelete] = useState(null); //Estado para manejar el item seleccionado
     const [loading, setLoading] = useState(false); //Estado para manejar el modal de carga
     const [focusRightTag, setFocusRightTag] = useState(null); // Estado para manejar la etiqueta del icono de la Barra de Búsqueda
-    const [newHeight, setNewHeight] = useState(0); // Estado para guardar la nueva altura de la imagen del Card de Contenido
     const iconBarRef = useRef(null); // Referencia para el icono de la Barra de Búsqueda
     const flatListRef = useRef(null); //Referencia al FlatList del contenido
 
@@ -74,19 +73,6 @@ const Seccion = ({ navigation, route }) => {
         }
     }, [type, categories]);
 
-    // useEffect que calcula dinamicamente un nuevo valor para la altura de la imagen del Card de Contenido, basada en las medidas de cada dispositivo
-    useEffect(() => {
-        // Validación de seguridad
-        if (height <= 0 || width <= 0) {
-            setNewHeight(type === 'live' ? (Platform.isTV ? 120 : 100) : (Platform.isTV ? 180 : 160));
-            return;
-        }
-
-        // Cálculo seguro
-        const altura = Math.ceil(type === 'live' ? (width / height) * ((width - (height / 1.5)) / 10) : (width / height) * (width / 10));
-        setNewHeight(altura);
-    }, []);
-
     // Memo para guardar y mantener actualizado el contenido de la categoría de Favoritos
     const favoritos = useMemo(() => {
         return categories.find(c => c.category_id === '0.3');
@@ -102,7 +88,15 @@ const Seccion = ({ navigation, route }) => {
         else if (category.category_id === '0.3') contenido = getFavoriteItems(type); // Filtra el contenido 'Favoritos'
         else contenido = category[contentField].sorted('num'); // Obtiene el contenido de cualquier otra categoría, ordenado por la propiedad 'num'
 
-        if (searchCont.trim() !== '') contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); // Filtra por el término de búqueda si es que existe
+        // Si el usuario hace una búsqueda...
+        if (searchCont.trim() !== '') {
+            // Si ha escrito 1 o 2 letras...
+            if (searchCont.length <= 2) {
+                contenido = contenido.filtered('name BEGINSWITH[c] $0', searchCont); // Filtra usando BEGINSWITH para no sobrecargar el CPU
+            } else { // Cuando ya escribió 3 letras o más...
+                contenido = contenido.filtered('name CONTAINS[c] $0', searchCont); // Filtra usando CONTAINS
+            }
+        }
 
         return contenido; // Retorna una colección de Realm ya filtrada y optimizada
     }, [type, category, searchCont]); // Se re-ejecuta solo cuando un filtro cambia
@@ -155,13 +149,13 @@ const Seccion = ({ navigation, route }) => {
     const ultimoEpisodioReproducido = (item) => {
         if (type === 'series' && category.category_id === '0.2' && item.visto) {
             const episodio = getLastPlayedEpisode(item.series_id, item.last_ep_played[0], item.last_ep_played[1]);
-            
+
             return {
                 duration_secs: episodio.duration_secs,
                 playback_time: episodio.playback_time
             }
         }
-        
+
         return null;
     };
 
@@ -210,11 +204,36 @@ const Seccion = ({ navigation, route }) => {
         setConfirmationResult(false);
     };
 
+    // Calcula dinamicamente un nuevo valor para la altura de la imagen del Card de Contenido, basado en las medidas de cada dispositivo
+    const dynamicHeight = useMemo(() => {
+        // Validación de seguridad
+        if (height <= 0 || width <= 0) {
+            return type === 'live' ? (Platform.isTV ? 120 : 100) : (Platform.isTV ? 180 : 160);
+        }
+
+        // Cálculo seguro
+        return Math.ceil(type === 'live' ? (width / height) * ((width - (height / 1.5)) / 10) : (width / height) * (width / 10));
+    }, [type]);
+
+    const TOTAL_CARD_HEIGHT = dynamicHeight; // Altura real del Card de Contenido
+
+    // Mapa síncrono de memoria para el FlatList de Contenido
     const getItemLayout = useCallback((data, index) => ({
-        length: type === 'live' ? 100 : 160,
-        offset: (type === 'live' ? 100 : 160) * index,
+        length: TOTAL_CARD_HEIGHT,
+        offset: TOTAL_CARD_HEIGHT * index,
         index,
-    }), [type]);
+    }), [TOTAL_CARD_HEIGHT]);
+
+    // Calcula cuántos ítems se deben renderizar inicialmente, basado en las medidas de cada dispositivo
+    const initialItems = useMemo(() => {
+        // Resta un aproximado del encabezado de la altura total
+        const usableHeight = height - 55;
+        // Divide la altura utilizable entre la altura real del card
+        const visibleRows = Math.ceil(usableHeight / TOTAL_CARD_HEIGHT);
+
+        // (Filas visibles + 1 fila de margen) * 5 columnas
+        return (visibleRows + 1) * 5;
+    }, [TOTAL_CARD_HEIGHT]);
 
     const showToast = (mensaje, numStyle) => {
         Vibration.vibrate();
@@ -285,7 +304,7 @@ const Seccion = ({ navigation, route }) => {
                             )}
                         </View>
                         <View style={styles.contenidoContainer}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: mostrarBusqueda ? 0 : 10, paddingHorizontal: 10, }}>
+                            <View style={[styles.headerContenido, { paddingVertical: mostrarBusqueda ? 0 : 10 }]}>
                                 <View style={{ flexDirection: 'row', width: (category?.category_id === '0.2' || category?.category_id === '0.3') ? '12.5%' : '5%', justifyContent: 'space-between', }}>
                                     {(category?.category_id === '0.2' || category?.category_id === '0.3') && (
                                         <RippleButton
@@ -360,12 +379,12 @@ const Seccion = ({ navigation, route }) => {
                                             hideMessage={() => hideMessage()}
                                             showModal={handleShowModal}
                                             username={username}
-                                            newHeight={newHeight}
+                                            newHeight={dynamicHeight}
                                         />
                                     )}
                                     getItemLayout={getItemLayout}
                                     keyExtractor={item => type === 'series' ? item.series_id : item.stream_id}
-                                    initialNumToRender={20}
+                                    initialNumToRender={initialItems}
                                     maxToRenderPerBatch={10}
                                     windowSize={5}
                                     removeClippedSubviews={true}
@@ -404,6 +423,11 @@ const styles = StyleSheet.create({
         width: '75%',
         paddingLeft: '0.75%',
         paddingRight: '1%',
+    },
+    headerContenido: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
     },
     sectionTitle: {
         color: '#FFF',
