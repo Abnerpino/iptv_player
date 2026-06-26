@@ -48,17 +48,17 @@ export const CanalSchema = {
     name: 'Canal',
     primaryKey: 'stream_id',
     properties: {
-        num: 'int',
-        name: 'string',
+        num: { type: 'int', indexed: true },
+        name: { type: 'string', indexed: true },
         stream_id: 'string',
         stream_icon: 'string?',
         category_id: { type: 'string', indexed: true },
         category_ids: 'string[]',
         link: 'string',
         aux_link: 'string',
-        favorito: 'bool',
-        visto: 'bool',
-        fecha_visto: 'date?',
+        favorito: { type: 'bool', indexed: true },
+        visto: { type: 'bool', indexed: true },
+        fecha_visto: { type: 'date', optional: true, indexed: true },
     },
 };
 
@@ -68,7 +68,7 @@ export const CatsLiveSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
-        order: { type: 'int', default: 0 },
+        order: { type: 'int', default: 0, indexed: true },
         total: 'int',
         canales: { type: 'list', objectType: 'Canal' }
     },
@@ -78,8 +78,8 @@ export const PeliculaSchema = {
     name: 'Pelicula',
     primaryKey: 'stream_id',
     properties: {
-        num: 'int',
-        name: 'string',
+        num: { type: 'int', indexed: true },
+        name: { type: 'string', indexed: true },
         title: 'string?',
         year: 'string?',
         stream_id: 'string',
@@ -103,9 +103,9 @@ export const PeliculaSchema = {
         cast: 'string?',
         link: 'string',
         aux_link: 'string',
-        favorito: 'bool',
-        visto: 'bool',
-        fecha_visto: 'date?',
+        favorito: { type: 'bool', indexed: true },
+        visto: { type: 'bool', indexed: true },
+        fecha_visto: { type: 'date', optional: true, indexed: true },
         playback_time: 'string',
     },
 };
@@ -116,7 +116,7 @@ export const CatsVodSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
-        order: { type: 'int', default: 0 },
+        order: { type: 'int', default: 0, indexed: true },
         total: 'int',
         peliculas: { type: 'list', objectType: 'Pelicula' }
     },
@@ -156,8 +156,8 @@ export const SerieSchema = {
     name: 'Serie',
     primaryKey: 'series_id',
     properties: {
-        num: 'int',
-        name: 'string',
+        num: { type: 'int', indexed: true },
+        name: { type: 'string', indexed: true },
         title: 'string?',
         year: 'string?',
         series_id: 'string',
@@ -179,9 +179,9 @@ export const SerieSchema = {
         overview: 'string?',
         cast: 'string?',
         temporadas: { type: 'list', objectType: 'Temporada' },
-        favorito: 'bool',
-        visto: 'bool',
-        fecha_visto: 'date?',
+        favorito: { type: 'bool', indexed: true },
+        visto: { type: 'bool', indexed: true },
+        fecha_visto: { type: 'date', optional: true, indexed: true },
         saga: 'bool',
         last_ep_played: 'int[]',
     },
@@ -193,7 +193,7 @@ export const CatsSerieSchema = {
     properties: {
         category_id: 'string',
         category_name: 'string',
-        order: { type: 'int', default: 0 },
+        order: { type: 'int', default: 0, indexed: true },
         total: 'int',
         series: { type: 'list', objectType: 'Serie' }
     },
